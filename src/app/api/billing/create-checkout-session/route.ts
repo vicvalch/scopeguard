@@ -23,6 +23,10 @@ export async function POST(request: Request) {
 
   const plan = payload.plan ?? "pro";
 
+  if (plan !== "pro" && plan !== "pmo") {
+    return Response.json({ error: "Unsupported plan." }, { status: 400 });
+  }
+
   const stripeEnabled = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
 
   if (!stripeEnabled) {
@@ -76,10 +80,15 @@ export async function POST(request: Request) {
           plan,
         },
       },
+    }, {
+      idempotencyKey: `checkout:${user.companyId}:${plan}`,
     });
 
+    console.info("[billing] checkout session created", { companyId: user.companyId, customerId, plan, sessionId: session.id });
+
     return Response.json({ url: session.url });
-  } catch {
+  } catch (error) {
+    console.error("[billing] checkout session creation failed", { companyId: user.companyId, plan, error });
     return Response.json({ error: "Unable to create Stripe checkout session." }, { status: 502 });
   }
 }

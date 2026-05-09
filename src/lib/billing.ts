@@ -162,3 +162,24 @@ export const findCompanyIdByStripeCustomerId = async (
 
   return data?.company_id ?? null;
 };
+
+export const tryRecordProcessedBillingWebhookEvent = async (
+  eventId: string,
+  eventType: string,
+): Promise<boolean> => {
+  const supabase = await createSupabaseServiceRoleClient();
+
+  const { error } = await supabase
+    .from("billing_webhook_events")
+    .insert({ event_id: eventId, event_type: eventType, processed_at: new Date().toISOString() });
+
+  if (!error) {
+    return true;
+  }
+
+  if (error.code === "23505") {
+    return false;
+  }
+
+  throw new Error(`Unable to record processed billing webhook event: ${error.message}`);
+};
