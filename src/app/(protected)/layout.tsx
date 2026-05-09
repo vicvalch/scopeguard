@@ -14,10 +14,10 @@ export default async function ProtectedLayout({
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
       <div className="mx-auto flex w-full max-w-7xl gap-6 px-5 py-6 md:px-8 md:py-8">
         {showNavigation ? (
-        <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-80 flex-col rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-xl lg:flex">
+        <aside className="sticky top-6 hidden h-[calc(100vh-3rem)] w-72 flex-col rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl lg:flex">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">PMFreak</p>
-            <h2 className="mt-3 text-xl font-semibold">AI PM Control Center</h2>
+            <h2 className="mt-3 text-xl font-semibold">Conversational PM Workspace</h2>
             <p className="mt-2 text-xs text-slate-400">{user.companyName}</p>
           </div>
 
