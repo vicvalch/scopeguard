@@ -15,6 +15,15 @@ type ExecutionRiskSnapshot = {
   commentary: string[];
 };
 
+type InterventionSnapshot = {
+  interventionUrgency: "none" | "watch" | "elevated" | "critical";
+  escalationProbability: number;
+  organizationalDrift: number;
+  deliveryBreakdownRisk: number;
+  recommendedInterventionType: "delivery_recovery" | "stakeholder_alignment" | "execution_unblock" | "capacity_protection" | "escalation_governance";
+  escalationTarget: "none" | "project_lead" | "delivery_manager" | "sponsor" | "executive_steering_committee" | "portfolio_office";
+  commentary: string[];
+};
 
 type StakeholderRelationshipSnapshot = {
   stakeholderAlignment: "aligned" | "mixed" | "fragmented";
@@ -45,6 +54,7 @@ export default function CopilotPage() {
   const [ambientMemory, setAmbientMemory] = useState<AmbientMemory>({ blockers: [], recentDecisions: [], stakeholderPressure: [], criticalRisks: [], concerns: [] });
   const [executionRisk, setExecutionRisk] = useState<ExecutionRiskSnapshot | null>(null);
   const [stakeholderIntel, setStakeholderIntel] = useState<StakeholderRelationshipSnapshot | null>(null);
+  const [intervention, setIntervention] = useState<InterventionSnapshot | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -62,6 +72,14 @@ export default function CopilotPage() {
       .then((r) => r.json())
       .then((d: AmbientMemory) => setAmbientMemory(d))
       .catch(() => setAmbientMemory({ blockers: [], recentDecisions: [], stakeholderPressure: [], criticalRisks: [], concerns: [] }));
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    const query = selectedProjectId ? `?projectId=${encodeURIComponent(selectedProjectId)}` : "";
+    void fetch(`/api/intelligence/interventions${query}`)
+      .then((r) => r.json())
+      .then((d: { intervention: InterventionSnapshot }) => setIntervention(d.intervention))
+      .catch(() => setIntervention(null));
   }, [selectedProjectId]);
 
   useEffect(() => {
@@ -202,6 +220,30 @@ export default function CopilotPage() {
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
             <p className="text-cyan-200">Active escalation risk</p>
             <p className="mt-1 uppercase text-slate-300">{executionRisk?.activeEscalationRisk ?? "watch"}</p>
+          </article>
+          <article className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-950/20 p-3 text-xs text-fuchsia-100">
+            <p className="text-fuchsia-200">Intervention urgency</p>
+            <p className="mt-1 uppercase text-fuchsia-100">{intervention?.interventionUrgency ?? "watch"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Escalation probability</p>
+            <p className="mt-1 text-slate-300">{intervention?.escalationProbability ?? 0}%</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Operational drift</p>
+            <p className="mt-1 text-slate-300">{intervention?.organizationalDrift ?? 0}%</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Delivery instability</p>
+            <p className="mt-1 text-slate-300">{intervention?.deliveryBreakdownRisk ?? 0}%</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Recommended next action</p>
+            <p className="mt-1 uppercase text-slate-300">{intervention?.recommendedInterventionType ?? "capacity_protection"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Escalation target recommendation</p>
+            <p className="mt-1 uppercase text-slate-300">{intervention?.escalationTarget ?? "none"}</p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
             <p className="text-cyan-200">Political risk</p>
