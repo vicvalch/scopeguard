@@ -15,6 +15,17 @@ type ExecutionRiskSnapshot = {
   commentary: string[];
 };
 
+
+type StakeholderRelationshipSnapshot = {
+  stakeholderAlignment: "aligned" | "mixed" | "fragmented";
+  politicalRisk: "low" | "moderate" | "high" | "critical";
+  executivePressure: "stable" | "increasing" | "critical";
+  communicationStability: "stable" | "watching" | "volatile";
+  escalationTrajectory: "none" | "reactive" | "patterned" | "accelerating";
+  executiveAlignment: "aligned" | "mixed" | "fragmented";
+  commentary: string[];
+};
+
 const QUICK_NUDGES = [
   "What changed in stakeholder sentiment this week?",
   "Summarize blockers before tomorrow's client sync.",
@@ -33,6 +44,7 @@ export default function CopilotPage() {
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [ambientMemory, setAmbientMemory] = useState<AmbientMemory>({ blockers: [], recentDecisions: [], stakeholderPressure: [], criticalRisks: [], concerns: [] });
   const [executionRisk, setExecutionRisk] = useState<ExecutionRiskSnapshot | null>(null);
+  const [stakeholderIntel, setStakeholderIntel] = useState<StakeholderRelationshipSnapshot | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -58,6 +70,14 @@ export default function CopilotPage() {
       .then((r) => r.json())
       .then((d: ExecutionRiskSnapshot) => setExecutionRisk(d))
       .catch(() => setExecutionRisk(null));
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    const query = selectedProjectId ? `?projectId=${encodeURIComponent(selectedProjectId)}` : "";
+    void fetch(`/api/intelligence/stakeholders${query}`)
+      .then((r) => r.json())
+      .then((d: StakeholderRelationshipSnapshot) => setStakeholderIntel(d))
+      .catch(() => setStakeholderIntel(null));
   }, [selectedProjectId]);
 
   const send = async (preset?: string) => {
@@ -182,6 +202,22 @@ export default function CopilotPage() {
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
             <p className="text-cyan-200">Active escalation risk</p>
             <p className="mt-1 uppercase text-slate-300">{executionRisk?.activeEscalationRisk ?? "watch"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Political risk</p>
+            <p className="mt-1 uppercase text-slate-300">{stakeholderIntel?.politicalRisk ?? "moderate"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Communication stability</p>
+            <p className="mt-1 uppercase text-slate-300">{stakeholderIntel?.communicationStability ?? "watching"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Escalation trajectory</p>
+            <p className="mt-1 uppercase text-slate-300">{stakeholderIntel?.escalationTrajectory ?? "reactive"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Executive alignment</p>
+            <p className="mt-1 uppercase text-slate-300">{stakeholderIntel?.executiveAlignment ?? "mixed"}</p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Active blockers</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.blockers.length ? ambientMemory.blockers : ["No blockers detected yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Recent decisions</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.recentDecisions.length ? ambientMemory.recentDecisions : ["No decisions captured yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
