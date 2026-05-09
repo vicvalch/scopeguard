@@ -34,6 +34,16 @@ type StakeholderRelationshipSnapshot = {
   executiveAlignment: "aligned" | "mixed" | "fragmented";
   commentary: string[];
 };
+type CoordinationSnapshot = {
+  operational_priority_queue: { actions: Array<{ actionId: string; priority: "critical" | "high" | "medium" | "low"; urgency: number; type: string; targetStakeholder: string; recommendedExecutionOrder: number; commentary: string }> };
+  escalation_sequence: { sequence: string[]; deadlockRisk: "none" | "watch" | "high" };
+  coordination_conflict_risk: { level: "none" | "watch" | "high"; conflicts: string[] };
+  execution_recovery_path: { ready: boolean; commentary: string[] };
+  dependency_deadlock_risk: { level: "none" | "watch" | "high"; deadlocks: string[] };
+  stakeholder_alignment_sequence: { commentary: string[] };
+  escalation_overload_risk: { level: "none" | "watch" | "high"; commentary: string };
+  commentary: string[];
+};
 
 const QUICK_NUDGES = [
   "What changed in stakeholder sentiment this week?",
@@ -55,6 +65,7 @@ export default function CopilotPage() {
   const [executionRisk, setExecutionRisk] = useState<ExecutionRiskSnapshot | null>(null);
   const [stakeholderIntel, setStakeholderIntel] = useState<StakeholderRelationshipSnapshot | null>(null);
   const [intervention, setIntervention] = useState<InterventionSnapshot | null>(null);
+  const [coordination, setCoordination] = useState<CoordinationSnapshot | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -72,6 +83,14 @@ export default function CopilotPage() {
       .then((r) => r.json())
       .then((d: AmbientMemory) => setAmbientMemory(d))
       .catch(() => setAmbientMemory({ blockers: [], recentDecisions: [], stakeholderPressure: [], criticalRisks: [], concerns: [] }));
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    const query = selectedProjectId ? `?projectId=${encodeURIComponent(selectedProjectId)}` : "";
+    void fetch(`/api/intelligence/coordination${query}`)
+      .then((r) => r.json())
+      .then((d: { coordination: CoordinationSnapshot }) => setCoordination(d.coordination))
+      .catch(() => setCoordination(null));
   }, [selectedProjectId]);
 
   useEffect(() => {
@@ -267,6 +286,38 @@ export default function CopilotPage() {
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Critical risks</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.criticalRisks.length ? ambientMemory.criticalRisks : ["No critical risks detected yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">AI-detected concerns</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.concerns.length ? ambientMemory.concerns : ["No concerns detected."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Recent uploads</p><ul className="mt-1 list-disc pl-4 text-slate-300">{uploadedFiles.length ? uploadedFiles.map((name) => <li key={name}>{name}</li>) : <li>No files yet. Drop docs into chat.</li>}</ul></article>
+          <article className="rounded-2xl border border-emerald-300/20 bg-emerald-950/20 p-3 text-xs text-emerald-100">
+            <p className="text-emerald-200">Coordination urgency</p>
+            <p className="mt-1 uppercase">{coordination?.operational_priority_queue.actions[0]?.priority ?? "medium"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Priority action queue</p>
+            <ul className="mt-1 list-disc pl-4 text-slate-300">
+              {(coordination?.operational_priority_queue.actions.slice(0, 4) ?? []).map((action) => (
+                <li key={action.actionId}>#{action.recommendedExecutionOrder} {action.type} ({action.targetStakeholder}) · {action.urgency}%</li>
+              ))}
+            </ul>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Escalation sequencing</p>
+            <p className="mt-1 text-slate-300">{coordination?.escalation_sequence.sequence.join(" → ") || "No active escalation sequence."}</p>
+          </article>
+          <article className="rounded-2xl border border-amber-300/20 bg-amber-950/20 p-3 text-xs text-amber-100">
+            <p className="text-amber-200">Dependency collision warnings</p>
+            <ul className="mt-1 list-disc pl-4">{(coordination?.dependency_deadlock_risk.deadlocks.length ? coordination?.dependency_deadlock_risk.deadlocks : ["No dependency deadlocks detected."]).map((item) => <li key={item}>{item}</li>)}</ul>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Recovery workflow</p>
+            <p className="mt-1 text-slate-300">{coordination?.execution_recovery_path.commentary[0] ?? "Recovery workflow warming up."}</p>
+          </article>
+          <article className="rounded-2xl border border-rose-300/20 bg-rose-950/20 p-3 text-xs text-rose-100">
+            <p className="text-rose-200">Coordination bottlenecks</p>
+            <ul className="mt-1 list-disc pl-4">{(coordination?.coordination_conflict_risk.conflicts.length ? coordination?.coordination_conflict_risk.conflicts : ["No active coordination bottlenecks."]).map((item) => <li key={item}>{item}</li>)}</ul>
+          </article>
+          <article className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-950/20 p-3 text-xs text-fuchsia-100">
+            <p className="text-fuchsia-200">Executive coordination guidance</p>
+            <p className="mt-1">{coordination?.commentary[1] ?? "Executive coordination guidance unavailable."}</p>
+          </article>
         </aside>
       </main>
     </div>
