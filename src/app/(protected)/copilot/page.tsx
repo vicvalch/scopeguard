@@ -7,6 +7,13 @@ type CopilotCard = { type: "Risks" | "Next Actions" | "Draft Email" | "RACI" | "
 type CopilotResponse = { answer: string; cards: CopilotCard[]; plan: "free" | "pro" | "enterprise"; aiPowered: boolean };
 type ChatMessage = { role: "user" | "assistant"; text: string; response?: CopilotResponse };
 type AmbientMemory = { blockers: string[]; recentDecisions: string[]; stakeholderPressure: string[]; criticalRisks: string[]; concerns: string[] };
+type ExecutionRiskSnapshot = {
+  deliveryConfidence: "low" | "medium" | "high" | "critical";
+  stakeholderPressure: "low" | "medium" | "high" | "critical";
+  executionStability: "stable" | "watching" | "degrading";
+  activeEscalationRisk: "none" | "watch" | "elevated" | "immediate";
+  commentary: string[];
+};
 
 const QUICK_NUDGES = [
   "What changed in stakeholder sentiment this week?",
@@ -25,6 +32,7 @@ export default function CopilotPage() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [ambientMemory, setAmbientMemory] = useState<AmbientMemory>({ blockers: [], recentDecisions: [], stakeholderPressure: [], criticalRisks: [], concerns: [] });
+  const [executionRisk, setExecutionRisk] = useState<ExecutionRiskSnapshot | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -42,6 +50,14 @@ export default function CopilotPage() {
       .then((r) => r.json())
       .then((d: AmbientMemory) => setAmbientMemory(d))
       .catch(() => setAmbientMemory({ blockers: [], recentDecisions: [], stakeholderPressure: [], criticalRisks: [], concerns: [] }));
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    const query = selectedProjectId ? `?projectId=${encodeURIComponent(selectedProjectId)}` : "";
+    void fetch(`/api/intelligence/execution-risk${query}`)
+      .then((r) => r.json())
+      .then((d: ExecutionRiskSnapshot) => setExecutionRisk(d))
+      .catch(() => setExecutionRisk(null));
   }, [selectedProjectId]);
 
   const send = async (preset?: string) => {
@@ -147,6 +163,26 @@ export default function CopilotPage() {
 
         <aside className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4">
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-200">Ambient context</h2>
+          <article className="rounded-2xl border border-amber-300/20 bg-amber-950/20 p-3 text-xs text-amber-100">
+            <p className="text-amber-200">PMFreak executive warning</p>
+            <p className="mt-1">{executionRisk?.commentary[0] ?? "Operational signal model is warming up. Keep project activity flowing for stronger intelligence."}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Delivery confidence</p>
+            <p className="mt-1 uppercase text-slate-300">{executionRisk?.deliveryConfidence ?? "medium"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Execution stability</p>
+            <p className="mt-1 uppercase text-slate-300">{executionRisk?.executionStability ?? "watching"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Stakeholder pressure</p>
+            <p className="mt-1 uppercase text-slate-300">{executionRisk?.stakeholderPressure ?? "low"}</p>
+          </article>
+          <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200">
+            <p className="text-cyan-200">Active escalation risk</p>
+            <p className="mt-1 uppercase text-slate-300">{executionRisk?.activeEscalationRisk ?? "watch"}</p>
+          </article>
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Active blockers</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.blockers.length ? ambientMemory.blockers : ["No blockers detected yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Recent decisions</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.recentDecisions.length ? ambientMemory.recentDecisions : ["No decisions captured yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
           <article className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Stakeholder pressure</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.stakeholderPressure.length ? ambientMemory.stakeholderPressure : ["No pressure patterns detected yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
