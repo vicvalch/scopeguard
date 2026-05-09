@@ -7,8 +7,8 @@ import {
   writeProjectMemory,
 } from "@/lib/project-memory";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { canCreateMoreProjects, canUseAdvancedAi } from "@/lib/feature-gates";
-import { canRunAiAnalysis, canUsePortfolioMemory } from "@/lib/usage-limits";
+import { canCreateMoreProjects, canUseAdvancedAi, requireFeatureAccess } from "@/lib/feature-gates";
+import { canUsePortfolioMemory } from "@/lib/usage-limits";
 
 const ANALYSIS_JSON_SCHEMA = { name: "pmfreak_ai_analysis", strict: true, schema: { type: "object", additionalProperties: false, properties: { executive_summary: { type: "string" }, functional_requirements: { type: "array", items: { type: "string" } }, non_functional_requirements: { type: "array", items: { type: "string" } }, risks: { type: "array", items: { type: "string" } }, dependencies: { type: "array", items: { type: "string" } }, ambiguities: { type: "array", items: { type: "string" } }, missing_information: { type: "array", items: { type: "string" } }, client_questions: { type: "array", items: { type: "string" } }, suggested_next_steps: { type: "array", items: { type: "string" } }, complexity: { type: "string", enum: ["Low", "Medium", "High"] } }, required: ["executive_summary", "functional_requirements", "non_functional_requirements", "risks", "dependencies", "ambiguities", "missing_information", "client_questions", "suggested_next_steps", "complexity"] } };
 
@@ -38,8 +38,9 @@ export async function POST(request: Request) {
   }
 
   const subscription = await getCompanySubscription(user.companyId);
-  if (!canRunAiAnalysis(subscription.plan)) {
-    return Response.json({ error: "upgrade_required", feature: "advanced_ai", requiredPlan: "pro" }, { status: 402 });
+  const analysisAccess = await requireFeatureAccess(user.companyId, "ai_analysis");
+  if (!analysisAccess.ok) {
+    return Response.json({ error: analysisAccess.code, feature: "ai_analysis", requiredPlan: analysisAccess.requiredPlan }, { status: analysisAccess.status });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;

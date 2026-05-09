@@ -1,9 +1,7 @@
 import type { SubscriptionPlan } from "@/lib/billing";
+import { canAccessFeature } from "@/lib/feature-gates";
 
-export const canRunAiAnalysis = (plan: SubscriptionPlan) => plan === "pro" || plan === "pmo";
-
-export const canExportReports = (plan: SubscriptionPlan) => plan === "pro" || plan === "pmo";
-
-export const canInviteTeamMembers = (plan: SubscriptionPlan) => plan === "pmo";
-
-export const canUsePortfolioMemory = (plan: SubscriptionPlan) => plan === "pmo";
+export const canRunAiAnalysis = (plan: SubscriptionPlan) => canAccessFeature(plan, "ai_analysis");
+export const canExportReports = (plan: SubscriptionPlan) => canAccessFeature(plan, "exports");
+export const canInviteTeamMembers = (plan: SubscriptionPlan) => canAccessFeature(plan, "pmo_team_members");
+export const canUsePortfolioMemory = (plan: SubscriptionPlan) => canAccessFeature(plan, "organizational_memory");

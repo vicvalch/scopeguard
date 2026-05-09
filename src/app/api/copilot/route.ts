@@ -1,7 +1,7 @@
 import { getAuthUser, type UserRole } from "@/lib/auth";
 import { getCompanySubscription, type SubscriptionPlan } from "@/lib/billing";
-import { canUseAdvancedAi } from "@/lib/feature-gates";
-import { canRunAiAnalysis, canUsePortfolioMemory } from "@/lib/plan-access";
+import { canUseAdvancedAi, requireFeatureAccess } from "@/lib/feature-gates";
+import { canUsePortfolioMemory } from "@/lib/plan-access";
 import { readProjectMemory, type StoredProjectAnalysis } from "@/lib/project-memory";
 
 type CopilotRequest = {
@@ -142,7 +142,8 @@ export async function POST(request: Request) {
   const selectedProject = allMemory.find((p) => p.id === payload.projectId) ?? allMemory.find((p) => p.projectName === payload.projectName);
   const allowedMemory = canUsePortfolioMemory(subscription.plan) ? allMemory : selectedProject ? [selectedProject] : [];
 
-  if (!canRunAiAnalysis(subscription.plan)) {
+  const analysisAccess = await requireFeatureAccess(user.companyId, "ai_analysis");
+  if (!analysisAccess.ok) {
     const fallback = createFallbackResponse(payload.message, methodology);
     return Response.json({ ...fallback, plan: subscription.plan, methodology });
   }

@@ -1,18 +1,15 @@
 import { getAuthUser } from "@/lib/auth";
 import { getCompanySubscription } from "@/lib/billing";
-import { canCreatePmoWorkspace, canInviteTeamMembers, canUseAdvancedAi } from "@/lib/feature-gates";
-import { canExportReports, canRunAiAnalysis, canUsePortfolioMemory } from "@/lib/plan-access";
-import { getCompanyUsage, getUploadLimitForPlan } from "@/lib/usage-limits";
+import { canCreatePmoWorkspace, canInviteTeamMembers, canUseAdvancedAi, getPlanCapabilities, getSeatLimit, getUploadLimit } from "@/lib/feature-gates";
+import { getCompanyUsage } from "@/lib/usage-limits";
 
 export async function GET() {
   const user = await getAuthUser();
-
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const subscription = await getCompanySubscription(user.companyId);
   const usage = await getCompanyUsage(user.companyId);
+  const capabilities = getPlanCapabilities(subscription.plan);
 
   const [pmoWorkspaceGate, inviteGate, advancedAiGate] = await Promise.all([
     canCreatePmoWorkspace(user.id),
@@ -24,10 +21,11 @@ export async function GET() {
     subscription,
     usage,
     limits: {
-      uploadLimit: getUploadLimitForPlan(subscription.plan),
-      canRunAiAnalysis: canRunAiAnalysis(subscription.plan),
-      canExportReports: canExportReports(subscription.plan),
-      canUsePortfolioMemory: canUsePortfolioMemory(subscription.plan),
+      uploadLimit: getUploadLimit(subscription.plan),
+      seatLimit: getSeatLimit(subscription.plan),
+      canRunAiAnalysis: capabilities.ai_analysis,
+      canExportReports: capabilities.exports,
+      canUsePortfolioMemory: capabilities.organizational_memory,
       canCreatePmoWorkspace: pmoWorkspaceGate.ok,
       canInviteTeamMembers: inviteGate.ok,
       canUseAdvancedAi: advancedAiGate.ok,
