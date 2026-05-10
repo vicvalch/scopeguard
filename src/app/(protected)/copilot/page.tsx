@@ -45,6 +45,7 @@ type CoordinationSnapshot = {
   commentary: string[];
 };
 
+const MEMORY_DOMAINS = ["stakeholder_intelligence","delivery_intelligence","risk_intelligence","pmo_governance","team_health","executive_context","operational_memory"] as const;
 const QUICK_NUDGES = [
   "What changed in stakeholder sentiment this week?",
   "Summarize blockers before tomorrow's client sync.",
@@ -56,6 +57,7 @@ export default function CopilotPage() {
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [methodology, setMethodology] = useState<"PMI" | "Agile" | "Hybrid" | "General PMO">("Hybrid");
   const [input, setInput] = useState("");
+  const [memoryDomain, setMemoryDomain] = useState<(typeof MEMORY_DOMAINS)[number]>("operational_memory");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -213,6 +215,12 @@ export default function CopilotPage() {
             <div className="flex gap-2">
               <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Message PMFreak…" className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm" />
               <button onClick={() => void send()} disabled={loading} className="rounded-xl border border-cyan-300/50 px-4 py-2 text-sm font-semibold">Send</button>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <select value={memoryDomain} onChange={(e) => setMemoryDomain(e.target.value as (typeof MEMORY_DOMAINS)[number])} className="rounded-lg border border-white/15 bg-black/30 px-2 py-1">
+                {MEMORY_DOMAINS.map((domain) => <option key={domain} value={domain}>{domain}</option>)}
+              </select>
+              <button onClick={async () => { if (!input.trim()) return; await fetch("/api/operational-memory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ domain: memoryDomain, title: "General chat routed insight", text: input, sourceRef: "copilot" }) }); }} className="text-cyan-200">Route insight to domain</button>
             </div>
             <button onClick={() => fileInputRef.current?.click()} className="text-xs text-cyan-200">+ Drop or attach project files to enrich context</button>
           </div>

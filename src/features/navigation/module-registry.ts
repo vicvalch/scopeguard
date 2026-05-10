@@ -13,6 +13,7 @@ export const PM_MODULES: PMModule[] = [
   { href: "/political-risk", label: "Risks", shortLabel: "Risks", description: "Delivery and political risk awareness.", status: "Live" },
   { href: "/escalation-guide", label: "Decisions", shortLabel: "Decisions", description: "Escalation paths and decision records.", status: "Live" },
   { href: "/upload", label: "Documents", shortLabel: "Docs", description: "Drop files into project context memory.", status: "Live" },
+  { href: "/operational-memory", label: "Op Memory", shortLabel: "Memory", description: "Structured domain memory with traceable facts.", status: "New" },
   { href: "/command-center", label: "Command Center", shortLabel: "Command", description: "Mission-control orchestration for live execution risk.", status: "New" },
   { href: "/team", label: "Team", shortLabel: "Team", description: "Seats, roles, and invitation pressure.", status: "New" },
 ];

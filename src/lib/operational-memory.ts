@@ -1,0 +1,105 @@
+import { createSupabaseServerClient } from "@/lib/db/supabase-server";
+
+export const OPERATIONAL_DOMAINS = [
+  "stakeholder_intelligence",
+  "delivery_intelligence",
+  "risk_intelligence",
+  "pmo_governance",
+  "team_health",
+  "executive_context",
+  "operational_memory",
+] as const;
+
+export type OperationalDomain = (typeof OPERATIONAL_DOMAINS)[number];
+
+type SourceTrace = { sourceType: "chat" | "document" | "system"; sourceRef: string; excerpt?: string };
+
+export type OperationalMemoryRecord = {
+  id: string;
+  domain: OperationalDomain;
+  title: string;
+  data: Record<string, string>;
+  confidenceScore: number;
+  completionScore: number;
+  missingFields: string[];
+  extractedFacts: string[];
+  sourceTrace: SourceTrace[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const DOMAIN_FIELDS: Record<OperationalDomain, string[]> = {
+  stakeholder_intelligence: ["name","role","organization","decision_power","influence_level","support_level","interests","communication_preference","escalation_behavior","political_risk","known_frictions","preferred_update_format","last_signal","confidence_score"],
+  delivery_intelligence: ["milestones","blockers","dependencies","deadlines","delivery_confidence","critical_path_risks","recovery_options","current_status","confidence_score"],
+  risk_intelligence: ["risk_name","category","severity","probability","impact","owner","mitigation","escalation_needed","current_status","confidence_score"],
+  pmo_governance: ["methodology","escalation_rules","reporting_cadence","approval_rules","quality_gates","compliance_requirements","communication_standards","confidence_score"],
+  team_health: ["pm_name","workload_level","after_hours_activity","meeting_pressure","context_switching","overload_signals","fatigue_risk","support_needed","confidence_score"],
+  executive_context: ["sponsor","strategic_importance","budget_sensitivity","political_visibility","executive_expectations","decision_deadlines","escalation_sensitivity","confidence_score"],
+  operational_memory: ["decision","event_type","date","source","affected_project","affected_stakeholders","implication","follow_up_needed","confidence_score"],
+};
+
+export function extractDomainFacts(domain: OperationalDomain, text: string) {
+  const fields = DOMAIN_FIELDS[domain];
+  const lowered = text.toLowerCase();
+  const data: Record<string, string> = {};
+  const facts: string[] = [];
+  for (const field of fields) {
+    if (field === "confidence_score") continue;
+    if (lowered.includes(field.replaceAll("_", " ")) || lowered.includes(field)) {
+      data[field] = "captured from operator message";
+      facts.push(`${field} was referenced in chat`);
+    }
+  }
+  const filled = Object.keys(data).length;
+  const required = fields.filter((f) => f !== "confidence_score");
+  const completionScore = Math.round((filled / required.length) * 100);
+  const missingFields = required.filter((field) => !(field in data));
+  const confidenceScore = Math.max(35, Math.min(95, 40 + filled * 6));
+  data.confidence_score = String(confidenceScore);
+  return { data, extractedFacts: facts, completionScore, missingFields, confidenceScore };
+}
+
+export async function listOperationalMemory(companyId: string, projectId: string | null, domain?: OperationalDomain) {
+  const supabase = await createSupabaseServerClient();
+  let query = supabase.from("operational_memory_records").select("*").eq("company_id", companyId).order("updated_at", { ascending: false });
+  if (projectId) query = query.eq("project_id", projectId);
+  if (domain) query = query.eq("domain", domain);
+  const { data, error } = await query;
+  if (error) throw new Error(`Unable to list operational memory: ${error.message}`);
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    domain: row.domain,
+    title: row.title,
+    data: (row.data ?? {}) as Record<string, string>,
+    confidenceScore: row.confidence_score,
+    completionScore: row.completion_score,
+    missingFields: row.missing_fields ?? [],
+    extractedFacts: row.extracted_facts ?? [],
+    sourceTrace: (row.source_trace ?? []) as SourceTrace[],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  })) as OperationalMemoryRecord[];
+}
+
+export async function saveOperationalMemory(input: { companyId: string; projectId: string | null; domain: OperationalDomain; title: string; text: string; sourceRef: string; }) {
+  const extracted = extractDomainFacts(input.domain, input.text);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("operational_memory_records")
+    .insert({
+      company_id: input.companyId,
+      project_id: input.projectId,
+      domain: input.domain,
+      title: input.title,
+      data: extracted.data,
+      confidence_score: extracted.confidenceScore,
+      completion_score: extracted.completionScore,
+      missing_fields: extracted.missingFields,
+      extracted_facts: extracted.extractedFacts,
+      source_trace: [{ sourceType: "chat", sourceRef: input.sourceRef, excerpt: input.text.slice(0, 240) }],
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(`Unable to save operational memory: ${error.message}`);
+  return data;
+}
