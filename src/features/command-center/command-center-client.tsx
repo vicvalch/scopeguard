@@ -17,12 +17,13 @@ export function CommandCenterClient() {
   const stakeholders = useSWR("/api/intelligence/stakeholders", fetcher, swrOptions);
   const interventions = useSWR("/api/intelligence/interventions", fetcher, swrOptions);
   const coordination = useSWR("/api/intelligence/coordination", fetcher, swrOptions);
+  const liveOps = useSWR("/api/intelligence/operational-live", fetcher, swrOptions);
 
-  const loading = [risk, stakeholders, interventions, coordination].some((r) => r.isLoading);
-  const lastSync = [risk.data?.generatedAt, stakeholders.data?.generatedAt, interventions.data?.generatedAt, coordination.data?.generatedAt].filter(Boolean).sort().at(-1);
+  const loading = [risk, stakeholders, interventions, coordination, liveOps].some((r) => r.isLoading);
+  const lastSync = [risk.data?.generatedAt, stakeholders.data?.generatedAt, interventions.data?.generatedAt, coordination.data?.generatedAt, liveOps.data?.generatedAt].filter(Boolean).sort().at(-1);
 
   const refreshAll = async () => {
-    await Promise.all([risk.mutate(), stakeholders.mutate(), interventions.mutate(), coordination.mutate()]);
+    await Promise.all([risk.mutate(), stakeholders.mutate(), interventions.mutate(), coordination.mutate(), liveOps.mutate()]);
   };
 
   const actions = (coordination.data?.coordination?.operational_priority_queue?.actions ?? coordination.data?.operational_priority_queue?.actions ?? []) as AnyRecord[];
@@ -93,6 +94,29 @@ export function CommandCenterClient() {
             <p>Escalation recommendations: {String(interventions.data?.escalationTarget ?? interventions.data?.intervention?.escalationTarget ?? "none")}</p>
           </div>
         </RecoveryWorkflowCard>
+      </div>
+
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <OperationalHealthCard title="Live Telemetry Stream" level={"elevated"}>
+          <div className="space-y-2 text-sm text-slate-200">
+            <p>Operational mode: <span className="font-semibold">{String(liveOps.data?.mode ?? "offline")}</span></p>
+            <p>Timeline events: <span className="font-semibold">{String(liveOps.data?.timeline?.events?.length ?? 0)}</span></p>
+            <p>Escalation chain hops: <span className="font-semibold">{String(liveOps.data?.timeline?.escalationChain?.length ?? 0)}</span></p>
+            <p>Active pressure recommendations: <span className="font-semibold">{String(liveOps.data?.recommendationQueue?.length ?? 0)}</span></p>
+          </div>
+        </OperationalHealthCard>
+        <InterventionCard title="Why PMFreak Intervened" level={"critical"}>
+          <div className="space-y-2 text-sm text-slate-200">
+            {(liveOps.data?.whyIntervened ?? []).slice(0, 1).map((item: AnyRecord, idx: number) => (
+              <div key={idx} className="rounded-lg border border-white/10 bg-black/20 p-2">
+                <p>Rationale: {String(item.coordinationRationale ?? "n/a")}</p>
+                <p>Triggering conditions: {((item.triggeringConditions as string[] | undefined) ?? []).join(", ")}</p>
+                <p>Operational confidence: {String(item.operationalConfidence ?? "n/a")}</p>
+              </div>
+            ))}
+          </div>
+        </InterventionCard>
       </div>
 
       <InterventionCard title="PMFreak Commentary Stream" level={risk.data?.activeEscalationRisk as string}>
