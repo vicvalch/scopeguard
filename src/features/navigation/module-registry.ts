@@ -4,17 +4,25 @@ export type PMModule = {
   shortLabel: string;
   description: string;
   status: "Live" | "New";
+  group: "Core" | "Operations" | "System";
 };
 
 export const PM_MODULES: PMModule[] = [
-  { href: "/projects", label: "Projects", shortLabel: "Projects", description: "Project workspaces and ownership.", status: "Live" },
-  { href: "/stakeholder-intel", label: "Stakeholders", shortLabel: "Stakeholders", description: "Signals, influence, and alignment tracking.", status: "Live" },
-  { href: "/meetings", label: "Timeline", shortLabel: "Timeline", description: "Milestones, cadence, and meeting history.", status: "Live" },
-  { href: "/political-risk", label: "Risks", shortLabel: "Risks", description: "Delivery and political risk awareness.", status: "Live" },
-  { href: "/escalation-guide", label: "Decisions", shortLabel: "Decisions", description: "Escalation paths and decision records.", status: "Live" },
-  { href: "/upload", label: "Documents", shortLabel: "Docs", description: "Drop files into project context memory.", status: "Live" },
-  { href: "/operational-memory", label: "Op Memory", shortLabel: "Memory", description: "Structured domain memory with traceable facts.", status: "New" },
-  { href: "/command-center", label: "Command Center", shortLabel: "Command", description: "Mission-control orchestration for live execution risk.", status: "New" },
-  { href: "/team", label: "Team", shortLabel: "Team", description: "Seats, roles, and invitation pressure.", status: "New" },
-  { href: "/change-detection", label: "Change Detection", shortLabel: "Changes", description: "Temporal operational monitoring, deterioration tracking, and escalation transitions.", status: "New" },
+  { href: "/dashboard", label: "Home", shortLabel: "Home", description: "Current operational state and workflow overview.", status: "Live", group: "Core" },
+  { href: "/projects", label: "Projects", shortLabel: "Projects", description: "Project workspaces, ownership, and scope control.", status: "Live", group: "Core" },
+  { href: "/input-hub", label: "Input Hub", shortLabel: "Input", description: "Daily operational ingestion into operational memory.", status: "Live", group: "Operations" },
+  { href: "/executive", label: "Executive", shortLabel: "Executive", description: "Executive operational intelligence and synthesis.", status: "Live", group: "Operations" },
+  { href: "/follow-up-dashboard", label: "Follow-up", shortLabel: "Follow-up", description: "Action tracking, ownership, and follow-up closure.", status: "Live", group: "Operations" },
+  { href: "/change-detection", label: "Change Detection", shortLabel: "Changes", description: "Temporal movement, deterioration, and escalation shifts.", status: "Live", group: "Operations" },
+  { href: "/command-center", label: "Command Center", shortLabel: "Command", description: "High-severity operational monitoring and intervention prioritization.", status: "Live", group: "Operations" },
+  { href: "/team", label: "Settings", shortLabel: "Settings", description: "Workspace team, PMO governance, and access preferences.", status: "Live", group: "System" },
 ];
+
+export const OPERATIONAL_FLOW = [
+  "Operational Input",
+  "Operational Memory",
+  "Executive Synthesis",
+  "Change Detection",
+  "Intervention Recommendations",
+  "Executive Visibility",
+] as const;
