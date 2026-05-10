@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { OPERATIONAL_FLOW, PM_MODULES } from "@/features/navigation/module-registry";
 
 type UserProject = { id: string; name: string };
