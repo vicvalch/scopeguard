@@ -5,18 +5,18 @@ import Link from "next/link";
 import { useState } from "react";
 
 const desktopNavLinks = [
-  { label: "Product", href: "/#product" },
-  { label: "How it works", href: "/#how" },
+  { label: "Why PMFreak", href: "/#why-pmfreak" },
   { label: "Intelligence", href: "/#intelligence" },
-  { label: "Who It's For", href: "/#who" },
+  { label: "Trust", href: "/#trust" },
+  { label: "Who Buys", href: "/#who-buys" },
   { label: "Pricing", href: "/pricing" },
 ];
 
 const mobileNavLinks = [
-  { label: "Product", href: "/#product" },
-  { label: "How it works", href: "/#how" },
+  { label: "Why PMFreak", href: "/#why-pmfreak" },
   { label: "Intelligence", href: "/#intelligence" },
-  { label: "Who It's For", href: "/#who" },
+  { label: "Trust", href: "/#trust" },
+  { label: "Who Buys", href: "/#who-buys" },
   { label: "Pricing", href: "/pricing" },
 ];
 
