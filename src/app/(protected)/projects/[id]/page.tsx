@@ -34,7 +34,7 @@ export default async function ProjectDetailPage({ params }: Props) {
         <p className="mt-2 text-xs uppercase tracking-wide text-slate-400">Status: {project.status}</p>
       </div>
 
-      <section className="rounded-2xl border border-white/10 bg-black/20 p-5 space-y-4">
+      <section className="rounded-2xl border border-white/10 bg-white/20 p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Run PMFreak AI</h2>
           <Link
@@ -46,8 +46,8 @@ export default async function ProjectDetailPage({ params }: Props) {
         </div>
         <form action="/api/analyze-ai" method="post" className="mt-3 space-y-3">
           <input type="hidden" name="projectId" value={project.id} />
-          <input name="projectName" defaultValue={project.name} required className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm" />
-          <textarea name="extractedScopeText" required placeholder="Paste scope text to analyze" rows={6} className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm" />
+          <input name="projectName" defaultValue={project.name} required className="w-full rounded-xl border border-white/15 bg-white/30 px-3 py-2 text-sm" />
+          <textarea name="extractedScopeText" required placeholder="Paste scope text to analyze" rows={6} className="w-full rounded-xl border border-white/15 bg-white/30 px-3 py-2 text-sm" />
           <button type="submit" className="rounded-xl border border-cyan-300/50 px-4 py-2 text-sm font-semibold">Analyze</button>
         </form>
       </section>
@@ -57,7 +57,7 @@ export default async function ProjectDetailPage({ params }: Props) {
         <ul className="mt-3 space-y-3">
           {(analyses ?? []).length === 0 ? <li className="text-sm text-slate-300">No analyses yet for this project.</li> : null}
           {(analyses ?? []).map((row) => (
-            <li key={row.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <li key={row.id} className="rounded-2xl border border-white/10 bg-white/20 p-4">
               <p className="text-xs text-slate-400">{new Date(row.created_at).toLocaleString()}</p>
               <p className="mt-2 whitespace-pre-wrap text-sm text-slate-200">{row.analysis}</p>
             </li>

@@ -130,14 +130,14 @@ export function InteractiveDemoExperience() {
   return (
     <main className="min-h-screen bg-[#090c13] px-5 py-8 text-white md:px-10">
       <div className="mx-auto max-w-7xl space-y-5">
-        <section className="rounded-3xl border border-cyan-300/20 bg-gradient-to-br from-[#121926] via-[#111525] to-[#0b1019] p-6 shadow-[0_0_80px_rgba(34,211,238,0.1)]">
+        <section className="rounded-3xl border border-cyan-300/20 bg-gradient-to-br from-[#121926] via-[#111525] to-white p-6 shadow-[0_0_80px_rgba(34,211,238,0.1)]">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">PMFreak operational theater</p>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-3xl font-black tracking-tight md:text-5xl">Enterprise execution command infrastructure</h1>
             <div className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em]">heartbeat live</div>
           </div>
           <p className="mt-4 max-w-4xl text-sm text-white/75">Live operational heartbeat, multi-project instability simulation, explainable interventions, and executive-ready recovery telemetry designed for COO/CIO-level reviews.</p>
-          <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm text-cyan-100">
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/20 p-3 text-sm text-cyan-100">
             <span className="mr-2 inline-block size-2 animate-pulse rounded-full bg-cyan-300" />
             {tickerMessages[tickerIndex]} · {latestCommentary}
           </div>

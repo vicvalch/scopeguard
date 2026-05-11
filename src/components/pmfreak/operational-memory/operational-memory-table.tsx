@@ -4,7 +4,7 @@ import type { OperationalMemoryRecord } from "@/lib/operational-memory";
 
 export function OperationalMemoryTable({ records }: { records: OperationalMemoryRecord[] }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/20">
+    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/20">
       <table className="min-w-full text-left text-xs md:text-sm">
         <thead className="border-b border-white/10 text-slate-300">
           <tr>

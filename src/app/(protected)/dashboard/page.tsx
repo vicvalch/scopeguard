@@ -24,7 +24,7 @@ export default function DashboardPage() {
           ["Follow-up", "Track ownership and close active intervention commitments.", "/follow-up-dashboard"],
           ["Command Center", "Focus on highest-severity escalation and operational instability.", "/command-center"],
         ].map(([title, text, href]) => (
-          <Link key={title} href={href as string} className="rounded-2xl border border-white/10 bg-black/20 p-4 hover:border-cyan-300/40">
+          <Link key={title} href={href as string} className="rounded-2xl border border-white/10 bg-white/20 p-4 hover:border-cyan-300/40">
             <h3 className="font-semibold">{title}</h3><p className="mt-2 text-sm text-slate-300">{text}</p>
           </Link>
         ))}

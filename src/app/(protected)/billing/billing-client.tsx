@@ -72,7 +72,7 @@ export default function BillingClient({ subscription }: Props) {
   };
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-black/20 p-5">
+    <section className="rounded-2xl border border-white/10 bg-white/20 p-5">
       <h2 className="text-lg font-semibold text-cyan-100">Manage Subscription</h2>
       <p className="mt-2 text-sm text-slate-300">
         Use Stripe checkout and billing portal to upgrade, update payment methods, or cancel.

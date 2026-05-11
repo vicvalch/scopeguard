@@ -95,7 +95,7 @@ export default function PortfolioPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search project name or source file"
-            className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-400 focus:ring focus:ring-cyan-300/60"
+            className="w-full rounded-xl border border-white/10 bg-white/20 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-400 focus:ring focus:ring-cyan-300/60"
           />
         </section>
 
@@ -105,12 +105,12 @@ export default function PortfolioPage() {
         {!isLoading && !error ? (
           <section className="space-y-3">
             {filteredProjects.length === 0 ? (
-              <p className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-300">
+              <p className="rounded-xl border border-white/10 bg-white/20 px-4 py-3 text-sm text-slate-300">
                 No analyzed projects found.
               </p>
             ) : (
               filteredProjects.map((project) => (
-                <article key={project.id} className="rounded-2xl border border-white/15 bg-slate-950/45 p-5">
+                <article key={project.id} className="rounded-2xl border border-white/15 bg-white/45 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-lg font-semibold text-white">{project.projectName}</h2>
                     <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${complexityBadge(project.complexity)}`}>

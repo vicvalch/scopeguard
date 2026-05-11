@@ -463,7 +463,7 @@ type AnalysisCardProps = {
 
 function AnalysisCard({ title, items, accent, description }: AnalysisCardProps) {
   return (
-    <article className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-950/45 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.35)] backdrop-blur">
+    <article className="relative overflow-hidden rounded-2xl border border-white/15 bg-white/45 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.35)] backdrop-blur">
       <div className={`absolute inset-x-0 top-0 h-1 ${accent}`} />
       <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-100">{title}</h3>
       {description ? <p className="mt-2 text-sm text-slate-300">{description}</p> : null}
@@ -876,7 +876,7 @@ export default function UploadPage() {
             value={projectName}
             onChange={(event) => setProjectName(event.target.value)}
             placeholder="Acme Vendor Contract Review"
-            className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none ring-cyan-300/50 placeholder:text-slate-400 focus:ring"
+            className="w-full rounded-xl border border-white/10 bg-white/20 px-4 py-3 text-sm text-white outline-none ring-cyan-300/50 placeholder:text-slate-400 focus:ring"
           />
         </section>
 
@@ -888,7 +888,7 @@ export default function UploadPage() {
             className={`rounded-2xl border-2 border-dashed p-8 text-center transition ${
               isDragging
                 ? "border-cyan-300 bg-cyan-300/10"
-                : "border-white/20 bg-slate-900/40 hover:border-cyan-200/60"
+                : "border-white/20 bg-white/40 hover:border-cyan-200/60"
             }`}
           >
             <p className="text-base font-medium">Drag & drop documents here</p>
@@ -915,7 +915,7 @@ export default function UploadPage() {
           ) : null}
 
           {selectedFiles.length > 0 ? (
-            <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+            <div className="rounded-xl border border-white/10 bg-white/20 px-4 py-3">
               <h2 className="text-sm font-medium text-slate-200">Selected Files ({selectedFiles.length})</h2>
               <ul className="mt-2 space-y-2 text-sm text-slate-300">
                 {selectedFiles.map((file) => (
@@ -952,10 +952,10 @@ export default function UploadPage() {
             </p>
             <div className="space-y-4">
               {uploadResult.files.map((file) => (
-                <article key={file.fileName} className="rounded-xl border border-white/20 bg-black/20 p-4">
+                <article key={file.fileName} className="rounded-xl border border-white/20 bg-white/20 p-4">
                   <h3 className="text-sm font-semibold text-white">{file.fileName}</h3>
                   <p className="mt-1 text-xs text-slate-300">{file.contentType}</p>
-                  <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-950/80 p-3 text-xs text-slate-200">
+                  <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap rounded-lg bg-white/80 p-3 text-xs text-slate-200">
                     {file.extractedText || "No readable text was extracted from this file."}
                   </pre>
                 </article>

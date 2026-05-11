@@ -34,7 +34,7 @@ export function MarketingNavbar() {
           <Link href="/login" className="/5 px-4 py-2 text-lg font-medium text-slate-100 hover:border-cyan-300/70 hover:text-cyan-100">
             Sign In
           </Link>
-          <Link href="/signup" className="rounded-full border border-fuchsia-300/70 bg-gradient-to-r from-[#ff008c] to-[#00d5ff] px-5 py-2 text-lg font-semibold text-slate-950 shadow-[0_0_25px_rgba(232,121,249,0.45)] hover:brightness-110">
+          <Link href="/signup" className="rounded-full border border-fuchsia-300/70 bg-gradient-to-r from-[#ff008c] to-white px-5 py-2 text-lg font-semibold text-slate-950 shadow-[0_0_25px_rgba(232,121,249,0.45)] hover:brightness-110">
             Get Started
           </Link>
         </div>
@@ -57,7 +57,7 @@ export function MarketingNavbar() {
             <Link href="/login" className="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-lg font-medium text-slate-100" onClick={() => setIsOpen(false)}>
               Sign In
             </Link>
-            <Link href="/signup" className="rounded-full bg-gradient-to-r from-[#ff008c] to-[#00d5ff] px-4 py-2.5 text-center text-lg font-semibold text-slate-950" onClick={() => setIsOpen(false)}>
+            <Link href="/signup" className="rounded-full bg-gradient-to-r from-[#ff008c] to-white px-4 py-2.5 text-center text-lg font-semibold text-slate-950" onClick={() => setIsOpen(false)}>
               Get Started
             </Link>
           </div>

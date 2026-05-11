@@ -22,7 +22,7 @@ export function ProjectMemoryClient({ endpoint }: { endpoint: string }) {
   const lastRefreshed = data?.generatedAt ? new Date(data.generatedAt).toLocaleString() : null;
 
   if (isLoading) {
-    return <section className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm text-slate-300">Loading project memory…</section>;
+    return <section className="rounded-2xl border border-white/10 bg-white/20 p-5 text-sm text-slate-300">Loading project memory…</section>;
   }
 
   if (error) {
@@ -37,7 +37,7 @@ export function ProjectMemoryClient({ endpoint }: { endpoint: string }) {
   if (!data) return null;
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-black/20 p-5">
+    <section className="rounded-2xl border border-white/10 bg-white/20 p-5">
       <p className="mb-3 text-xs uppercase tracking-wide text-slate-400">Last refreshed: {lastRefreshed}{isValidating ? " · updating…" : ""}</p>
       <ol className="space-y-3">
         {data.data.map((event) => (

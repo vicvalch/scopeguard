@@ -29,12 +29,12 @@ export function OperationalMemoryWorkspace() {
     <div className="flex flex-wrap gap-2">{OPERATIONAL_DOMAINS.map((d) => <button key={d} onClick={() => setDomain(d)} className={`rounded-full border px-3 py-1 text-xs ${d === domain ? "border-cyan-300/70 bg-cyan-300/15" : "border-white/20"}`}>{d.replaceAll("_", " ")}</button>)}</div>
     <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
       <p className="text-xs uppercase tracking-wide text-cyan-200">{domain.replaceAll("_", " ")} completion meter</p>
-      <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-black/40"><div style={{ width: `${completion}%` }} className="h-full bg-cyan-300" /></div>
+      <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-white/40"><div style={{ width: `${completion}%` }} className="h-full bg-cyan-300" /></div>
       <p className="mt-2 text-xs text-slate-300">{completion}% complete. Prompt for missing data: {DOMAIN_FIELDS[domain].filter((f) => f !== "confidence_score").slice(0, 3).join(", ")}.</p>
     </section>
-    <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
+    <section className="rounded-2xl border border-white/10 bg-white/20 p-4">
       <p className="text-sm font-semibold">Domain chat ({domain.replaceAll("_", " ")})</p>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste updates, decisions, and signals here. PMFreak will extract deterministic structured facts." className="mt-2 min-h-28 w-full rounded-xl border border-white/15 bg-black/40 p-3 text-sm" />
+      <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste updates, decisions, and signals here. PMFreak will extract deterministic structured facts." className="mt-2 min-h-28 w-full rounded-xl border border-white/15 bg-white/40 p-3 text-sm" />
       <button onClick={() => void save()} className="mt-2 rounded-lg border border-cyan-300/40 px-3 py-2 text-sm">Route insight to domain memory</button>
     </section>
     <OperationalMemoryTable records={data?.records ?? []} />

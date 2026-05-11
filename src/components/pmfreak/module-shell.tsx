@@ -20,7 +20,7 @@ export function ModuleShell({
         <p className="mt-2 max-w-3xl text-sm text-slate-300">{subtitle}</p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {metrics.map((metric) => (
-            <article key={metric.label} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <article key={metric.label} className="rounded-2xl border border-white/10 bg-white/20 p-4">
               <p className="text-xs uppercase tracking-wider text-cyan-200">{metric.label}</p>
               <p className="mt-2 text-xl font-semibold">{metric.value}</p>
               {metric.delta ? <p className="mt-1 text-xs text-slate-400">{metric.delta}</p> : null}

@@ -12,7 +12,7 @@ export default async function ExecutivePage({ searchParams }: { searchParams: Pr
 
   return (
     <main className="space-y-6 pb-8">
-      <header className="rounded-2xl border border-slate-700 bg-slate-900 p-6">
+      <header className="rounded-2xl border border-slate-700 bg-white p-6">
         <p className="text-xs uppercase tracking-[0.25em] text-slate-400">PMFreak Executive Layer</p>
         <h1 className="mt-2 text-3xl font-semibold text-white">Executive Operational Intelligence</h1>
         <p className="mt-2 text-sm text-slate-300">Deterministic cross-domain synthesis for intervention and escalation governance.</p>

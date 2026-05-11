@@ -36,7 +36,7 @@ export function CommandCenterClient() {
 
   return (
     <div className="space-y-5 pb-8">
-      <header className="rounded-3xl border border-white/15 bg-slate-900/90 p-6 shadow-2xl shadow-black/50">
+      <header className="rounded-3xl border border-white/15 bg-white/90 p-6 shadow-2xl shadow-black/50">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">PMFreak Command Center</p>
@@ -57,13 +57,13 @@ export function CommandCenterClient() {
             ["Stakeholder volatility", stakeholders.data?.communicationStability],
             ["Delivery confidence", risk.data?.deliveryConfidence],
             ["Intervention severity", interventions.data?.intervention?.interventionUrgency ?? interventions.data?.interventionUrgency],
-          ].map(([k, v]) => <div key={k as string} className="rounded-xl border border-white/10 bg-black/20 p-3"><p className="text-xs text-slate-400">{k as string}</p><p className="mt-1 text-lg font-semibold text-white">{String(v ?? "unknown")}</p></div>)}
+          ].map(([k, v]) => <div key={k as string} className="rounded-xl border border-white/10 bg-white/20 p-3"><p className="text-xs text-slate-400">{k as string}</p><p className="mt-1 text-lg font-semibold text-white">{String(v ?? "unknown")}</p></div>)}
         </div>
       </RiskCard>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <CoordinationQueueCard title="Priority Action Queue" level={coordination.data?.coordination_conflict_risk?.level as string}>
-          <div className="space-y-3">{actions.slice(0, 5).map((action, idx) => <div key={String(action.actionId ?? idx)} className="rounded-xl border border-white/10 bg-black/25 p-3 text-sm"><p className="font-semibold text-white">#{idx + 1} {String(action.type ?? "action")}</p><p className="text-slate-300">Owner: {String(action.targetStakeholder ?? "unknown")} · Urgency: {String(action.urgency ?? "n/a")} · Timing: {String((action.executionWindow as AnyRecord)?.label ?? "n/a")}</p><p className="mt-1 text-slate-400">Dependency chain: {((action.dependencyChain as AnyRecord[] | undefined) ?? []).map((d) => String(d.reason)).join("; ") || "No blockers"}</p></div>)}</div>
+          <div className="space-y-3">{actions.slice(0, 5).map((action, idx) => <div key={String(action.actionId ?? idx)} className="rounded-xl border border-white/10 bg-white/25 p-3 text-sm"><p className="font-semibold text-white">#{idx + 1} {String(action.type ?? "action")}</p><p className="text-slate-300">Owner: {String(action.targetStakeholder ?? "unknown")} · Urgency: {String(action.urgency ?? "n/a")} · Timing: {String((action.executionWindow as AnyRecord)?.label ?? "n/a")}</p><p className="mt-1 text-slate-400">Dependency chain: {((action.dependencyChain as AnyRecord[] | undefined) ?? []).map((d) => String(d.reason)).join("; ") || "No blockers"}</p></div>)}</div>
         </CoordinationQueueCard>
 
         <StakeholderPressureCard title="Stakeholder Pressure Map" level={stakeholders.data?.politicalRisk as string}>
@@ -109,7 +109,7 @@ export function CommandCenterClient() {
         <InterventionCard title="Why PMFreak Intervened" level={"critical"}>
           <div className="space-y-2 text-sm text-slate-200">
             {(liveOps.data?.whyIntervened ?? []).slice(0, 1).map((item: AnyRecord, idx: number) => (
-              <div key={idx} className="rounded-lg border border-white/10 bg-black/20 p-2">
+              <div key={idx} className="rounded-lg border border-white/10 bg-white/20 p-2">
                 <p>Rationale: {String(item.coordinationRationale ?? "n/a")}</p>
                 <p>Triggering conditions: {((item.triggeringConditions as string[] | undefined) ?? []).join(", ")}</p>
                 <p>Operational confidence: {String(item.operationalConfidence ?? "n/a")}</p>
@@ -120,7 +120,7 @@ export function CommandCenterClient() {
       </div>
 
       <InterventionCard title="PMFreak Commentary Stream" level={risk.data?.activeEscalationRisk as string}>
-        <div className="space-y-2">{commentary.slice(0, 10).map((line, i) => <p key={`${line}-${i}`} className="rounded-lg border border-white/10 bg-black/20 p-2 text-sm text-slate-200">{line}</p>)}</div>
+        <div className="space-y-2">{commentary.slice(0, 10).map((line, i) => <p key={`${line}-${i}`} className="rounded-lg border border-white/10 bg-white/20 p-2 text-sm text-slate-200">{line}</p>)}</div>
       </InterventionCard>
 
       {/* Future architecture: replace polling with websocket intelligence streams and org-wide multiplexing. */}

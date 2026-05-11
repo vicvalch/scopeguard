@@ -55,10 +55,10 @@ export default function InputHubPage() {
       <section className="rounded-3xl border border-white/10 bg-white/5 p-5 space-y-3">
         <h2 className="text-lg font-semibold">{active.title}</h2>
         <p className="text-sm text-slate-300">{active.prompt}</p>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Signal title" className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm" />
-        <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={active.placeholder} className="min-h-32 w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm" />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Signal title" className="w-full rounded-xl border border-white/10 bg-white/20 p-3 text-sm" />
+        <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={active.placeholder} className="min-h-32 w-full rounded-xl border border-white/10 bg-white/20 p-3 text-sm" />
         {active.mode === "attachment" ? <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="w-full text-sm" /> : null}
-        <input value={contextNote} onChange={(e) => setContextNote(e.target.value)} placeholder="Context note (optional)" className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm" />
+        <input value={contextNote} onChange={(e) => setContextNote(e.target.value)} placeholder="Context note (optional)" className="w-full rounded-xl border border-white/10 bg-white/20 p-3 text-sm" />
         <button onClick={submit} className="rounded-xl bg-cyan-400 px-4 py-2 text-black font-semibold">Submit Operational Signal</button>
       </section>
       <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
@@ -68,7 +68,7 @@ export default function InputHubPage() {
       <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
         <h3 className="text-lg font-semibold">Recent Operational Signals</h3>
         <div className="mt-3 space-y-2">
-          {history.map((row) => <article key={row.id} className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm"><p className="font-medium">{row.title}</p><p className="text-slate-400">Routed: {row.domain} · Confidence: {row.confidenceScore}% · {new Date(row.createdAt).toLocaleString()}</p><p className="text-slate-300">Generated: {(row.extractedFacts ?? []).slice(0, 2).join(", ") || "Signals generated"}</p></article>)}
+          {history.map((row) => <article key={row.id} className="rounded-xl border border-white/10 bg-white/20 p-3 text-sm"><p className="font-medium">{row.title}</p><p className="text-slate-400">Routed: {row.domain} · Confidence: {row.confidenceScore}% · {new Date(row.createdAt).toLocaleString()}</p><p className="text-slate-300">Generated: {(row.extractedFacts ?? []).slice(0, 2).join(", ") || "Signals generated"}</p></article>)}
         </div>
       </section>
     </ModuleShell>

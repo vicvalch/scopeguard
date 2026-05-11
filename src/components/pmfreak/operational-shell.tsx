@@ -68,7 +68,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
             ))}
           </nav>
 
-          <div className="mt-auto rounded-2xl border border-white/10 bg-black/20 p-4 text-xs text-slate-300">
+          <div className="mt-auto rounded-2xl border border-white/10 bg-white/20 p-4 text-xs text-slate-300">
             <p className="font-semibold text-white">{user.fullName}</p>
             <p>{user.role}</p>
             <Link href="/logout" className="mt-3 inline-block text-cyan-200">
@@ -86,7 +86,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
               <select
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
-                className="rounded-lg border border-white/10 bg-black/30 px-3 py-1 text-sm"
+                className="rounded-lg border border-white/10 bg-white/30 px-3 py-1 text-sm"
               >
                 <option value="">Portfolio scope</option>
                 {projects.map((p) => (

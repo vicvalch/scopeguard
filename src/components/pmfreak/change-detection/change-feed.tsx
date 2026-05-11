@@ -16,7 +16,7 @@ const fetcher = async (url: string): Promise<ChangeDetectionSnapshot> => {
 export function ChangeFeed() {
   const { data, error, isLoading } = useSWR("/api/change-detection", fetcher, { refreshInterval: 30_000 });
   if (error) return <div className="rounded-lg border border-rose-700/40 bg-rose-950/40 p-3 text-rose-100">Unable to load change feed.</div>;
-  if (isLoading || !data) return <div className="rounded-lg border border-slate-700 bg-slate-900 p-3 text-slate-300">Loading temporal intelligence…</div>;
+  if (isLoading || !data) return <div className="rounded-lg border border-slate-700 bg-white p-3 text-slate-300">Loading temporal intelligence…</div>;
 
-  return <div className="space-y-4"><OperationalDeltas deltas={data.operationalDeltas} /><TrendGraph trends={data.trendMovements} /><EscalationThresholdCard transitions={data.escalationTransitions} /><DeteriorationSignals deterioration={data.deteriorationSignals} improvements={data.improvementSignals} /><section className="rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs text-slate-300">Alert suppression state: {data.suppression.length} active tracks.</section></div>;
+  return <div className="space-y-4"><OperationalDeltas deltas={data.operationalDeltas} /><TrendGraph trends={data.trendMovements} /><EscalationThresholdCard transitions={data.escalationTransitions} /><DeteriorationSignals deterioration={data.deteriorationSignals} improvements={data.improvementSignals} /><section className="rounded-lg border border-slate-700 bg-white p-3 text-xs text-slate-300">Alert suppression state: {data.suppression.length} active tracks.</section></div>;
 }

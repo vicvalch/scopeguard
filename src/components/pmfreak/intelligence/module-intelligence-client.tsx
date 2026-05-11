@@ -23,7 +23,7 @@ export function ModuleIntelligenceClient({ endpoint }: { endpoint: string }) {
   const lastRefreshed = data?.generatedAt ? new Date(data.generatedAt).toLocaleString() : null;
 
   if (isLoading) {
-    return <section className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm text-slate-300">Loading intelligence…</section>;
+    return <section className="rounded-2xl border border-white/10 bg-white/20 p-5 text-sm text-slate-300">Loading intelligence…</section>;
   }
 
   if (error) {
@@ -43,7 +43,7 @@ export function ModuleIntelligenceClient({ endpoint }: { endpoint: string }) {
     <section className="space-y-4">
       <p className="text-xs uppercase tracking-wide text-slate-400">Last refreshed: {lastRefreshed}{isValidating ? " · updating…" : ""}</p>
       {data.data.map((card) => (
-        <article key={card.id} className="rounded-2xl border border-white/10 bg-black/20 p-5">
+        <article key={card.id} className="rounded-2xl border border-white/10 bg-white/20 p-5">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold">{card.headline}</h2>
             <span className="rounded-full border border-cyan-300/30 px-2 py-0.5 text-xs uppercase text-cyan-200">confidence {card.confidenceScore.toFixed(2)}</span>

@@ -21,11 +21,11 @@ const modes: { key: DashboardMode; label: string }[] = [
 ];
 
 function DashboardCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section className="rounded-2xl border border-white/10 bg-slate-900/80 p-4 shadow-lg"><h2 className="text-lg font-semibold text-white">{title}</h2><div className="mt-3 space-y-2 text-sm text-slate-200">{children}</div></section>;
+  return <section className="rounded-2xl border border-white/10 bg-white/80 p-4 shadow-lg"><h2 className="text-lg font-semibold text-white">{title}</h2><div className="mt-3 space-y-2 text-sm text-slate-200">{children}</div></section>;
 }
 
 const insight = (label: string, value: unknown, source: string, why: string, confidence = 0.72, updated?: string) => (
-  <div className="rounded-xl border border-white/10 bg-black/20 p-3" key={label}>
+  <div className="rounded-xl border border-white/10 bg-white/20 p-3" key={label}>
     <p className="text-slate-400">{label}</p>
     <p className="font-semibold text-white">{String(value ?? "unknown")}</p>
     <p className="mt-1 text-xs text-slate-400">Source: {source} · Confidence: {(confidence * 100).toFixed(0)}% · Last updated: {updated ? new Date(updated).toLocaleString() : "n/a"}</p>
@@ -56,7 +56,7 @@ export function FollowUpDashboardClient({ projectId }: { projectId?: string }) {
 
   return (
     <div className="space-y-5 pb-8">
-      <header className="rounded-3xl border border-white/15 bg-slate-900/90 p-6">
+      <header className="rounded-3xl border border-white/15 bg-white/90 p-6">
         <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">PMFreak Execution Follow-Up Dashboard</p>
         <h1 className="mt-2 text-3xl font-semibold text-white">{projectId ? "Project Follow-Up" : "Portfolio Follow-Up"}</h1>
         <p className="mt-2 text-sm text-slate-300">Professional, sharp follow-up telemetry for project execution commitments.</p>
