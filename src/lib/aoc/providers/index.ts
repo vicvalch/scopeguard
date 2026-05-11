@@ -16,13 +16,16 @@ export type AocProviders = {
   capabilityProvider: CapabilityProvider;
 };
 
-export const createDefaultAocProviders = (extractFacts: (domain: OperationalDomain, text: string) => { data: Record<string, string>; extractedFacts: string[]; completionScore: number; missingFields: string[]; confidenceScore: number }): AocProviders => ({
-  memoryProvider: new SupabaseMemoryProvider(extractFacts),
-  vaultProvider: new SupabaseVaultProvider(),
-  policyProvider: new SupabasePolicyProvider(),
-  auditProvider: new SupabaseAuditProvider(),
-  capabilityProvider: new SupabaseCapabilityProvider(),
-});
+export const createDefaultAocProviders = (extractFacts: (domain: OperationalDomain, text: string) => { data: Record<string, string>; extractedFacts: string[]; completionScore: number; missingFields: string[]; confidenceScore: number }): AocProviders => {
+  const capabilityProvider = new SupabaseCapabilityProvider();
+  return {
+    capabilityProvider,
+    memoryProvider: new SupabaseMemoryProvider(extractFacts),
+    vaultProvider: new SupabaseVaultProvider(),
+    policyProvider: new SupabasePolicyProvider(capabilityProvider),
+    auditProvider: new SupabaseAuditProvider(),
+  };
+};
 
 export * from "@/lib/aoc/providers/types";
 export * from "@/lib/aoc/providers/supabase";

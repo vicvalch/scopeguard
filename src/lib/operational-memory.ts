@@ -1,4 +1,5 @@
 import { createDefaultAocProviders } from "@/lib/aoc/providers";
+import { resolveGovernanceActor } from "@/lib/aoc/providers/governance";
 
 export const OPERATIONAL_DOMAINS = [
   "stakeholder_intelligence",
@@ -68,8 +69,17 @@ export async function listOperationalMemory(companyId: string, projectId: string
 
 export async function saveOperationalMemory(input: { companyId: string; projectId: string | null; domain: OperationalDomain; title: string; text: string; sourceRef: string; }) {
   const namespace = providers.vaultProvider.resolveMemoryNamespace({ companyId: input.companyId, projectId: input.projectId });
-  const canWrite = await providers.policyProvider.canWriteOperationalMemory({ namespace, actorRef: input.sourceRef, domain: input.domain });
-  if (!canWrite) throw new Error("Unable to save operational memory: write policy denied");
+  const actor = resolveGovernanceActor(input.sourceRef);
+  const canWrite = await providers.policyProvider.canWriteOperationalMemory({ namespace, actor, domain: input.domain });
+  if (!canWrite) {
+    await providers.auditProvider.recordEvent({
+      namespace,
+      eventType: "operational_memory_write_denied",
+      actor,
+      payload: { domain: input.domain, title: input.title },
+    });
+    throw new Error("Unable to save operational memory: write policy denied");
+  }
 
   const record = await providers.memoryProvider.saveOperationalMemory({
     namespace,
@@ -82,7 +92,7 @@ export async function saveOperationalMemory(input: { companyId: string; projectI
   await providers.auditProvider.recordEvent({
     namespace,
     eventType: "operational_memory_saved",
-    actorRef: input.sourceRef,
+    actor,
     payload: { id: record.id, domain: record.domain, title: record.title },
   });
 

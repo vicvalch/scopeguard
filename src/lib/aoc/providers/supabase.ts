@@ -3,12 +3,15 @@ import type { OperationalDomain, OperationalMemoryRecord } from "@/lib/operation
 import type {
   AuditProvider,
   CapabilityProvider,
+  GovernanceActor,
+  GovernanceCapability,
   MemoryNamespace,
   MemoryProvider,
   PolicyProvider,
   SaveOperationalMemoryInput,
   VaultProvider,
 } from "@/lib/aoc/providers/types";
+import { canUseCapability, requiredWriteCapability } from "@/lib/aoc/providers/governance";
 
 type SourceTrace = { sourceType: "chat" | "document" | "system"; sourceRef: string; excerpt?: string };
 
@@ -84,25 +87,45 @@ export class SupabaseVaultProvider implements VaultProvider {
       companyId: input.companyId,
       projectId: input.projectId,
       scope,
+      governanceScope: input.projectId ? "project" : "organization",
       namespaceKey: `${input.companyId}:${input.projectId ?? "org"}:${scope}`,
     };
   }
 }
 
 export class SupabasePolicyProvider implements PolicyProvider {
-  async canWriteOperationalMemory(): Promise<boolean> {
-    return true;
+  constructor(private readonly capabilityProvider: CapabilityProvider) {}
+
+  async canWriteOperationalMemory(input: { namespace: MemoryNamespace; actor: GovernanceActor; domain: OperationalDomain }): Promise<boolean> {
+    if (input.namespace.projectId && !input.namespace.namespaceKey.includes(input.namespace.projectId)) return false;
+    if (input.actor.actorType === "machine" && !input.actor.machineId) return false;
+    const capability = requiredWriteCapability(input.domain);
+    return this.capabilityProvider.hasCapability({ namespace: input.namespace, actor: input.actor, capability });
   }
 }
 
 export class SupabaseAuditProvider implements AuditProvider {
-  async recordEvent(): Promise<void> {
-    return;
+  async recordEvent(input: { namespace: MemoryNamespace; eventType: string; actor: GovernanceActor; payload: Record<string, unknown> }): Promise<void> {
+    const supabase = createSupabaseServerClient();
+    const { error } = await supabase.from("governance_audit_events").insert({
+      company_id: input.namespace.companyId,
+      project_id: input.namespace.projectId,
+      namespace_key: input.namespace.namespaceKey,
+      namespace_scope: input.namespace.governanceScope,
+      event_type: input.eventType,
+      actor_ref: input.actor.actorRef,
+      actor_type: input.actor.actorType,
+      actor_role: input.actor.role,
+      machine_id: input.actor.machineId,
+      payload: input.payload,
+      occurred_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(`Unable to record governance audit event: ${error.message}`);
   }
 }
 
 export class SupabaseCapabilityProvider implements CapabilityProvider {
-  async hasCapability(): Promise<boolean> {
-    return true;
+  async hasCapability(input: { namespace: MemoryNamespace; actor: GovernanceActor; capability: GovernanceCapability }): Promise<boolean> {
+    return canUseCapability(input);
   }
 }
