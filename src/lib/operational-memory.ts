@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/db/supabase-server";
+import { createDefaultAocProviders } from "@/lib/aoc/providers";
 
 export const OPERATIONAL_DOMAINS = [
   "stakeholder_intelligence",
@@ -59,47 +59,32 @@ export function extractDomainFacts(domain: OperationalDomain, text: string) {
   return { data, extractedFacts: facts, completionScore, missingFields, confidenceScore };
 }
 
+const providers = createDefaultAocProviders(extractDomainFacts);
+
 export async function listOperationalMemory(companyId: string, projectId: string | null, domain?: OperationalDomain) {
-  const supabase = await createSupabaseServerClient();
-  let query = supabase.from("operational_memory_records").select("*").eq("company_id", companyId).order("updated_at", { ascending: false });
-  if (projectId) query = query.eq("project_id", projectId);
-  if (domain) query = query.eq("domain", domain);
-  const { data, error } = await query;
-  if (error) throw new Error(`Unable to list operational memory: ${error.message}`);
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    domain: row.domain,
-    title: row.title,
-    data: (row.data ?? {}) as Record<string, string>,
-    confidenceScore: row.confidence_score,
-    completionScore: row.completion_score,
-    missingFields: row.missing_fields ?? [],
-    extractedFacts: row.extracted_facts ?? [],
-    sourceTrace: (row.source_trace ?? []) as SourceTrace[],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  })) as OperationalMemoryRecord[];
+  const namespace = providers.vaultProvider.resolveMemoryNamespace({ companyId, projectId });
+  return providers.memoryProvider.listOperationalMemory(namespace, domain);
 }
 
 export async function saveOperationalMemory(input: { companyId: string; projectId: string | null; domain: OperationalDomain; title: string; text: string; sourceRef: string; }) {
-  const extracted = extractDomainFacts(input.domain, input.text);
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("operational_memory_records")
-    .insert({
-      company_id: input.companyId,
-      project_id: input.projectId,
-      domain: input.domain,
-      title: input.title,
-      data: extracted.data,
-      confidence_score: extracted.confidenceScore,
-      completion_score: extracted.completionScore,
-      missing_fields: extracted.missingFields,
-      extracted_facts: extracted.extractedFacts,
-      source_trace: [{ sourceType: "chat", sourceRef: input.sourceRef, excerpt: input.text.slice(0, 240) }],
-    })
-    .select("*")
-    .single();
-  if (error) throw new Error(`Unable to save operational memory: ${error.message}`);
-  return data;
+  const namespace = providers.vaultProvider.resolveMemoryNamespace({ companyId: input.companyId, projectId: input.projectId });
+  const canWrite = await providers.policyProvider.canWriteOperationalMemory({ namespace, actorRef: input.sourceRef, domain: input.domain });
+  if (!canWrite) throw new Error("Unable to save operational memory: write policy denied");
+
+  const record = await providers.memoryProvider.saveOperationalMemory({
+    namespace,
+    domain: input.domain,
+    title: input.title,
+    text: input.text,
+    sourceRef: input.sourceRef,
+  });
+
+  await providers.auditProvider.recordEvent({
+    namespace,
+    eventType: "operational_memory_saved",
+    actorRef: input.sourceRef,
+    payload: { id: record.id, domain: record.domain, title: record.title },
+  });
+
+  return record;
 }
