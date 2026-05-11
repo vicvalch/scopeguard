@@ -33,6 +33,7 @@ export function CommandCenterClient() {
     ...(interventions.data?.commentary ?? []),
     ...(coordination.data?.coordination?.commentary ?? coordination.data?.commentary ?? []),
   ] as string[];
+  const metricCardClass = "rounded-xl border border-white/10 bg-white/20 p-3";
 
   return (
     <div className="space-y-5 pb-8">
@@ -57,7 +58,7 @@ export function CommandCenterClient() {
             ["Stakeholder volatility", stakeholders.data?.communicationStability],
             ["Delivery confidence", risk.data?.deliveryConfidence],
             ["Intervention severity", interventions.data?.intervention?.interventionUrgency ?? interventions.data?.interventionUrgency],
-          ].map(([k, v]) => <div key={k as string} className="rounded-xl border border-white/10 bg-white/20 p-3"><p className="text-xs text-slate-400">{k as string}</p><p className="mt-1 text-lg font-semibold text-white">{String(v ?? "unknown")}</p></div>)}
+          ].map(([k, v]) => <div key={k as string} className={metricCardClass}><p className="text-xs text-slate-400">{k as string}</p><p className="mt-1 text-lg font-semibold text-white">{String(v ?? "unknown")}</p></div>)}
         </div>
       </RiskCard>
 
@@ -122,10 +123,6 @@ export function CommandCenterClient() {
       <InterventionCard title="PMFreak Commentary Stream" level={risk.data?.activeEscalationRisk as string}>
         <div className="space-y-2">{commentary.slice(0, 10).map((line, i) => <p key={`${line}-${i}`} className="rounded-lg border border-white/10 bg-white/20 p-2 text-sm text-slate-200">{line}</p>)}</div>
       </InterventionCard>
-
-      {/* Future architecture: replace polling with websocket intelligence streams and org-wide multiplexing. */}
-      {/* Future architecture: add AI execution agents capable of policy-safe intervention sequencing. */}
-      {/* Future architecture: multi-project orchestration and autonomous PM agents share deterministic queues. */}
     </div>
   );
 }

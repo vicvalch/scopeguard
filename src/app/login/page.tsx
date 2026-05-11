@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthShell } from "@/ui-core/auth/auth-shell";
 
 export default async function LoginPage({
   searchParams,
