@@ -9,7 +9,7 @@ export default async function LoginPage({
   const params = await searchParams;
 
   return (
-    <AuthShell title="Welcome back" subtitle="Continue fixing your execution.">
+    <AuthShell title="Welcome back" subtitle="Pick up where you left off.">
       {params.error ? <p className="mb-4 text-sm text-red-600">{params.error}</p> : null}
 
       <form action="/api/login" method="post" className="space-y-4">
@@ -17,7 +17,7 @@ export default async function LoginPage({
         <input name="password" type="password" placeholder="Password" required className="w-full rounded-xl border-2 border-black px-4 py-3 text-sm" />
 
         <button type="submit" className="w-full rounded-xl border-2 border-black bg-pink-500 px-4 py-3 text-sm font-black text-white shadow-[4px_4px_0_#161616]">
-          Login
+          Continue
         </button>
       </form>
 

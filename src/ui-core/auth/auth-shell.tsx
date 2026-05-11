@@ -20,13 +20,13 @@ export function AuthShell({
             </p>
 
             <h2 className="mt-4 text-3xl font-black leading-tight">
-              Your project is drifting.
+              Keep projects aligned.
               <br />
-              We force it back on track.
+              Lead with clarity.
             </h2>
 
             <p className="mt-4 text-sm font-medium text-black/70">
-              PMFreak detects execution chaos, forces clarity, and tells you exactly what to do next.
+              PMFreak helps you spot risks early, align stakeholders, and move projects forward with confidence.
             </p>
           </div>
 

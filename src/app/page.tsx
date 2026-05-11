@@ -92,7 +92,7 @@ export default function Home() {
                 Start Free
               </Link>
               <Link href="/demo" className={secondaryCtaClass}>
-                Try the Live Demo
+                Try Demo
               </Link>
               <Link href="/interactive-demo" className={secondaryCtaClass}>
                 See a Project Recovery Walkthrough
@@ -216,7 +216,7 @@ export default function Home() {
                 Start Free
               </Link>
               <Link href="/demo" className={secondaryCtaClass}>
-                Try the Live Demo
+                Try Demo
               </Link>
             </div>
           </section>

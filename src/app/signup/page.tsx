@@ -34,13 +34,13 @@ export default async function SignupPage({
 
         <input name="password" type="password" placeholder="Password" required className="w-full rounded-xl border-2 border-black px-4 py-3 text-sm" />
 
-        <AuthSubmitButton idleLabel="Create account" pendingLabel="Creating..." />
+        <AuthSubmitButton idleLabel="Start Free" pendingLabel="Creating..." />
       </form>
 
       <p className="mt-6 text-sm">
         Already have an account?{" "}
         <Link href="/login" className="font-bold">
-          Login
+          Continue
         </Link>
       </p>
     </AuthShell>

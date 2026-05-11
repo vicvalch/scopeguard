@@ -16,9 +16,9 @@ type StorageOption = {
 };
 
 const onboardingSteps: Array<{ id: StepId; title: string; subtitle: string }> = [
-  { id: 1, title: "Company Context", subtitle: "Operational baseline" },
+  { id: 1, title: "Company Context", subtitle: "Project baseline" },
   { id: 2, title: "Project Context", subtitle: "Execution frame" },
-  { id: 3, title: "Operational Vault", subtitle: "Trust and governance" },
+  { id: 3, title: "Project Workspace", subtitle: "Trust and governance" },
   { id: 4, title: "Intelligence Templates", subtitle: "Signal readiness" },
   { id: 5, title: "Activation Review", subtitle: "Final validation" },
 ];
@@ -27,14 +27,14 @@ const storageOptions: StorageOption[] = [
   {
     id: "cloud",
     title: "PMFreak Managed Cloud",
-    description: "Fastest setup with fully managed operational infrastructure, governance, and encrypted storage.",
+    description: "Fastest setup with fully managed infrastructure, governance, and encrypted storage.",
     note: "Recommended for most teams.",
     badge: "Recommended",
   },
   {
     id: "local",
     title: "Local Encrypted Storage",
-    description: "Keep operational memory stored locally on company-controlled infrastructure and devices.",
+    description: "Keep project memory stored locally on company-controlled infrastructure and devices.",
   },
   {
     id: "self_hosted",
@@ -164,19 +164,19 @@ export function GettingStartedFlow() {
         {step === 3 ? (
           <section className="space-y-7 rounded-3xl border border-cyan-200/20 bg-gradient-to-b from-cyan-400/[0.05] via-white/[0.03] to-transparent p-6 md:p-8">
             <div className="space-y-3">
-              <p className="text-xs uppercase tracking-[0.24em] text-cyan-200">Operational Governance Layer</p>
-              <h2 className="text-3xl font-semibold tracking-tight text-slate-100">Your Operational Vault</h2>
+              <p className="text-xs uppercase tracking-[0.24em] text-cyan-200">Project Governance Layer</p>
+              <h2 className="text-3xl font-semibold tracking-tight text-slate-100">Your Project Workspace</h2>
               <p className="text-base text-slate-200">Your company data stays under your control.</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-              <p className="text-sm leading-relaxed text-slate-300">PMFreak was designed to help organizations retain ownership over their operational intelligence.</p>
-              <p className="mt-3 text-sm leading-relaxed text-slate-300">Project conversations, stakeholder context, timelines, risks, decisions, and institutional memory can live inside a dedicated operational vault controlled by your organization.</p>
+              <p className="text-sm leading-relaxed text-slate-300">PMFreak was designed to help organizations retain ownership over their project intelligence.</p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-300">Project conversations, stakeholder context, timelines, risks, decisions, and institutional memory can live inside a dedicated workspace controlled by your organization.</p>
               <p className="mt-3 text-sm font-medium text-cyan-100">Powered by AOC Protocol.</p>
             </div>
 
             <blockquote className="rounded-2xl border-l-4 border-cyan-300/80 bg-cyan-300/[0.08] px-5 py-4 text-base italic text-slate-100 shadow-[0_0_45px_-28px_rgba(34,211,238,0.9)]">
-              “Your operational memory should remain attached to your organization — not trapped inside disconnected tools.”
+              “Your project memory should stay with your team — not scattered across disconnected tools.”
             </blockquote>
 
             <div className="h-px bg-gradient-to-r from-transparent via-cyan-200/60 to-transparent" />
@@ -193,19 +193,19 @@ export function GettingStartedFlow() {
           <section className="grid gap-4 lg:grid-cols-2">
             <article className="rounded-2xl border border-cyan-300/30 bg-cyan-400/[0.06] p-5">
               <p className="text-xs uppercase tracking-[0.2em] text-cyan-200">Activation Review</p>
-              <h3 className="mt-1 text-xl font-semibold text-slate-100">Operational readiness dashboard</h3>
+              <h3 className="mt-1 text-xl font-semibold text-slate-100">Project readiness dashboard</h3>
               <div className="mt-4 space-y-2 text-sm text-slate-200">
                 <p><span className="text-slate-400">Company:</span> {form.companyName || "Not provided"}</p>
                 <p><span className="text-slate-400">Project:</span> {form.projectName || "Not provided"}</p>
                 <p><span className="text-slate-400">Vault strategy:</span> {storageOptions.find((s) => s.id === form.storageStrategy)?.title}</p>
-                <p><span className="text-slate-400">Operational intelligence:</span> {readiness.templateCoverage}% complete</p>
+                <p><span className="text-slate-400">Project intelligence:</span> {readiness.templateCoverage}% complete</p>
               </div>
             </article>
             <article className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <p className="text-sm font-semibold text-slate-100">Enterprise activation signals</p>
               <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div className="rounded-xl border border-white/10 p-3"><p className="text-[11px] text-slate-400">Readiness score</p><p className="text-xl font-semibold text-cyan-200">{readiness.readinessScore}%</p></div>
-                <div className="rounded-xl border border-white/10 p-3"><p className="text-[11px] text-slate-400">Operational coherence</p><p className="text-xl font-semibold text-cyan-200">{readiness.operationalCoherence}%</p></div>
+                <div className="rounded-xl border border-white/10 p-3"><p className="text-[11px] text-slate-400">Project coherence</p><p className="text-xl font-semibold text-cyan-200">{readiness.operationalCoherence}%</p></div>
                 <div className="rounded-xl border border-white/10 p-3"><p className="text-[11px] text-slate-400">Governance completeness</p><p className="text-xl font-semibold text-cyan-200">{readiness.governanceCompleteness}%</p></div>
               </div>
             </article>

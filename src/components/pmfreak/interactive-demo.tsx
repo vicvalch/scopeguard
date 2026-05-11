@@ -133,12 +133,12 @@ export function InteractiveDemoExperience() {
     <main className="min-h-screen bg-[#090c13] px-5 py-8 text-white md:px-10">
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="rounded-3xl border border-cyan-300/20 bg-gradient-to-br from-[#121926] via-[#111525] to-white p-6 shadow-[0_0_80px_rgba(34,211,238,0.1)]">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">PMFreak operational theater</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-300">PMFreak interactive demo</p>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-3xl font-black tracking-tight md:text-5xl">Enterprise execution command infrastructure</h1>
             <div className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em]">heartbeat live</div>
           </div>
-          <p className="mt-4 max-w-4xl text-sm text-white/75">Live operational heartbeat, multi-project instability simulation, explainable interventions, and executive-ready recovery telemetry designed for COO/CIO-level reviews.</p>
+          <p className="mt-4 max-w-4xl text-sm text-white/75">Live project heartbeat, multi-project instability simulation, explainable interventions, and recovery telemetry for PM teams.</p>
           <div className="mt-5 rounded-2xl border border-white/10 bg-white/20 p-3 text-sm text-cyan-100">
             <span className="mr-2 inline-block size-2 animate-pulse rounded-full bg-cyan-300" />
             {tickerMessages[tickerIndex]} · {latestCommentary}
@@ -157,7 +157,7 @@ export function InteractiveDemoExperience() {
 
         <section className="grid gap-4 lg:grid-cols-[1.5fr,1fr]">
           <article className="rounded-2xl border border-white/10 bg-[#0f1421] p-5">
-            <h2 className="text-lg font-black uppercase tracking-[0.14em] text-white/80">Operational timeline replay mode</h2>
+            <h2 className="text-lg font-black uppercase tracking-[0.14em] text-white/80">Project timeline replay mode</h2>
             <div className="mt-3 flex flex-wrap gap-2 text-sm">
               <button onClick={() => setPlaying((p) => !p)} className={controlButtonClass}>{playing ? "Pause" : "Play"}</button>
               <button onClick={() => setDay((d) => Math.max(0, d - 1))} className={controlButtonClass}>Jump -1</button>
@@ -203,12 +203,12 @@ export function InteractiveDemoExperience() {
         </section>
 
         <section className="rounded-3xl border border-white/10 bg-[#0f1421] p-6">
-          <h2 className="text-xl font-black">Enterprise architecture placeholders</h2>
+          <h2 className="text-xl font-black">Project workflow integrations</h2>
           <p className="mt-2 text-sm text-white/75">Live integrations · Teams/Slack escalation ingestion · Jira telemetry · Portfolio intelligence · Autonomous AI PM agents.</p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <Link className="rounded-full border border-white/25 px-4 py-2 font-bold" href="/signup">Create Workspace</Link>
-            <Link className="rounded-full border border-white/25 px-4 py-2 font-bold" href="/pricing">Launch PMO</Link>
-            <Link className="rounded-full border border-white/25 px-4 py-2 font-bold" href="/login">Import Real Project</Link>
+            <Link className="rounded-full border border-white/25 px-4 py-2 font-bold" href="/signup">Start Free</Link>
+            <Link className="rounded-full border border-white/25 px-4 py-2 font-bold" href="/pricing">See Pricing</Link>
+            <Link className="rounded-full border border-white/25 px-4 py-2 font-bold" href="/login">Continue</Link>
           </div>
         </section>
       </div>

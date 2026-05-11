@@ -41,8 +41,8 @@ export function CommandCenterClient() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-cyan-300">PMFreak Command Center</p>
-            <h1 className="mt-2 text-3xl font-semibold text-white">Operational Command Dashboard</h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-300">Live execution telemetry for escalations, drift, delivery stability, and stakeholder pressure sequencing.</p>
+            <h1 className="mt-2 text-3xl font-semibold text-white">Project Health Overview</h1>
+            <p className="mt-2 max-w-3xl text-sm text-slate-300">Live project signals for risks, drift, delivery confidence, and stakeholder pressure.</p>
           </div>
           <button onClick={refreshAll} className="rounded-xl border border-cyan-300/50 px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-400/10">Manual Refresh</button>
         </div>
@@ -77,7 +77,7 @@ export function CommandCenterClient() {
           </div>
         </StakeholderPressureCard>
 
-        <OperationalHealthCard title="Operational Drift Detection" level={interventions.data?.intervention?.operationalDriftSignal?.driftSeverity as string}>
+        <OperationalHealthCard title="Project Drift Detection" level={interventions.data?.intervention?.operationalDriftSignal?.driftSeverity as string}>
           <ul className="space-y-2 text-sm text-slate-200">
             <li>Blocker accumulation: {String(interventions.data?.intervention?.operationalDriftSignal?.blockerAccumulation ?? "n/a")}</li>
             <li>Execution silence: {String(interventions.data?.intervention?.operationalDriftSignal?.executionSilence ?? "n/a")}</li>
@@ -101,7 +101,7 @@ export function CommandCenterClient() {
       <div className="grid gap-4 xl:grid-cols-2">
         <OperationalHealthCard title="Live Telemetry Stream" level={"elevated"}>
           <div className="space-y-2 text-sm text-slate-200">
-            <p>Operational mode: <span className="font-semibold">{String(liveOps.data?.mode ?? "offline")}</span></p>
+            <p>Project mode: <span className="font-semibold">{String(liveOps.data?.mode ?? "offline")}</span></p>
             <p>Timeline events: <span className="font-semibold">{String(liveOps.data?.timeline?.events?.length ?? 0)}</span></p>
             <p>Escalation chain hops: <span className="font-semibold">{String(liveOps.data?.timeline?.escalationChain?.length ?? 0)}</span></p>
             <p>Active pressure recommendations: <span className="font-semibold">{String(liveOps.data?.recommendationQueue?.length ?? 0)}</span></p>
@@ -113,7 +113,7 @@ export function CommandCenterClient() {
               <div key={idx} className="rounded-lg border border-white/10 bg-white/20 p-2">
                 <p>Rationale: {String(item.coordinationRationale ?? "n/a")}</p>
                 <p>Triggering conditions: {((item.triggeringConditions as string[] | undefined) ?? []).join(", ")}</p>
-                <p>Operational confidence: {String(item.operationalConfidence ?? "n/a")}</p>
+                <p>Confidence: {String(item.operationalConfidence ?? "n/a")}</p>
               </div>
             ))}
           </div>
