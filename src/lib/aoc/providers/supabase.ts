@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/db/supabase-server";
 import type { OperationalDomain, OperationalMemoryRecord } from "@/lib/operational-memory";
 import type {
   AuditProvider,
+  CapabilityEvaluation,
   CapabilityProvider,
   GovernanceActor,
   GovernanceCapability,
@@ -11,7 +12,7 @@ import type {
   SaveOperationalMemoryInput,
   VaultProvider,
 } from "@/lib/aoc/providers/types";
-import { canUseCapability, requiredWriteCapability } from "@/lib/aoc/providers/governance";
+import { evaluateCapabilityPolicy, requiredWriteCapability } from "@/lib/aoc/providers/governance";
 
 type SourceTrace = { sourceType: "chat" | "document" | "system"; sourceRef: string; excerpt?: string };
 
@@ -100,7 +101,8 @@ export class SupabasePolicyProvider implements PolicyProvider {
     if (input.namespace.projectId && !input.namespace.namespaceKey.includes(input.namespace.projectId)) return false;
     if (input.actor.actorType === "machine" && !input.actor.machineId) return false;
     const capability = requiredWriteCapability(input.domain);
-    return this.capabilityProvider.hasCapability({ namespace: input.namespace, actor: input.actor, capability });
+    const decision = await this.capabilityProvider.evaluateCapability({ namespace: input.namespace, actor: input.actor, capability });
+    return decision.allowed;
   }
 }
 
@@ -125,7 +127,13 @@ export class SupabaseAuditProvider implements AuditProvider {
 }
 
 export class SupabaseCapabilityProvider implements CapabilityProvider {
+  async evaluateCapability(input: { namespace: MemoryNamespace; actor: GovernanceActor; capability: GovernanceCapability }): Promise<CapabilityEvaluation> {
+    return evaluateCapabilityPolicy(input);
+  }
+
   async hasCapability(input: { namespace: MemoryNamespace; actor: GovernanceActor; capability: GovernanceCapability }): Promise<boolean> {
-    return canUseCapability(input);
+    const decision = await this.evaluateCapability(input);
+    return decision.allowed;
   }
 }
+

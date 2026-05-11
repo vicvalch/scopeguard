@@ -59,6 +59,14 @@ export interface PolicyProvider {
   canWriteOperationalMemory(input: { namespace: MemoryNamespace; actor: GovernanceActor; domain: OperationalDomain }): Promise<boolean>;
 }
 
+export type CapabilityEvaluation = {
+  allowed: boolean;
+  reason: string;
+  source: string;
+  evaluatedCapability: GovernanceCapability;
+};
+
 export interface CapabilityProvider {
   hasCapability(input: { namespace: MemoryNamespace; actor: GovernanceActor; capability: GovernanceCapability }): Promise<boolean>;
+  evaluateCapability(input: { namespace: MemoryNamespace; actor: GovernanceActor; capability: GovernanceCapability }): Promise<CapabilityEvaluation>;
 }

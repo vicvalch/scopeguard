@@ -1,35 +1,23 @@
+import { DEFAULT_GOVERNANCE_POLICY_CONFIG } from "@/lib/aoc/providers/policy-config";
 import type { GovernanceActor, GovernanceCapability, MemoryNamespace } from "@/lib/aoc/providers/types";
 import type { OperationalDomain } from "@/lib/operational-memory";
 
 const MACHINE_PREFIX = "machine:";
 const USER_PREFIX = "user:";
 
-const MACHINE_REGISTRY: Record<string, { role: GovernanceActor["role"]; capabilities: GovernanceCapability[] }> = {
-  copilot_agent: {
-    role: "system",
-    capabilities: ["write_operational_memory"],
-  },
-  executive_synthesis_agent: {
-    role: "executive",
-    capabilities: ["write_operational_memory", "write_executive_context", "generate_executive_synthesis", "access_cross_project_memory"],
-  },
-  operational_ingestion_agent: {
-    role: "system",
-    capabilities: ["write_operational_memory", "write_stakeholder_intelligence"],
-  },
-};
+const FALLBACK_MACHINE_PROFILE = { role: "system", capabilities: ["write_operational_memory"] } as const;
 
-const ROLE_CAPABILITIES: Record<GovernanceActor["role"], GovernanceCapability[]> = {
-  workspace_member: ["write_operational_memory"],
-  workspace_admin: ["write_operational_memory", "write_stakeholder_intelligence", "trigger_intervention"],
-  executive: ["write_operational_memory", "write_executive_context", "write_stakeholder_intelligence", "access_cross_project_memory", "generate_executive_synthesis"],
-  system: ["write_operational_memory"],
+export type CapabilityDecision = {
+  allowed: boolean;
+  reason: string;
+  source: string;
+  evaluatedCapability: GovernanceCapability;
 };
 
 export function resolveGovernanceActor(actorRef: string): GovernanceActor {
   if (actorRef.startsWith(MACHINE_PREFIX)) {
     const machineId = actorRef.slice(MACHINE_PREFIX.length).trim();
-    const machineProfile = MACHINE_REGISTRY[machineId] ?? { role: "system", capabilities: ["write_operational_memory"] };
+    const machineProfile = DEFAULT_GOVERNANCE_POLICY_CONFIG.machineCapabilityGrants[machineId] ?? FALLBACK_MACHINE_PROFILE;
     return { actorRef, actorType: "machine", role: machineProfile.role, machineId };
   }
 
@@ -48,22 +36,64 @@ export function resolveGovernanceActor(actorRef: string): GovernanceActor {
   return { actorRef, actorType: "human", role: "workspace_member", machineId: null };
 }
 
-export function canUseCapability(input: { namespace: MemoryNamespace; actor: GovernanceActor; capability: GovernanceCapability }): boolean {
-  const byRole = ROLE_CAPABILITIES[input.actor.role] ?? [];
-  const byMachine = input.actor.machineId ? (MACHINE_REGISTRY[input.actor.machineId]?.capabilities ?? []) : [];
+export function evaluateCapabilityPolicy(input: { namespace: MemoryNamespace; actor: GovernanceActor; capability: GovernanceCapability }): CapabilityDecision {
+  const byRole = DEFAULT_GOVERNANCE_POLICY_CONFIG.roleCapabilityGrants[input.actor.role] ?? [];
+  const byMachine = input.actor.machineId ? (DEFAULT_GOVERNANCE_POLICY_CONFIG.machineCapabilityGrants[input.actor.machineId]?.capabilities ?? []) : [];
   const merged = new Set<GovernanceCapability>([...byRole, ...byMachine]);
 
-  if (!merged.has(input.capability)) return false;
-
-  if (input.capability === "access_cross_project_memory" && input.namespace.governanceScope === "project" && input.namespace.projectId) {
-    return false;
+  if (!merged.has(input.capability)) {
+    return {
+      allowed: false,
+      reason: `Capability '${input.capability}' is not granted to actor role '${input.actor.role}' or machine profile.`,
+      source: `${DEFAULT_GOVERNANCE_POLICY_CONFIG.source}:role_machine_grants`,
+      evaluatedCapability: input.capability,
+    };
   }
 
-  return true;
+  const scopeRule = DEFAULT_GOVERNANCE_POLICY_CONFIG.scopeCapabilityRules.find((rule) => rule.capability === input.capability);
+  if (scopeRule?.deniedInScopes?.includes(input.namespace.governanceScope)) {
+    return {
+      allowed: false,
+      reason: scopeRule.reason,
+      source: `${DEFAULT_GOVERNANCE_POLICY_CONFIG.source}:scope_rules`,
+      evaluatedCapability: input.capability,
+    };
+  }
+
+  if (scopeRule?.requireOrganizationScope && input.namespace.governanceScope !== "organization") {
+    return {
+      allowed: false,
+      reason: scopeRule.reason,
+      source: `${DEFAULT_GOVERNANCE_POLICY_CONFIG.source}:scope_rules`,
+      evaluatedCapability: input.capability,
+    };
+  }
+
+  return {
+    allowed: true,
+    reason: "Capability granted by policy.",
+    source: `${DEFAULT_GOVERNANCE_POLICY_CONFIG.source}:role_machine_grants`,
+    evaluatedCapability: input.capability,
+  };
+}
+
+export function canUseCapability(input: { namespace: MemoryNamespace; actor: GovernanceActor; capability: GovernanceCapability }): boolean {
+  return evaluateCapabilityPolicy(input).allowed;
 }
 
 export function requiredWriteCapability(domain: OperationalDomain): GovernanceCapability {
-  if (domain === "executive_context") return "write_executive_context";
-  if (domain === "stakeholder_intelligence") return "write_stakeholder_intelligence";
-  return "write_operational_memory";
+  return DEFAULT_GOVERNANCE_POLICY_CONFIG.domainWritePolicies[domain]?.requiredCapability ?? "write_operational_memory";
+}
+
+export function getWritePolicyReason(domain: OperationalDomain): string {
+  return DEFAULT_GOVERNANCE_POLICY_CONFIG.domainWritePolicies[domain]?.reason ?? "Operational memory write policy.";
+}
+
+export function buildWritePolicyDecision(input: { capabilityDecision: CapabilityDecision; domain: OperationalDomain }): Record<string, unknown> {
+  return {
+    evaluatedCapability: input.capabilityDecision.evaluatedCapability,
+    policyDecision: input.capabilityDecision.allowed ? "allow" : "deny",
+    allowDenyReason: `${input.capabilityDecision.reason} ${getWritePolicyReason(input.domain)}`.trim(),
+    governanceSource: input.capabilityDecision.source,
+  };
 }
