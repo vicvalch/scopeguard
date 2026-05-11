@@ -43,11 +43,11 @@ const comparisonRows = [
 ] as const;
 
 const trustPoints = [
-  "Clear reasoning behind each recommendation",
-  "Secure setup options for enterprise environments",
+  "Clear reasoning behind each suggestion",
+  "Secure setup options for every team size",
   "Audit-ready history of risks, decisions, and actions",
-  "Human review before critical escalations",
-  "Consistent logic across projects and portfolios",
+  "Human review before important decisions",
+  "Consistent support across projects and portfolios",
   "Evidence trail from update to action",
 ];
 
@@ -92,10 +92,10 @@ export default function Home() {
                 Start Free
               </Link>
               <Link href="/demo" className={secondaryCtaClass}>
-                Try the Live Demo
+                Try Demo
               </Link>
               <Link href="/interactive-demo" className={secondaryCtaClass}>
-                See a Project Recovery Walkthrough
+                See Example
               </Link>
             </div>
           </section>
@@ -116,7 +116,7 @@ export default function Home() {
               <article className="rounded-2xl border border-zinc-200 bg-zinc-950 p-5">
                 <h3 className="text-lg font-black text-white">What PMFreak changes</h3>
                 <ul className="mt-3 space-y-2 text-sm text-zinc-200">
-                  <li>• Know what is about to go wrong before escalation</li>
+                  <li>• Know what might go wrong before it becomes urgent</li>
                   <li>• Spot stakeholder tension early</li>
                   <li>• Remember every decision, risk, blocker, and commitment</li>
                   <li>• Walk into meetings with clear talking points and actions</li>
@@ -216,7 +216,7 @@ export default function Home() {
                 Start Free
               </Link>
               <Link href="/demo" className={secondaryCtaClass}>
-                Try the Live Demo
+                Try Demo
               </Link>
             </div>
           </section>

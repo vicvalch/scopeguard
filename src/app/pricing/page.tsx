@@ -85,7 +85,7 @@ export default function PricingPage() {
                       disabled={loadingTier === plan.tier}
                       className="inline-flex h-11 items-center justify-center rounded-full bg-[#ff008c] px-6 text-sm font-semibold text-white transition hover:bg-[#db0078] disabled:bg-zinc-400"
                     >
-                      {loadingTier === plan.tier ? "Redirecting..." : `Upgrade to ${plan.name}`}
+                      {loadingTier === plan.tier ? "Continuing..." : `Start  ${plan.name}`}
                     </button>
                   ) : (
                     <a
