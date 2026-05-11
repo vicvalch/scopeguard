@@ -144,7 +144,6 @@ export async function POST(request: Request) {
 
   const analysisAccess = await requireFeatureAccess(user.companyId, "ai_analysis");
   if (!analysisAccess.ok) {
-    const fallback = createFallbackResponse(payload.message, methodology);
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
