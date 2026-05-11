@@ -3,7 +3,7 @@ import Link from "next/link";
 
 const sizeClasses = {
   small: "h-9 w-9",
-  navbar: "h-[150px] w-[150px]",
+  navbar: "h-[120px] w-[120px]",
   large: "h-28 w-28",
 } as const;
 

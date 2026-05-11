@@ -15,26 +15,26 @@ export function MarketingNavbar() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 shadow-[0_0_24px_rgba(236,72,153,0.22)] backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-5 py-3 md:px-8">
         <div className="flex items-center gap-3">
           <LogoMark size="navbar" priority />
           
         </div>
 
-        <nav className="hidden items-center gap-6 md:flex" aria-label="Main">
+        <nav className="hidden items-center gap-10 md:flex" aria-label="Main">
           {navLinks.map((link) => (
-            <Link key={link.label} href={link.href} className="text-lg font-medium text-zinc-800 transition hover:text-cyan-200">
+            <Link key={link.label} href={link.href} className="text-lg font-semibold text-zinc-900 transition hover:text-cyan-200">
               {link.label}
             </Link>
           ))}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link href="/login" className="/5 px-4 py-2 text-lg font-medium text-slate-100 hover:border-cyan-300/70 hover:text-cyan-100">
-            Sign In
+          <Link href="/login" className="/5 px-4 py-2 text-lg font-semibold text-slate-100 hover:border-cyan-300/70 hover:text-cyan-100">
+            <span className="font-semibold text-zinc-900">Sign In</span>
           </Link>
-          <Link href="/signup" className="rounded-full border border-fuchsia-300/70 bg-gradient-to-r from-[#ff008c] to-white px-5 py-2 text-lg font-semibold text-slate-950 shadow-[0_0_25px_rgba(232,121,249,0.45)] hover:brightness-110">
+          <Link href="/signup" className="rounded-full border border-fuchsia-300/70 bg-gradient-to-r from-[#ff008c] to-white px-5 py-2 text-lg font-semibold text-slate-950 shadow-[0_0_24px_rgba(236,72,153,0.22)] hover:brightness-110">
             Get Started
           </Link>
         </div>
@@ -54,8 +54,8 @@ export function MarketingNavbar() {
                 {link.label}
               </Link>
             ))}
-            <Link href="/login" className="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-lg font-medium text-slate-100" onClick={() => setIsOpen(false)}>
-              Sign In
+            <Link href="/login" className="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-lg font-semibold text-slate-100" onClick={() => setIsOpen(false)}>
+              <span className="font-semibold text-zinc-900">Sign In</span>
             </Link>
             <Link href="/signup" className="rounded-full bg-gradient-to-r from-[#ff008c] to-white px-4 py-2.5 text-center text-lg font-semibold text-slate-950" onClick={() => setIsOpen(false)}>
               Get Started
