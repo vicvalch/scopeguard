@@ -4,8 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 type ProjectOption = { id: string; projectName: string; uploadDate: string };
 type CopilotCard = { type: "Risks" | "Next Actions" | "Draft Email" | "RACI" | "Checklist"; title: string; items: string[] };
-type CopilotResponse = { answer: string; cards: CopilotCard[]; plan: "free" | "pro" | "enterprise"; aiPowered: boolean };
-type ChatMessage = { role: "user" | "assistant"; text: string; response?: CopilotResponse };
 type AmbientMemory = { blockers: string[]; recentDecisions: string[]; stakeholderPressure: string[]; criticalRisks: string[]; concerns: string[] };
 type ExecutionRiskSnapshot = {
   deliveryConfidence: "low" | "medium" | "high" | "critical";
@@ -140,7 +138,6 @@ export default function CopilotPage() {
       });
       const payload = (await response.json()) as CopilotResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Unable to get PMFreak Copilot response.");
-      setMessages((p) => [...p, { role: "assistant", text: payload.answer, response: payload }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to get PMFreak Copilot response.");
     } finally {
