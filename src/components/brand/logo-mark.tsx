@@ -3,7 +3,7 @@ import Link from "next/link";
 
 const sizeClasses = {
   small: "h-9 w-9",
-  navbar: "h-[176px] w-[176px]",
+  navbar: "h-[110px] w-[110px]",
   large: "h-28 w-28",
 } as const;
 
@@ -16,7 +16,7 @@ type LogoMarkProps = {
 };
 
 export function LogoMark({ size = "navbar", href = "/", priority = false, className = "", imageClassName = "" }: LogoMarkProps) {
-  const shellClass = `relative inline-flex items-center justify-center border border-white/55  from-[#fffcf4] to-[#f1e8d8]  ring-1 ring-[#22d3ee]/35 ${sizeClasses[size]} ${className}`;
+  const shellClass = `relative inline-flex items-center justify-center   from-[#fffcf4] to-[#f1e8d8]   ${sizeClasses[size]} ${className}`;
 
   return (
     <Link href={href} aria-label="PMFreak Home" className={shellClass}>

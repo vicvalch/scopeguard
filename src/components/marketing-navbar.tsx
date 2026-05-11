@@ -19,7 +19,7 @@ export function MarketingNavbar() {
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-5 py-3 md:px-8">
         <div className="flex items-center gap-3">
           <LogoMark size="navbar" priority />
-          <span className="text-sm font-semibold tracking-[0.14em] text-slate-100">PMFreak</span>
+          
         </div>
 
         <nav className="hidden items-center gap-6 md:flex" aria-label="Main">
@@ -47,7 +47,7 @@ export function MarketingNavbar() {
       </div>
 
       <div id="mobile-main-menu" className={`grid transition-all duration-300 md:hidden ${isOpen ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"}`}>
-        <div className="overflow-hidden border-t border-white/10 bg-[#090b10]/95 px-4 pb-4">
+        <div className="overflow-hidden border-t border-zinc-200 bg-[#090b10]/95 px-4 pb-4">
           <div className="mt-3 flex flex-col gap-2 /5 p-3 backdrop-blur-xl">
             {navLinks.map((link) => (
               <Link key={link.label} href={link.href} className="/10" onClick={() => setIsOpen(false)}>
