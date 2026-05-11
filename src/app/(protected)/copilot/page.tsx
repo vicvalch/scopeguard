@@ -71,9 +71,9 @@ type CoordinationSnapshot = {
 
 const MEMORY_DOMAINS = ["stakeholder_intelligence","delivery_intelligence","risk_intelligence","pmo_governance","team_health","executive_context","operational_memory"] as const;
 const QUICK_NUDGES = [
-  "What changed in stakeholder sentiment this week?",
-  "Summarize blockers before tomorrow's client sync.",
-  "Draft a calm response to deadline pressure.",
+  "What is the single most important risk right now?",
+  "Give me the top 3 actions for the next 24 hours.",
+  "Draft an executive-ready status update in 6 bullets.",
 ];
 
 export default function CopilotPage() {
@@ -242,8 +242,8 @@ export default function CopilotPage() {
           <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">PMFreak Copilot</p>
-              <h1 className="mt-1 text-2xl font-semibold">Chat is your command center</h1>
-              <p className="mt-1 text-sm text-slate-300">Talk naturally. PMFreak keeps project memory, timeline pressure, and stakeholder context in the background.</p>
+              <h1 className="mt-1 text-2xl font-semibold">Executive Copilot</h1>
+              <p className="mt-1 text-sm text-slate-300">Ask once. PMFreak distills complexity into clear operational judgment with full depth running quietly underneath.</p>
             </div>
             <div className="flex gap-2">
               <select value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className="rounded-xl border border-white/15 bg-white/30 px-3 py-2 text-xs">
@@ -256,7 +256,7 @@ export default function CopilotPage() {
             </div>
           </header>
 
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-4 flex flex-wrap gap-2">
             {activeFollowUps.map((prompt) => <button key={prompt} onClick={() => void send(prompt)} className="rounded-full border border-white/20 px-3 py-1 text-xs text-slate-200 transition hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-300/10">{prompt}</button>)}
           </div>
 
@@ -267,7 +267,7 @@ export default function CopilotPage() {
             className={`min-h-[520px] rounded-2xl border p-4 transition ${dragActive ? "border-cyan-300/50 bg-cyan-400/5" : "border-white/10 bg-white/20"}`}
           >
             <div className="space-y-3">
-              {messages.length === 0 ? <p className="text-sm text-slate-300">No active conversation thread. Start with a live project tension, decision, or escalation signal.</p> : null}
+              {messages.length === 0 ? <p className="text-sm text-slate-300">Start with one question. PMFreak will surface only the highest-signal operational insight first.</p> : null}
               {messages.map((msg) => (
                 <article key={msg.id} className={`max-w-3xl rounded-2xl p-3 text-sm transition-all ${msg.role === "user" ? "ml-auto bg-cyan-500/20" : "bg-slate-800/70"} ${msg.state === "streaming" ? "ring-1 ring-cyan-300/30" : ""}`}>
                   <p>{msg.text}</p>
@@ -284,7 +284,7 @@ export default function CopilotPage() {
           <div className="mt-4 space-y-2">
             <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => void handleUpload(e.target.files)} />
             <div className="flex gap-2">
-              <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Message PMFreak…" className="flex-1 rounded-xl border border-white/10 bg-white/30 px-4 py-3 text-sm" />
+              <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask for the next decision, risk, or action…" className="flex-1 rounded-xl border border-white/10 bg-white/30 px-4 py-3 text-sm" />
               <button onClick={() => void send()} disabled={loading} className="rounded-xl border border-cyan-300/50 px-4 py-2 text-sm font-semibold">Send</button>
             </div>
             {lastFailedMessage ? (
@@ -303,109 +303,57 @@ export default function CopilotPage() {
         </section>
 
         <aside className="space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-200">Ambient context</h2>
-          <article className="rounded-2xl border border-amber-300/20 bg-amber-950/20 p-3 text-xs text-amber-100">
-            <p className="text-amber-200">PMFreak executive warning</p>
-            <p className="mt-1">{executionRisk?.commentary[0] ?? "Operational signal model is warming up. Keep project activity flowing for stronger intelligence."}</p>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-200">Operational pulse</h2>
+          <article className="rounded-2xl border border-cyan-300/25 bg-cyan-950/20 p-3 text-xs text-cyan-100">
+            <p className="text-cyan-200">Hero insight</p>
+            <p className="mt-1">{executionRisk?.commentary[0] ?? coordination?.commentary[0] ?? "Operational signal model is warming up. Ask one focused question for sharper intelligence."}</p>
           </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Delivery confidence</p>
-            <p className="mt-1 uppercase text-slate-300">{executionRisk?.deliveryConfidence ?? "medium"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Execution stability</p>
-            <p className="mt-1 uppercase text-slate-300">{executionRisk?.executionStability ?? "watching"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Stakeholder pressure</p>
-            <p className="mt-1 uppercase text-slate-300">{executionRisk?.stakeholderPressure ?? "low"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Active escalation risk</p>
-            <p className="mt-1 uppercase text-slate-300">{executionRisk?.activeEscalationRisk ?? "watch"}</p>
-          </article>
-          <article className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-950/20 p-3 text-xs text-fuchsia-100">
-            <p className="text-fuchsia-200">Intervention urgency</p>
-            <p className="mt-1 uppercase text-fuchsia-100">{intervention?.interventionUrgency ?? "watch"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Escalation probability</p>
-            <p className="mt-1 text-slate-300">{intervention?.escalationProbability ?? 0}%</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Operational drift</p>
-            <p className="mt-1 text-slate-300">{intervention?.organizationalDrift ?? 0}%</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Delivery instability</p>
-            <p className="mt-1 text-slate-300">{intervention?.deliveryBreakdownRisk ?? 0}%</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Recommended next action</p>
-            <p className="mt-1 uppercase text-slate-300">{intervention?.recommendedInterventionType ?? "capacity_protection"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Escalation target recommendation</p>
-            <p className="mt-1 uppercase text-slate-300">{intervention?.escalationTarget ?? "none"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Political risk</p>
-            <p className="mt-1 uppercase text-slate-300">{stakeholderIntel?.politicalRisk ?? "moderate"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Communication stability</p>
-            <p className="mt-1 uppercase text-slate-300">{stakeholderIntel?.communicationStability ?? "watching"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Escalation trajectory</p>
-            <p className="mt-1 uppercase text-slate-300">{stakeholderIntel?.escalationTrajectory ?? "reactive"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Executive alignment</p>
-            <p className="mt-1 uppercase text-slate-300">{stakeholderIntel?.executiveAlignment ?? "mixed"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Active blockers</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.blockers.length ? ambientMemory.blockers : ["No blockers detected yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Recent decisions</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.recentDecisions.length ? ambientMemory.recentDecisions : ["No decisions captured yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Stakeholder pressure</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.stakeholderPressure.length ? ambientMemory.stakeholderPressure : ["No pressure patterns detected yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Critical risks</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.criticalRisks.length ? ambientMemory.criticalRisks : ["No critical risks detected yet."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">AI-detected concerns</p><ul className="mt-1 list-disc pl-4 text-slate-300">{(ambientMemory.concerns.length ? ambientMemory.concerns : ["No concerns detected."]).map((item) => <li key={item}>{item}</li>)}</ul></article>
-          <article className="rounded-2xl border border-cyan-300/20 bg-cyan-950/20 p-3 text-xs text-cyan-100">
-            <p className="text-cyan-200">Memory continuity signal</p>
-            <p className="mt-1">{selectedProject ? `Persistent thread linked to ${selectedProject.projectName}.` : "Cross-project continuity mode active."}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200"><p className="text-cyan-200">Recent uploads</p><ul className="mt-1 list-disc pl-4 text-slate-300">{uploadedFiles.length ? uploadedFiles.map((name) => <li key={name}>{name}</li>) : <li>No files yet. Drop docs into chat.</li>}</ul></article>
-          <article className="rounded-2xl border border-emerald-300/20 bg-emerald-950/20 p-3 text-xs text-emerald-100">
-            <p className="text-emerald-200">Coordination urgency</p>
-            <p className="mt-1 uppercase">{coordination?.operational_priority_queue.actions[0]?.priority ?? "medium"}</p>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Priority action queue</p>
-            <ul className="mt-1 list-disc pl-4 text-slate-300">
-              {(coordination?.operational_priority_queue.actions.slice(0, 4) ?? []).map((action) => (
-                <li key={action.actionId}>#{action.recommendedExecutionOrder} {action.type} ({action.targetStakeholder}) · {action.urgency}%</li>
+
+          <div className="grid grid-cols-2 gap-2">
+            <article className="rounded-xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
+              <p className="text-slate-400">Delivery</p>
+              <p className="mt-1 font-semibold uppercase">{executionRisk?.deliveryConfidence ?? "medium"}</p>
+            </article>
+            <article className="rounded-xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
+              <p className="text-slate-400">Escalation</p>
+              <p className="mt-1 font-semibold uppercase">{executionRisk?.activeEscalationRisk ?? "watch"}</p>
+            </article>
+            <article className="rounded-xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
+              <p className="text-slate-400">Intervention</p>
+              <p className="mt-1 font-semibold uppercase">{intervention?.interventionUrgency ?? "watch"}</p>
+            </article>
+            <article className="rounded-xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
+              <p className="text-slate-400">Alignment</p>
+              <p className="mt-1 font-semibold uppercase">{stakeholderIntel?.executiveAlignment ?? "mixed"}</p>
+            </article>
+          </div>
+
+          <details className="rounded-2xl border border-white/10 bg-white/15 p-3 text-xs text-slate-200">
+            <summary className="cursor-pointer font-semibold text-slate-100">Top action queue</summary>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-slate-300">
+              {(coordination?.operational_priority_queue.actions.slice(0, 3) ?? []).map((action) => (
+                <li key={action.actionId}>#{action.recommendedExecutionOrder} {action.type} · {action.targetStakeholder}</li>
               ))}
             </ul>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Escalation sequencing</p>
-            <p className="mt-1 text-slate-300">{coordination?.escalation_sequence.sequence.join(" → ") || "No active escalation sequence."}</p>
-          </article>
-          <article className="rounded-2xl border border-amber-300/20 bg-amber-950/20 p-3 text-xs text-amber-100">
-            <p className="text-amber-200">Dependency collision warnings</p>
-            <ul className="mt-1 list-disc pl-4">{(coordination?.dependency_deadlock_risk.deadlocks.length ? coordination?.dependency_deadlock_risk.deadlocks : ["No dependency deadlocks detected."]).map((item) => <li key={item}>{item}</li>)}</ul>
-          </article>
-          <article className="rounded-2xl border border-white/10 bg-white/20 p-3 text-xs text-slate-200">
-            <p className="text-cyan-200">Recovery workflow</p>
-            <p className="mt-1 text-slate-300">{coordination?.execution_recovery_path.commentary[0] ?? "Recovery workflow warming up."}</p>
-          </article>
-          <article className="rounded-2xl border border-rose-300/20 bg-rose-950/20 p-3 text-xs text-rose-100">
-            <p className="text-rose-200">Coordination bottlenecks</p>
-            <ul className="mt-1 list-disc pl-4">{(coordination?.coordination_conflict_risk.conflicts.length ? coordination?.coordination_conflict_risk.conflicts : ["No active coordination bottlenecks."]).map((item) => <li key={item}>{item}</li>)}</ul>
-          </article>
-          <article className="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-950/20 p-3 text-xs text-fuchsia-100">
-            <p className="text-fuchsia-200">Executive coordination guidance</p>
-            <p className="mt-1">{coordination?.commentary[1] ?? "Executive coordination guidance unavailable."}</p>
-          </article>
+          </details>
+
+          <details className="rounded-2xl border border-white/10 bg-white/15 p-3 text-xs text-slate-200">
+            <summary className="cursor-pointer font-semibold text-slate-100">Memory highlights</summary>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-slate-300">
+              {(ambientMemory.criticalRisks.length ? ambientMemory.criticalRisks : ["No critical risks detected yet."]).slice(0, 2).map((item) => <li key={item}>{item}</li>)}
+              {(ambientMemory.blockers.length ? ambientMemory.blockers : ["No blockers detected yet."]).slice(0, 1).map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </details>
+
+          <details className="rounded-2xl border border-white/10 bg-white/15 p-3 text-xs text-slate-200">
+            <summary className="cursor-pointer font-semibold text-slate-100">Deep signals</summary>
+            <div className="mt-2 space-y-2 text-slate-300">
+              <p>Pressure: {executionRisk?.stakeholderPressure ?? "low"} · Stability: {executionRisk?.executionStability ?? "watching"}</p>
+              <p>Escalation trajectory: {stakeholderIntel?.escalationTrajectory ?? "reactive"}</p>
+              <p>Recovery: {coordination?.execution_recovery_path.commentary[0] ?? "Recovery workflow warming up."}</p>
+              <p>Recent uploads: {uploadedFiles.length ? uploadedFiles.slice(0, 2).join(", ") : "None"}</p>
+            </div>
+          </details>
         </aside>
       </main>
     </div>
