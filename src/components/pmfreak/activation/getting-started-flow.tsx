@@ -21,6 +21,24 @@ const explainers = [
   ["Why governance gaps matter", "Missing cadence, unclear approvals, or no escalation path lowers confidence and weakens intervention timing."],
 ];
 
+const orgFields = [
+  ["companyName", "Company name"],
+  ["pmoMaturity", "PMO maturity"],
+  ["industry", "Industry"],
+  ["deliveryModel", "Delivery model"],
+  ["teamSize", "Team size"],
+  ["activeProjects", "Active projects"],
+] as const;
+
+const projectFields = [
+  ["projectName", "Project name"],
+  ["sponsor", "Sponsor"],
+  ["pm", "PM"],
+  ["timeline", "Timeline"],
+  ["deliveryConfidence", "Delivery confidence"],
+  ["projectType", "Project type"],
+] as const;
+
 export function GettingStartedFlow() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -70,8 +88,8 @@ export function GettingStartedFlow() {
       </section>
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <div className="mb-4 flex gap-2 text-xs">{[1,2,3].map((s)=><button key={s} onClick={()=>setStep(s)} className={`rounded-full px-3 py-1 ${step===s?"bg-cyan-400/20 text-cyan-200":"bg-white/5 text-slate-300"}`}>Step {s}</button>)}</div>
-        {step===1 && <div className="grid gap-3 md:grid-cols-2">{([ ["companyName","Company name"],["pmoMaturity","PMO maturity"],["industry","Industry"],["deliveryModel","Delivery model"],["teamSize","Team size"],["activeProjects","Active projects"] ] as const).map(([k,l])=><label key={k} className="text-xs text-slate-300">{l}<input value={form[k]} onChange={(e)=>setForm({...form,[k]:e.target.value})} className="mt-1 w-full rounded-xl border border-white/15 bg-white/30 px-3 py-2"/></label>)}</div>}
-        {step===2 && <div className="grid gap-3 md:grid-cols-2">{([ ["projectName","Project name"],["sponsor","Sponsor"],["pm","PM"],["timeline","Timeline"],["deliveryConfidence","Delivery confidence"],["projectType","Project type"] ] as const).map(([k,l])=><label key={k} className="text-xs text-slate-300">{l}<input value={form[k]} onChange={(e)=>setForm({...form,[k]:e.target.value})} className="mt-1 w-full rounded-xl border border-white/15 bg-white/30 px-3 py-2"/></label>)}</div>}
+        {step===1 && <div className="grid gap-3 md:grid-cols-2">{orgFields.map(([k,l])=><label key={k} className="text-xs text-slate-300">{l}<input value={form[k]} onChange={(e)=>setForm({...form,[k]:e.target.value})} className="mt-1 w-full rounded-xl border border-white/15 bg-white/30 px-3 py-2"/></label>)}</div>}
+        {step===2 && <div className="grid gap-3 md:grid-cols-2">{projectFields.map(([k,l])=><label key={k} className="text-xs text-slate-300">{l}<input value={form[k]} onChange={(e)=>setForm({...form,[k]:e.target.value})} className="mt-1 w-full rounded-xl border border-white/15 bg-white/30 px-3 py-2"/></label>)}</div>}
         {step===3 && <div className="space-y-3">{rows.map((r,i)=><div key={r.domain} className="rounded-2xl border border-slate-700/80 bg-white/60 p-3"><input value={r.title} onChange={(e)=>{const n=[...rows];n[i]={...r,title:e.target.value};setRows(n);}} className="w-full bg-transparent text-sm font-semibold"/><textarea value={r.text} onChange={(e)=>{const n=[...rows];n[i]={...r,text:e.target.value};setRows(n);}} rows={2} className="mt-2 w-full rounded-lg border border-white/10 bg-slate-800/70 p-2 text-xs text-slate-300"/><p className="mt-2 text-[11px] text-slate-400">{r.why}</p></div>)}</div>}
       </section>
       <section className="grid gap-4 lg:grid-cols-2">

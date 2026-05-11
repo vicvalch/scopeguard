@@ -62,6 +62,9 @@ const nextStepBenefits = [
   "Lead like a more senior PM",
 ];
 
+const primaryCtaClass = "rounded-full bg-[#ff008c] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#db0078]";
+const secondaryCtaClass = "rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/15";
+
 export default function Home() {
   return (
     <>
@@ -85,13 +88,13 @@ export default function Home() {
             </div>
 
             <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/signup" className="rounded-full bg-[#ff008c] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#db0078]">
+              <Link href="/signup" className={primaryCtaClass}>
                 Start Free
               </Link>
-              <Link href="/demo" className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/15">
+              <Link href="/demo" className={secondaryCtaClass}>
                 Try the Live Demo
               </Link>
-              <Link href="/interactive-demo" className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/15">
+              <Link href="/interactive-demo" className={secondaryCtaClass}>
                 See a Project Recovery Walkthrough
               </Link>
             </div>
@@ -209,10 +212,10 @@ export default function Home() {
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/signup" className="rounded-full bg-[#ff008c] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#db0078]">
+              <Link href="/signup" className={primaryCtaClass}>
                 Start Free
               </Link>
-              <Link href="/demo" className="rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/15">
+              <Link href="/demo" className={secondaryCtaClass}>
                 Try the Live Demo
               </Link>
             </div>

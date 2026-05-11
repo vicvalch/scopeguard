@@ -73,6 +73,8 @@ const commentaryLibrary: Record<EventType, string> = {
 };
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
+const controlButtonClass = "rounded-full border border-white/20 px-3 py-1.5";
+const scriptButtonClass = "rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-xs";
 
 export function InteractiveDemoExperience() {
   const [day, setDay] = useState(0);
@@ -157,10 +159,10 @@ export function InteractiveDemoExperience() {
           <article className="rounded-2xl border border-white/10 bg-[#0f1421] p-5">
             <h2 className="text-lg font-black uppercase tracking-[0.14em] text-white/80">Operational timeline replay mode</h2>
             <div className="mt-3 flex flex-wrap gap-2 text-sm">
-              <button onClick={() => setPlaying((p) => !p)} className="rounded-full border border-white/20 px-3 py-1.5">{playing ? "Pause" : "Play"}</button>
-              <button onClick={() => setDay((d) => Math.max(0, d - 1))} className="rounded-full border border-white/20 px-3 py-1.5">Jump -1</button>
-              <button onClick={() => setDay((d) => Math.min(7, d + 1))} className="rounded-full border border-white/20 px-3 py-1.5">Jump +1</button>
-              {scripts.map((s) => <button key={s.key} onClick={() => { setScript(s); setDay(s.sequence[0] ?? 0); }} className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-xs">{s.label}</button>)}
+              <button onClick={() => setPlaying((p) => !p)} className={controlButtonClass}>{playing ? "Pause" : "Play"}</button>
+              <button onClick={() => setDay((d) => Math.max(0, d - 1))} className={controlButtonClass}>Jump -1</button>
+              <button onClick={() => setDay((d) => Math.min(7, d + 1))} className={controlButtonClass}>Jump +1</button>
+              {scripts.map((s) => <button key={s.key} onClick={() => { setScript(s); setDay(s.sequence[0] ?? 0); }} className={scriptButtonClass}>{s.label}</button>)}
             </div>
             <ul className="mt-4 space-y-2 text-sm">
               {activeTimeline.length === 0 ? <li className="text-white/50">Awaiting first incident.</li> : activeTimeline.map((event) => <li key={event.id} className="rounded-lg border border-white/10 bg-white/5 p-3"><span className="font-bold text-cyan-300">Day {event.day}:</span> {event.title}</li>)}
