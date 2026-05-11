@@ -22,7 +22,7 @@ export function LogoMark({ size = "navbar", href = "/", priority = false, classN
     <Link href={href} aria-label="PMFreak Home" className={shellClass}>
       <span className="absolute inset-0  " aria-hidden />
       <Image
-        src="/assets/LogoTrazoBlanco.png"
+        src="/assets/nuevologoletras.png"
         alt="PM Freak"
         width={96}
         height={96}
