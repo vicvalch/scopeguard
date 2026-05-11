@@ -1,5 +1,4 @@
-import { createDefaultAocProviders } from "@/lib/aoc/providers";
-import { buildWritePolicyDecision, requiredWriteCapability, resolveGovernanceActor } from "@/lib/aoc/providers/governance";
+import { createAocRuntimeClient, RuntimeAuthorityAdapter, RuntimeExecutionAdapter } from "@/lib/aoc/runtime-client";
 
 export const OPERATIONAL_DOMAINS = [
   "stakeholder_intelligence",
@@ -60,44 +59,16 @@ export function extractDomainFacts(domain: OperationalDomain, text: string) {
   return { data, extractedFacts: facts, completionScore, missingFields, confidenceScore };
 }
 
-const providers = createDefaultAocProviders(extractDomainFacts);
+const runtimeClient = createAocRuntimeClient(extractDomainFacts);
+const runtimeAuthority = new RuntimeAuthorityAdapter(runtimeClient);
+const runtimeExecution = new RuntimeExecutionAdapter(runtimeClient, runtimeAuthority);
 
 export async function listOperationalMemory(companyId: string, projectId: string | null, domain?: OperationalDomain) {
-  const namespace = providers.vaultProvider.resolveMemoryNamespace({ companyId, projectId });
-  return providers.memoryProvider.listOperationalMemory(namespace, domain);
+  const namespace = runtimeClient.resolveNamespace({ companyId, projectId });
+  return runtimeClient.listOperationalMemory(namespace, domain);
 }
 
 export async function saveOperationalMemory(input: { companyId: string; projectId: string | null; domain: OperationalDomain; title: string; text: string; sourceRef: string; }) {
-  const namespace = providers.vaultProvider.resolveMemoryNamespace({ companyId: input.companyId, projectId: input.projectId });
-  const actor = resolveGovernanceActor(input.sourceRef);
-  const canWrite = await providers.policyProvider.canWriteOperationalMemory({ namespace, actor, domain: input.domain });
-  const capability = requiredWriteCapability(input.domain);
-  const capabilityDecision = await providers.capabilityProvider.evaluateCapability({ namespace, actor, capability });
-  const policyDecision = buildWritePolicyDecision({ capabilityDecision, domain: input.domain });
-  if (!canWrite) {
-    await providers.auditProvider.recordEvent({
-      namespace,
-      eventType: "operational_memory_write_denied",
-      actor,
-      payload: { domain: input.domain, title: input.title, ...policyDecision },
-    });
-    throw new Error("Unable to save operational memory: write policy denied");
-  }
-
-  const record = await providers.memoryProvider.saveOperationalMemory({
-    namespace,
-    domain: input.domain,
-    title: input.title,
-    text: input.text,
-    sourceRef: input.sourceRef,
-  });
-
-  await providers.auditProvider.recordEvent({
-    namespace,
-    eventType: "operational_memory_saved",
-    actor,
-    payload: { id: record.id, domain: record.domain, title: record.title, ...policyDecision },
-  });
-
+  const { record } = await runtimeExecution.saveOperationalMemory(input);
   return record;
 }
