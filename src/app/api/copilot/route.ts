@@ -2,6 +2,7 @@ import { getAuthUser, type UserRole } from "@/lib/auth";
 import { getCompanySubscription, type SubscriptionPlan } from "@/lib/billing";
 import { canUseAdvancedAi, requireFeatureAccess } from "@/lib/feature-gates";
 import { canUsePortfolioMemory } from "@/lib/plan-access";
+import { buildPmNativeResponse } from "@/lib/pm-response-shaping";
 import { readProjectMemory, type StoredProjectAnalysis } from "@/lib/project-memory";
 
 type CopilotRequest = {
@@ -30,24 +31,8 @@ type CopilotResponse = {
   methodology: "PMI" | "Agile" | "Hybrid" | "General PMO";
 };
 
-const normalize = (v: string) => v.toLowerCase().trim();
-
 const safeList = (items: string[], limit = 8) => items.map((item) => item.trim()).filter(Boolean).slice(0, limit);
-const hasRequiredSections = (answer: string) =>
-  ["Diagnosis", "Immediate Action", "Reinforcement", "Optional Next Step"].every((section) => answer.includes(section));
-
-const buildStructuredAnswer = ({
-  diagnosis,
-  immediateAction,
-  reinforcement,
-  nextStep,
-}: {
-  diagnosis: string;
-  immediateAction: string;
-  reinforcement: string;
-  nextStep: string;
-}) =>
-  `### 1. Diagnosis\n${diagnosis}\n\n### 2. Immediate Action (CRITICAL)\n${immediateAction}\n\n### 3. Reinforcement (pressure)\n${reinforcement}\n\n### 4. Optional Next Step (only 1)\n${nextStep}`;
+const hasRequiredSections = (answer: string) => ["Situation", "Escalation logic", "Decision now", "Next 24h"].every((section) => answer.includes(section));
 
 const getMethodologyGuide = (methodology: CopilotResponse["methodology"]) => {
   switch (methodology) {
@@ -61,54 +46,6 @@ const getMethodologyGuide = (methodology: CopilotResponse["methodology"]) => {
     default:
       return "Blend predictive governance (RAID, baselines, change control) with adaptive delivery cadence and continuous reprioritization.";
   }
-};
-
-const createFallbackResponse = (message: string, methodology: CopilotResponse["methodology"]): CopilotResponse => {
-  const lower = normalize(message);
-  const wantsEmail = lower.includes("email") || lower.includes("follow-up") || lower.includes("follow up");
-
-  return {
-    answer: wantsEmail
-      ? "I can draft a follow-up email, but I need project details first (client name, current status, requested action, and due date)."
-      : "I can help step-by-step. Share project objective, timeline, key stakeholders, current blockers, and latest status so I can recommend the next actions.",
-    cards: wantsEmail
-      ? [
-          {
-            type: "Draft Email",
-            title: "Client follow-up draft template",
-            items: [
-              "Subject: [Project Name] | Status Update and Next Steps",
-              "Opening: Thank the client and confirm current milestone status.",
-              "Body: Summarize progress, open items, and decisions needed.",
-              "Close: Request confirmation by a specific date.",
-            ],
-          },
-        ]
-      : [
-          {
-            type: "Next Actions",
-            title: "Immediate PMO next steps",
-            items: [
-              "Confirm scope baseline and acceptance criteria.",
-              "Refresh RAID log with owners and due dates.",
-              "Validate timeline assumptions and critical dependencies.",
-              "Prepare stakeholder status note with asks/decisions.",
-            ],
-          },
-        ],
-    facts: ["No tenant project memory context was supplied in this prompt."],
-    bestPractices: [getMethodologyGuide(methodology)],
-    assumptions: ["General PMO template guidance only; project-specific facts are not yet available."],
-    requiresMoreContext: true,
-    contextGapQuestions: [
-      "What is the exact project objective and current phase?",
-      "Which milestone is currently at risk?",
-      "What client decision or dependency is blocking progress?",
-    ],
-    plan: "free",
-    aiPowered: false,
-    methodology,
-  };
 };
 
 export async function POST(request: Request) {
@@ -154,7 +91,7 @@ export async function POST(request: Request) {
     .map((p: StoredProjectAnalysis) => `Project: ${p.projectName}\nRisks: ${p.risks.join("; ") || "none"}\nDependencies: ${p.dependencies.join("; ") || "none"}`)
     .join("\n\n");
 
-  const system = `You are PMFreak, an AI Project Manager that forces execution.
+  const system = `You are PMFreak, a senior PMO operator writing for delivery leaders.
 You DO NOT give generic advice.
 You DO NOT speak like a consultant.
 You DO NOT suggest vague improvements.
@@ -162,8 +99,8 @@ You DO NOT suggest vague improvements.
 Your job:
 1) Identify the SINGLE most critical execution failure.
 2) Translate it into a real-world action the user must take TODAY.
-3) Be specific, time-bound, and uncomfortable if needed.
-4) Speak with authority. No soft language.
+3) Use operational language with stakeholder and dependency awareness.
+4) Keep the tone calm, concise, and decisive.
 
 Hard rules:
 - Never invent project facts.
@@ -175,14 +112,14 @@ Hard rules:
 
 Output contract:
 - Return compact JSON only.
-- Return keys: answer, diagnosis, immediateAction, reinforcement, nextStep, facts, bestPractices, assumptions.
+- Return keys: answer, diagnosis, immediateAction, reinforcement, nextStep, facts, bestPractices, assumptions, tradeoffs, dependencies, escalationPath.
 - "answer" must use this exact markdown section format:
-  ### 1. Diagnosis
-  ### 2. Immediate Action (CRITICAL)
-  ### 3. Reinforcement (pressure)
-  ### 4. Optional Next Step (only 1)
+  ### Situation
+  ### Escalation logic
+  ### Decision now
+  ### Next 24h
 - Keep each section 1-2 short lines.
-- Also include arrays for "facts", "bestPractices", and "assumptions".
+- Also include arrays for "facts", "bestPractices", "assumptions", "tradeoffs", "dependencies", and "escalationPath".
 
 Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
 
@@ -217,28 +154,26 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
   }
 
   const result: CopilotResponse = {
-    answer:
-      typeof parsed.answer === "string" && hasRequiredSections(parsed.answer)
-        ? parsed.answer
-        : buildStructuredAnswer({
-            diagnosis:
-              typeof parsed.diagnosis === "string"
-                ? parsed.diagnosis
-                : "You are missing a single execution owner, so decisions stall and delivery drifts.",
-            immediateAction:
-              typeof parsed.immediateAction === "string"
-                ? parsed.immediateAction
-                : "You: assign one accountable owner to the next deliverable today, publish the owner and due date in writing before end of day.",
-            reinforcement:
-              typeof parsed.reinforcement === "string"
-                ? parsed.reinforcement
-                : "If you don’t lock ownership now, the next deadline will slip for the same reason.",
-            nextStep:
-              typeof parsed.nextStep === "string"
-                ? parsed.nextStep
-                : "Within 24 hours, review active tasks and remove every shared owner.",
-          }),
-    cards: Array.isArray(parsed.cards) ? parsed.cards.slice(0, 5) as CopilotResponse["cards"] : [],
+    answer: buildPmNativeResponse({
+      diagnosis: typeof parsed.diagnosis === "string" ? parsed.diagnosis : "Single-thread accountability is missing; decisions are waiting in queue.",
+      immediateAction:
+        typeof parsed.immediateAction === "string"
+          ? parsed.immediateAction
+          : "Program lead assigns one accountable owner for the next milestone and publishes due date before end of day.",
+      reinforcement:
+        typeof parsed.reinforcement === "string"
+          ? parsed.reinforcement
+          : "Without an owner reset, escalation load and timeline variance both increase this week.",
+      nextStep:
+        typeof parsed.nextStep === "string"
+          ? parsed.nextStep
+          : "Within 24 hours, clear shared ownership on active workstreams and confirm dependency handoffs.",
+    }),
+    diagnosis: typeof parsed.diagnosis === "string" ? parsed.diagnosis : undefined,
+    immediateAction: typeof parsed.immediateAction === "string" ? parsed.immediateAction : undefined,
+    reinforcement: typeof parsed.reinforcement === "string" ? parsed.reinforcement : undefined,
+    nextStep: typeof parsed.nextStep === "string" ? parsed.nextStep : undefined,
+    cards: Array.isArray(parsed.cards) ? (parsed.cards.slice(0, 5) as CopilotResponse["cards"]) : [],
     facts: safeList(Array.isArray(parsed.facts) ? parsed.facts : []),
     bestPractices: safeList(Array.isArray(parsed.bestPractices) ? parsed.bestPractices : []),
     assumptions: safeList(Array.isArray(parsed.assumptions) ? parsed.assumptions : []),
@@ -249,4 +184,14 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
     methodology,
   };
 
+  if (!hasRequiredSections(result.answer)) {
+    result.answer = buildPmNativeResponse({
+      diagnosis: result.diagnosis ?? "Execution signal quality is insufficient for decision velocity.",
+      immediateAction: result.immediateAction ?? "PM assigns accountable owner and due date on top risk item today.",
+      reinforcement: result.reinforcement ?? "If governance is delayed again, stakeholder confidence will degrade further.",
+      nextStep: result.nextStep ?? "Run a 15-minute dependency review in the next working block.",
+    });
+  }
+
+  return Response.json(result);
 }

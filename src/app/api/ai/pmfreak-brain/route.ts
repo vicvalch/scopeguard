@@ -95,11 +95,11 @@ export async function POST(request: Request) {
     const sections: string[] = [];
 
     if (actionResult?.answer) {
-      sections.push(`🔴 Execution\n${actionResult.answer}`);
+      sections.push(`Execution brief\n${actionResult.answer}`);
     }
 
     if (messageResult?.improvedVersion) {
-      sections.push(`💬 Communication\n${messageResult.improvedVersion}`);
+      sections.push(`Stakeholder message\n${messageResult.improvedVersion}`);
     }
 
     return NextResponse.json({
