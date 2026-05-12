@@ -1,4 +1,4 @@
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
+import { createPrivilegedSupabaseClient } from "@/lib/security/privileged-access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type SubscriptionPlan = "free" | "pro" | "pmo";
@@ -73,9 +73,10 @@ const normalizeState = (row: {
   currentPeriodEnd: typeof row.current_period_end === "string" && row.current_period_end.length > 0 ? row.current_period_end : null,
 });
 
-const getClient = async (useServiceRole: boolean) => {
+const getClient = async (useServiceRole: boolean, context?: { routeId: string; operation: string; reason: string; actorUserId?: string; workspaceId?: string; systemActor?: "stripe_webhook" | "background_job" | "system" }) => {
   if (useServiceRole) {
-    return createSupabaseServiceRoleClient();
+    if (!context) throw new Error("Privileged billing access requires explicit context.");
+    return createPrivilegedSupabaseClient(context);
   }
 
   return createSupabaseServerClient();
@@ -83,9 +84,9 @@ const getClient = async (useServiceRole: boolean) => {
 
 export const getCompanySubscription = async (
   companyId: string,
-  options?: { useServiceRole?: boolean },
+  options?: { useServiceRole?: boolean; privilegedContext?: { routeId: string; operation: string; reason: string; actorUserId?: string; workspaceId?: string; systemActor?: "stripe_webhook" | "background_job" | "system" } },
 ): Promise<CompanySubscriptionState> => {
-  const supabase = await getClient(Boolean(options?.useServiceRole));
+  const supabase = await getClient(Boolean(options?.useServiceRole), options?.privilegedContext);
 
   const { data, error } = await supabase
     .from("company_subscriptions")
@@ -107,9 +108,9 @@ export const getCompanySubscription = async (
 export const setCompanySubscription = async (
   companyId: string,
   value: CompanySubscriptionState,
-  options?: { useServiceRole?: boolean },
+  options?: { useServiceRole?: boolean; privilegedContext?: { routeId: string; operation: string; reason: string; actorUserId?: string; workspaceId?: string; systemActor?: "stripe_webhook" | "background_job" | "system" } },
 ): Promise<CompanySubscriptionState> => {
-  const supabase = await getClient(Boolean(options?.useServiceRole));
+  const supabase = await getClient(Boolean(options?.useServiceRole), options?.privilegedContext);
 
   const { data, error } = await supabase
     .from("company_subscriptions")
@@ -138,7 +139,7 @@ export const setCompanySubscription = async (
 export const updateCompanySubscription = async (
   companyId: string,
   patch: Partial<CompanySubscriptionState>,
-  options?: { useServiceRole?: boolean },
+  options?: { useServiceRole?: boolean; privilegedContext?: { routeId: string; operation: string; reason: string; actorUserId?: string; workspaceId?: string; systemActor?: "stripe_webhook" | "background_job" | "system" } },
 ): Promise<CompanySubscriptionState> => {
   const current = await getCompanySubscription(companyId, options);
   return setCompanySubscription(companyId, { ...current, ...patch }, options);
@@ -146,9 +147,9 @@ export const updateCompanySubscription = async (
 
 export const findCompanyIdByStripeCustomerId = async (
   customerId: string,
-  options?: { useServiceRole?: boolean },
+  options?: { useServiceRole?: boolean; privilegedContext?: { routeId: string; operation: string; reason: string; actorUserId?: string; workspaceId?: string; systemActor?: "stripe_webhook" | "background_job" | "system" } },
 ): Promise<string | null> => {
-  const supabase = await getClient(Boolean(options?.useServiceRole));
+  const supabase = await getClient(Boolean(options?.useServiceRole), options?.privilegedContext);
 
   const { data, error } = await supabase
     .from("company_subscriptions")
@@ -167,7 +168,7 @@ export const tryRecordProcessedBillingWebhookEvent = async (
   eventId: string,
   eventType: string,
 ): Promise<boolean> => {
-  const supabase = await createSupabaseServiceRoleClient();
+  const supabase = createPrivilegedSupabaseClient({ routeId: "/api/billing/webhook", operation: "record_processed_billing_webhook", reason: "idempotency_guard", systemActor: "stripe_webhook" });
 
   const { error } = await supabase
     .from("billing_webhook_events")

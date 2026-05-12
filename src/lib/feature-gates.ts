@@ -144,7 +144,7 @@ export const requireSeatAvailability = async (
 };
 
 const getCompanyIdByUserId = async (userId: string) => {
-  const supabase = createSupabaseServiceRoleClient();
+  const supabase = createSupabaseServiceRoleClient({ routeId: "feature-gates.getCompanyIdByUserId", operation: "lookup_user_company", reason: "feature_gate_precheck", systemActor: "system" });
   const { data, error } = await supabase.auth.admin.getUserById(userId);
   if (error || !data.user) return null;
   const metadata = data.user.user_metadata ?? {};
@@ -160,7 +160,7 @@ export async function canCreateMoreProjects(userId: string) {
   const companyId = await getCompanyIdByUserId(userId);
   if (!companyId) return upgradeRequired("personal_projects", "pro");
 
-  const supabase = createSupabaseServiceRoleClient();
+  const supabase = createSupabaseServiceRoleClient({ routeId: "feature-gates.canCreateMoreProjects", operation: "count_projects", reason: "feature_limit_enforcement", actorUserId: userId });
   const subscription = await getCompanySubscription(companyId, { useServiceRole: true });
   const { count, error } = await supabase.from("projects").select("id", { head: true, count: "exact" }).eq("user_id", userId);
   if (error) throw new Error(`Unable to verify project limit: ${error.message}`);

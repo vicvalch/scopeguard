@@ -15,6 +15,6 @@ export async function sendInviteAction(formData: FormData) {
   const access = await requireWorkspaceRole(workspaceId, "admin");
   if (!canInviteMembers(access.role)) throw new Error("Only owners/admins can invite.");
 
-  await inviteWorkspaceMember({ workspaceId, companyId: user.companyId, inviterUserId: user.id, email, role });
+  await inviteWorkspaceMember({ workspaceId, companyId: user.companyId, inviterUserId: user.id, email, role, routeId: "/team/actions.sendInviteAction" });
   revalidatePath("/team");
 }

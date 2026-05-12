@@ -1,15 +1,15 @@
-# Service-role Risk Register (Phase 4.4 snapshot)
+# Service-Role Risk Register (Phase 4.5)
 
-## High-risk call sites still present
-- `src/lib/security/telemetry.ts`: service-role insert into `security_events`; acceptable for centralized audit write, but depends on app-layer integrity and should include explicit call-context provenance for each event.
-- `src/lib/workspace-team.ts`: service-role reads/writes memberships and invitations. Requires strict pre-checks upstream; currently library-level function can be called without route-level guard context.
-- `src/lib/billing.ts`: service-role used for subscription state reads/writes and webhook updates; justified for Stripe webhook processing and cross-tenant billing reconciliations, but requires strict route/event validation.
-- `src/lib/feature-gates.ts`: service-role path used for usage/subscription checks and project counts; some checks still rely on `companyId` legacy tenancy mapping.
+## Active privileged surfaces
+- `src/lib/security/telemetry.ts`: writes security events with service-role context.
+- `src/lib/workspace-team.ts`: invitation/member seat accounting and invitation writes.
+- `src/lib/billing.ts`: webhook idempotency and subscription sync writes.
 
-## Medium-risk patterns
-- `createSupabaseAdminClient` warning-only signal in `src/lib/db/supabase-server.ts`; no enforced guard contract at helper boundary.
+## Controls in place
+- Explicit privileged context contract and fail-closed checks.
+- `privileged_client_used` telemetry on privileged acquisition.
+- Governance checks for member/billing control paths.
 
-## Required follow-ups
-1. Add explicit `routeId` and actor context at every privileged client acquisition and emit `privileged_client_used` telemetry consistently.
-2. Prevent service-role helper use before guard completion in route handlers.
-3. Remove fallback patterns where client silently upgrades from user-scoped to service-role execution.
+## Remaining risks
+- Service-role blast radius remains high if server runtime compromised.
+- Replay prevention for agent attestation is not yet persisted/enforced.

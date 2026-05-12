@@ -1,4 +1,4 @@
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
+import { createPrivilegedSupabaseClient } from "@/lib/security/privileged-access";
 
 export type SecurityEventType =
   | "auth_denied"
@@ -43,7 +43,7 @@ export async function logSecurityEvent(event: SecurityEventType, payload: Securi
   console.warn("[security]", { event, timestamp: new Date().toISOString(), ...payload, metadata });
 
   try {
-    const supabase = createSupabaseServiceRoleClient();
+    const supabase = createPrivilegedSupabaseClient({ routeId: "security.telemetry", operation: "insert_security_event", reason: "persist_security_audit", systemActor: "security_telemetry", allowTelemetryRecursionBypass: true, workspaceId: payload.workspaceId ?? null, actorUserId: payload.actorUserId ?? null });
     await supabase.from("security_events").insert({
       workspace_id: payload.workspaceId ?? null,
       project_id: payload.projectId ?? null,

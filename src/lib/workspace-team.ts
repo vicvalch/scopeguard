@@ -1,24 +1,26 @@
 import crypto from "node:crypto";
 import { requireSeatAvailability } from "@/lib/feature-gates";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
+import { createPrivilegedSupabaseClient } from "@/lib/security/privileged-access";
+import { requireGovernancePermission } from "@/lib/security/access-guards";
 import { WORKSPACE_ROLES, type WorkspaceRole } from "@/lib/workspace-access";
 
 const INVITE_TTL_DAYS = 7;
 
-export async function getWorkspaceSeatSnapshot(workspaceId: string, companyId: string) {
-  const supabase = createSupabaseServiceRoleClient();
+export async function getWorkspaceSeatSnapshot(input: { workspaceId: string; companyId: string; actorUserId: string; routeId: string }) {
+  await requireGovernancePermission(input.workspaceId, "manage_members");
+  const supabase = createPrivilegedSupabaseClient({ routeId: input.routeId, operation: "workspace_seat_snapshot", reason: "workspace_member_invite_precheck", workspaceId: input.workspaceId, actorUserId: input.actorUserId });
   const [{ count: activeSeats }, { count: pendingInvites }] = await Promise.all([
-    supabase.from("workspace_memberships").select("user_id", { head: true, count: "exact" }).eq("workspace_id", workspaceId),
+    supabase.from("workspace_memberships").select("user_id", { head: true, count: "exact" }).eq("workspace_id", input.workspaceId),
     supabase
       .from("workspace_invitations")
       .select("id", { head: true, count: "exact" })
-      .eq("workspace_id", workspaceId)
+      .eq("workspace_id", input.workspaceId)
       .eq("status", "pending")
       .gt("expires_at", new Date().toISOString()),
   ]);
 
   const usedSeats = (activeSeats ?? 0) + (pendingInvites ?? 0);
-  const seatGate = await requireSeatAvailability(companyId, usedSeats);
+  const seatGate = await requireSeatAvailability(input.companyId, usedSeats);
   return { activeSeats: activeSeats ?? 0, pendingInvites: pendingInvites ?? 0, usedSeats, seatGate };
 }
 
@@ -28,9 +30,11 @@ export async function inviteWorkspaceMember(input: {
   inviterUserId: string;
   email: string;
   role: WorkspaceRole;
+  routeId: string;
 }) {
   if (!WORKSPACE_ROLES.includes(input.role)) throw new Error("Invalid role.");
-  const supabase = createSupabaseServiceRoleClient();
+  await requireGovernancePermission(input.workspaceId, "manage_members");
+  const supabase = createPrivilegedSupabaseClient({ routeId: input.routeId, operation: "invite_workspace_member", reason: "workspace_membership_change", workspaceId: input.workspaceId, actorUserId: input.inviterUserId });
   const normalizedEmail = input.email.trim().toLowerCase();
 
   const { data: duplicate } = await supabase
@@ -43,7 +47,7 @@ export async function inviteWorkspaceMember(input: {
     .maybeSingle<{ id: string }>();
   if (duplicate?.id) throw new Error("An active invitation already exists for this email.");
 
-  const snapshot = await getWorkspaceSeatSnapshot(input.workspaceId, input.companyId);
+  const snapshot = await getWorkspaceSeatSnapshot({ workspaceId: input.workspaceId, companyId: input.companyId, actorUserId: input.inviterUserId, routeId: input.routeId });
   if (!snapshot.seatGate.ok) throw new Error(`Seat limit reached (${snapshot.seatGate.seatLimit}).`);
 
   const token = crypto.randomBytes(24).toString("hex");

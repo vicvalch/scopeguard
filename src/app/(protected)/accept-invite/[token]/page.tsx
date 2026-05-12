@@ -5,7 +5,7 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
 export default async function AcceptInvitePage({ params }: { params: Promise<{ token: string }> }) {
   const user = await requireAuthUser();
   const { token } = await params;
-  const supabase = createSupabaseServiceRoleClient();
+  const supabase = createSupabaseServiceRoleClient({ routeId: "/accept-invite/page", operation: "service_role_query", reason: "existing_privileged_flow", systemActor: "system" });
 
   const { data: invite } = await supabase.from("workspace_invitations").select("*").eq("token", token).maybeSingle();
   if (!invite) notFound();

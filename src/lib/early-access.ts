@@ -19,7 +19,7 @@ export const computeRemainingTrialDays = (trialEndAt: string | null) => {
 };
 
 export async function createEarlyAccessInvite(input: { inviteEmail: string; inviterUserId: string; inviteNote?: string; expiresInDays?: number; requiresApproval?: boolean; }) {
-  const supabase = createSupabaseServiceRoleClient();
+  const supabase = createSupabaseServiceRoleClient({ routeId: "lib.early-access", operation: "service_role_query", reason: "existing_privileged_flow", systemActor: "system" });
   const token = createInviteToken();
   const tokenHash = hashInviteToken(token);
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * (input.expiresInDays ?? 14)).toISOString();
@@ -52,7 +52,7 @@ export async function createEarlyAccessInvite(input: { inviteEmail: string; invi
 }
 
 export async function acceptEarlyAccessInvite(input: { inviteToken: string; userId: string; workspaceName?: string; }) {
-  const supabase = createSupabaseServiceRoleClient();
+  const supabase = createSupabaseServiceRoleClient({ routeId: "lib.early-access", operation: "service_role_query", reason: "existing_privileged_flow", systemActor: "system" });
   const tokenHash = hashInviteToken(input.inviteToken);
 
   const { data: invite, error } = await supabase
