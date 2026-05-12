@@ -69,7 +69,16 @@ export type SecurityEventType =
   | "trust_handshake_validated"
   | "trust_handshake_invalid"
   | "external_verifier_verified_claim"
-  | "external_verifier_rejected_claim";
+  | "external_verifier_rejected_claim"
+  | "asymmetric_key_registered"
+  | "asymmetric_key_rotated"
+  | "asymmetric_key_revoked"
+  | "asymmetric_claim_issued"
+  | "independent_claim_verified"
+  | "independent_claim_rejected"
+  | "independent_verifier_metadata_fetched"
+  | "independent_verifier_keys_fetched"
+;
 
 type SecurityEventPayload = {
   workspaceId?: string | null;

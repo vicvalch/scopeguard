@@ -38,5 +38,5 @@ export async function POST(request: Request) {
     await logSecurityEvent("external_verifier_verified_claim", { workspaceId: claim.authority.workspaceId, metadata: { verifierName: body.verifierName ?? null, verifierDomain: body.verifierDomain ?? null, trustDomain: trustMetadata.trustDomain, claimHash, reason: verification.reason } });
   }
 
-  return Response.json({ valid: verification.valid, reason: verification.reason, claimHash, trustResult: verification, handshake: handshakeValidation, explanation, authority: explanation.authority, lineage: explanation.lineage, constraints: explanation.constraints });
+  return Response.json({ valid: verification.valid, reason: verification.reason, claimHash, verificationMode: verification.verificationMode ?? "server_mediated", independentlyVerifiable: verification.independentlyVerifiable ?? false, publicKeyAvailable: verification.algorithm === "Ed25519", algorithm: verification.algorithm ?? claim?.proof?.algorithm ?? null, trustDomain: verification.trustDomain ?? claim?.proof?.trustDomain ?? null, keyId: verification.keyId ?? claim?.proof?.keyId ?? null, trustResult: verification, handshake: handshakeValidation, explanation, authority: explanation.authority, lineage: explanation.lineage, constraints: explanation.constraints });
 }

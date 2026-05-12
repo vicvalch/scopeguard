@@ -6,8 +6,8 @@ export async function GET() {
   const { data: trustDomains } = await supabase.from("capability_trust_domains").select("domain_key, issuer_app, status, verification_mode, capability_signing_keys(key_id,status)");
   const metadata = {
     issuerApp: "pmfreak",
-    supportedClaimVersions: ["pmfreak-capability-claim-v1", "pmfreak-capability-claim-v1.1"],
-    supportedAlgorithms: ["HMAC-SHA256"],
+    supportedClaimVersions: ["pmfreak-capability-claim-v1", "pmfreak-capability-claim-v1.1", "pmfreak-capability-claim-v1.2"],
+    supportedAlgorithms: ["HMAC-SHA256", "Ed25519"],
     verificationModes: ["local", "trusted_external", "federation_ready"],
     trustDomains: (trustDomains ?? []).map((td: any) => ({ domainKey: td.domain_key, issuerApp: td.issuer_app, status: td.status, verificationMode: td.verification_mode, activeKeyIds: (td.capability_signing_keys ?? []).filter((k: any) => k.status === "active").map((k: any) => k.key_id), rotatedKeyIds: (td.capability_signing_keys ?? []).filter((k: any) => k.status === "rotated").map((k: any) => k.key_id) })),
     claimVerificationEndpoint: "/api/governance/capabilities/verify",

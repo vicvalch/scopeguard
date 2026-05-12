@@ -1,29 +1,12 @@
-# External verifier interoperability (Phase 6.0)
+# External verifier interoperability
 
-PMFreak now supports **controlled external verifier interoperability**.
+External verifiers can fetch issuer metadata and key metadata, then verify Ed25519 claims offline.
 
-- Not public federation.
-- Not DID/blockchain.
-- Not AOC Protocol yet.
+Flow:
+1. GET issuer metadata.
+2. GET issuer keys.
+3. Verify claim signature locally with Ed25519 public key.
+4. Apply local trust-domain policy.
 
-## Discovery endpoints
-
-- `GET /api/governance/trust/.well-known/capability-issuer`
-- `GET /api/governance/trust/keys`
-
-The keys endpoint does not expose symmetric HMAC secrets.
-
-## Handshake runtime
-
-External verifier flow:
-1. Request handshake (`/api/governance/trust/handshakes/request`)
-2. Owner/admin approve/reject/revoke.
-3. Verifier uses one-time received token for verification posture checks.
-
-Raw handshake tokens are never persisted, only `handshake_token_hash`.
-
-## Verification model
-
-External verification currently relies on:
-- PMFreak server-side verify endpoint, and
-- approved verifier policy or approved handshake.
+HMAC claims still require PMFreak-mediated verification.
+This phase is not public federation/DID/blockchain/AOC Protocol.
