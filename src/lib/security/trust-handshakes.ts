@@ -31,7 +31,10 @@ export async function approveTrustHandshake(input: { id: string; approverUserId?
 export async function rejectTrustHandshake(input: { id: string; rejectorUserId?: string | null; reason?: string }) { return mutateStatus(input, "rejected", "trust_handshake_rejected"); }
 export async function revokeTrustHandshake(input: { id: string; revokerUserId?: string | null; reason?: string }) { return mutateStatus(input, "revoked", "trust_handshake_revoked"); }
 
-async function mutateStatus(input: any, status: "rejected" | "revoked", event: "trust_handshake_rejected" | "trust_handshake_revoked") {
+type HandshakeStatusMutationInput = { id: string; rejectorUserId?: string | null; revokerUserId?: string | null; reason?: string };
+type TrustHandshakeRow = { id: string; verifier_name: string | null; verifier_domain: string | null; requested_trust_domain: string; requested_actions: string[] | null; requested_resource_types: string[] | null; status: string; expires_at: string; handshake_token_hash: string; verifier_workspace_id: string | null };
+
+async function mutateStatus(input: HandshakeStatusMutationInput, status: "rejected" | "revoked", event: "trust_handshake_rejected" | "trust_handshake_revoked") {
   const supabase = createPrivilegedSupabaseClient({ routeId: "security.trust_handshakes", operation: `${status}_handshake`, reason: "external_verifier_interop" });
   const now = new Date().toISOString();
   const field = status === "rejected" ? { rejected_by_user_id: input.rejectorUserId ?? null, rejected_at: now } : { revoked_by_user_id: input.revokerUserId ?? null, revoked_at: now };
@@ -64,4 +67,4 @@ export async function consumeOrAssertHandshake(input: Parameters<typeof validate
   return result;
 }
 
-export function explainTrustHandshake(handshake: any) { return { id: handshake.id, verifierName: handshake.verifier_name, verifierDomain: handshake.verifier_domain, requestedTrustDomain: handshake.requested_trust_domain, requestedActions: handshake.requested_actions, requestedResourceTypes: handshake.requested_resource_types, status: handshake.status, expiresAt: handshake.expires_at }; }
+export function explainTrustHandshake(handshake: TrustHandshakeRow) { return { id: handshake.id, verifierName: handshake.verifier_name, verifierDomain: handshake.verifier_domain, requestedTrustDomain: handshake.requested_trust_domain, requestedActions: handshake.requested_actions, requestedResourceTypes: handshake.requested_resource_types, status: handshake.status, expiresAt: handshake.expires_at }; }

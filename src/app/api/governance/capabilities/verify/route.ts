@@ -30,10 +30,10 @@ export async function POST(request: Request) {
 
   if (!verification.valid) {
     const ev = verification.reason === "revoked_key" ? "federated_claim_revoked_key" : verification.reason === "expired_key" ? "federated_claim_expired_key" : verification.reason.includes("untrusted") || verification.reason.includes("issuer") ? "federated_claim_untrusted_issuer" : "federated_claim_rejected";
-    await logSecurityEvent(ev as any, { workspaceId: claim?.authority?.workspaceId ?? null, projectId: claim?.authority?.projectId ?? null, requested_permission: claim?.authority?.requestedPermission ?? null, metadata: trustMetadata });
+    await logSecurityEvent(ev, { workspaceId: claim?.authority?.workspaceId ?? null, projectId: claim?.authority?.projectId ?? null, requested_permission: claim?.authority?.requestedPermission ?? null, metadata: trustMetadata });
     await logSecurityEvent("external_verifier_rejected_claim", { workspaceId: claim?.authority?.workspaceId ?? null, metadata: { verifierName: body.verifierName ?? null, verifierDomain: body.verifierDomain ?? null, trustDomain: trustMetadata.trustDomain, claimHash, reason: verification.reason } });
   } else {
-    await logSecurityEvent("capability_claim_verified" as any, { workspaceId: claim.authority.workspaceId, projectId: claim.authority.projectId ?? null, requested_permission: claim.authority.requestedPermission, metadata: trustMetadata });
+    await logSecurityEvent("capability_claim_verified", { workspaceId: claim.authority.workspaceId, projectId: claim.authority.projectId ?? null, requested_permission: claim.authority.requestedPermission, metadata: trustMetadata });
     await logSecurityEvent("federated_claim_verified", { workspaceId: claim.authority.workspaceId, projectId: claim.authority.projectId ?? null, requested_permission: claim.authority.requestedPermission, metadata: trustMetadata });
     await logSecurityEvent("external_verifier_verified_claim", { workspaceId: claim.authority.workspaceId, metadata: { verifierName: body.verifierName ?? null, verifierDomain: body.verifierDomain ?? null, trustDomain: trustMetadata.trustDomain, claimHash, reason: verification.reason } });
   }

@@ -16,6 +16,17 @@ export type CapabilityClaim = {
   lineage: { parentDecisionId?: string; parentGrantId?: string; parentDelegationId?: string; rootApprovalRequestId?: string; issuedAt: string };
   proof: { algorithm: "HMAC-SHA256"; keyId: string; signature: string; trustDomain?: string; issuedAt?: string };
 };
+type VerificationExpected = {
+  expectedAction?: string;
+  expectedWorkspaceId?: string;
+  expectedProjectId?: string;
+  expectedSubject?: { userId?: string };
+  expectedResource?: { resourceId?: string };
+  expectedPermission?: string;
+  expectedTrustDomain?: string;
+  verifierWorkspaceId?: string;
+  enforceVerifierPolicy?: boolean;
+};
 const canonicalize = (value: unknown): string => JSON.stringify(sortValue(value));
 const sortValue = (value: unknown): unknown => Array.isArray(value) ? value.map(sortValue) : value && typeof value === "object" ? Object.keys(value as Record<string, unknown>).sort().reduce((acc, key) => ({ ...acc, [key]: sortValue((value as Record<string, unknown>)[key]) }), {}) : value;
 const getClaimSecret = () => { const secret = process.env.PMFREAK_CAPABILITY_CLAIM_SECRET; if (!secret) throw new Error("capability_claim_secret_missing"); return secret; };
@@ -35,7 +46,7 @@ export async function createCapabilityClaim(input: Omit<CapabilityClaim, "versio
 export function hashCapabilityClaim(claim: CapabilityClaim) { return createHash("sha256").update(canonicalize(claim)).digest("hex"); }
 export function verifyClaimLineage(claim: CapabilityClaim, expected?: { parentDecisionId?: string; parentGrantId?: string; parentDelegationId?: string; rootApprovalRequestId?: string }) { if (!expected) return { ok: true, reason: "lineage_not_checked" }; for (const key of ["parentDecisionId", "parentGrantId", "parentDelegationId", "rootApprovalRequestId"] as const) if (expected[key] && claim.lineage[key] !== expected[key]) return { ok: false, reason: `lineage_${key}_mismatch` }; return { ok: true, reason: "lineage_verified" }; }
 
-export async function verifyCapabilityClaim(claim: CapabilityClaim, expected: any = {}) {
+export async function verifyCapabilityClaim(claim: CapabilityClaim, expected: VerificationExpected = {}) {
   const claimHash = hashCapabilityClaim(claim);
   if (![CAPABILITY_CLAIM_VERSION, CAPABILITY_CLAIM_VERSION_V11].includes(claim.version)) return { valid: false, reason: "unsupported_version", claimHash };
   if (claim.issuer.app !== "pmfreak") return { valid: false, reason: "invalid_issuer_app", claimHash };
