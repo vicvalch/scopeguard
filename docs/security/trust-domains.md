@@ -22,3 +22,9 @@ PMFreak now includes a **trust-domain-aware verification layer** for capability 
 - No raw signing secrets are stored in DB tables or migrations.
 - Claims are still HMAC-signed locally.
 - Verification is mediated through trust-domain + key status metadata.
+
+## Phase 6.0 controlled external verifier interoperability note
+PMFreak supports controlled external verifier interoperability with discovery metadata + handshake runtime.
+HMAC keys are not publicly exposed.
+External verification currently relies on PMFreak verification endpoint or approved trust handshake.
+Not public federation, DID/blockchain, or AOC Protocol yet.

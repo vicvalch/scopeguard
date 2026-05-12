@@ -20,3 +20,9 @@ Signed capability claims supplement local authorization records. They do not rep
 
 ## Phase 5.5 trust-domain note
 Capability verification is now trust-domain-aware with issuer and key metadata checks. This is not public federation, DID, blockchain, or AOC Protocol yet; it is structural preparation for protocol-grade verification.
+
+## Phase 6.0 controlled external verifier interoperability note
+PMFreak supports controlled external verifier interoperability with discovery metadata + handshake runtime.
+HMAC keys are not publicly exposed.
+External verification currently relies on PMFreak verification endpoint or approved trust handshake.
+Not public federation, DID/blockchain, or AOC Protocol yet.

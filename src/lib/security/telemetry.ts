@@ -59,7 +59,17 @@ export type SecurityEventType =
   | "federated_claim_rejected"
   | "federated_claim_untrusted_issuer"
   | "federated_claim_revoked_key"
-  | "federated_claim_expired_key";
+  | "federated_claim_expired_key"
+  | "trust_metadata_requested"
+  | "trust_keys_requested"
+  | "trust_handshake_requested"
+  | "trust_handshake_approved"
+  | "trust_handshake_rejected"
+  | "trust_handshake_revoked"
+  | "trust_handshake_validated"
+  | "trust_handshake_invalid"
+  | "external_verifier_verified_claim"
+  | "external_verifier_rejected_claim";
 
 type SecurityEventPayload = {
   workspaceId?: string | null;
