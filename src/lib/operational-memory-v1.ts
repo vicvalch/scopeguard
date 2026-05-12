@@ -124,7 +124,9 @@ export async function appendOperationalMemory(input: {
   return (data ?? []).map(mapRow);
 }
 
-const mapRow = (row: any): OperationalMemoryEntry => ({
+type OperationalMemoryRow = { id: string; company_id: string; project_id: string | null; memory_type: MemoryType; memory_text: string; status: MemoryStatus; source_type: MemorySourceType; source_reference: string; created_at: string; };
+
+const mapRow = (row: OperationalMemoryRow): OperationalMemoryEntry => ({
   id: row.id,
   companyId: row.company_id,
   projectId: row.project_id,
