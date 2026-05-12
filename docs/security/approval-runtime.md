@@ -1,16 +1,12 @@
-# Approval Runtime (Phase 5.1)
+# Approval runtime
 
-## Enforced now
-- Governance decisions can resolve as allow/deny/require_human_approval/require_admin_approval/require_additional_scope.
-- Approval-required decisions persist to `governance_approval_requests`.
-- Lifecycle statuses tracked: evaluated, pending_approval, approved, rejected, expired, cancelled, executed_after_approval.
-- Telemetry events emitted for request/approve/reject plus execution lifecycle hooks.
+## Enforced
+- Approval requests persist with pending/approved/rejected/expired lifecycle.
+- Approve flow now hardens reviewer checks and issues one execution grant bound to request decision/scope.
+- Reject flow revokes active grants linked to the approval request.
 
-## Prepared, not fully enforced
-- Single-execution tokening for post-approval action execution is partially prepared and requires route-by-route integration.
-- Expiration handling exists in approval APIs; scheduled expiration worker is future work.
+## Prepared
+- Expiration worker and admin bulk revocation tooling.
 
 ## Not implemented
-- Multi-step workflow orchestration.
-- External AOC protocol interoperability.
-- Enterprise GRC controls.
+- Multi-step quorum approvals, delegated reviewer pools, and batched policy workflows.

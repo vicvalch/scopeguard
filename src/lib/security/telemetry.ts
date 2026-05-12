@@ -24,7 +24,14 @@ export type SecurityEventType =
   | "approval_expired"
   | "approval_execution_attempted"
   | "approval_execution_blocked"
-  | "approval_executed";
+
+  | "execution_grant_issued"
+  | "execution_grant_consumed"
+  | "execution_grant_expired"
+  | "execution_grant_revoked"
+  | "execution_grant_invalid"
+  | "execution_grant_replay_attempt"
+  | "execution_grant_scope_mismatch";
 
 type SecurityEventPayload = {
   workspaceId?: string | null;
