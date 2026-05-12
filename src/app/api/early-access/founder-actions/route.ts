@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isFounderOrInternalUser, requireAuthUser } from "@/lib/auth";
-import { approveEarlyAccessInvite, extendTrialLicense, revokeEarlyAccessInvite, revokeTrialLicense } from "@/lib/early-access";
+import { approveEarlyAccessInvite, extendTrialLicense, resendEarlyAccessInviteEmail, revokeEarlyAccessInvite, revokeTrialLicense } from "@/lib/early-access";
 
 export async function POST(request: Request) {
   const user = await requireAuthUser();
@@ -22,6 +22,10 @@ export async function POST(request: Request) {
     if (action === "revoke_invite") {
       await revokeEarlyAccessInvite(String(body.inviteId ?? ""), user.id);
       return NextResponse.json({ ok: true });
+    }
+    if (action === "resend_invite_email") {
+      const result = await resendEarlyAccessInviteEmail(String(body.inviteId ?? ""), user.id);
+      return NextResponse.json({ ok: true, ...result });
     }
     if (action === "revoke_trial") {
       await revokeTrialLicense(String(body.trialId ?? ""), user.id);

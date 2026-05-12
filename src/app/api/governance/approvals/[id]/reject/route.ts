@@ -5,7 +5,7 @@ import { logSecurityEvent } from "@/lib/security/telemetry";
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser(); if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const supabase = createPrivilegedSupabaseClient({ routeId: "/api/governance/approvals/[id]/reject", operation: "approval", reason: "reject", systemActor: "governance_api", actorUserId: user.id });
+  const supabase = createPrivilegedSupabaseClient({ routeId: "/api/governance/approvals/[id]/reject", operation: "approval", reason: "reject" , actorUserId: user.id });
   const { data: req } = await supabase.from("governance_approval_requests").select("*").eq("id", id).maybeSingle();
   if (!req) return Response.json({ error: "Not found" }, { status: 404 });
   if (req.status !== "pending_approval") return Response.json({ error: "Already resolved" }, { status: 409 });

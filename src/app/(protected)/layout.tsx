@@ -7,7 +7,7 @@ import { isFounderOrInternalUser } from "@/lib/auth";
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuthUser();
   if (!isFounderOrInternalUser(user)) {
-    const supabase = createSupabaseServiceRoleClient();
+    const supabase = createSupabaseServiceRoleClient({ routeId: "(protected)/layout", operation: "service_role_query", reason: "existing_privileged_flow", systemActor: "system" });
     const { data: memberships } = await supabase.from("workspace_memberships").select("workspace_id").eq("user_id", user.id).limit(20);
     const workspaceIds = (memberships ?? []).map((m) => m.workspace_id);
     const { data: activeTrial } = await supabase

@@ -21,6 +21,13 @@ type TrialRow = {
   workspace_id: string | null;
 };
 
+type InviteEventRow = {
+  invite_id: string;
+  event_type: string;
+  event_payload: Record<string, unknown> | null;
+  created_at: string;
+};
+
 type ActivationRow = {
   workspace_id: string;
   activated_at: string;
@@ -57,15 +64,30 @@ export default async function EarlyAccessPage() {
   await requireAuthUser();
   const supabase = createSupabaseServiceRoleClient({ routeId: "/early-access/page", operation: "service_role_query", reason: "existing_privileged_flow", systemActor: "system" });
 
-  const [{ data: invites }, { data: trials }, { data: activations }] = await Promise.all([
+  const [{ data: invites }, { data: trials }, { data: activations }, { data: events }] = await Promise.all([
     supabase.from("early_access_invites").select("id, invite_email, invite_note, created_at, accepted_at, expires_at, revoked_at, requires_approval, approved_at").order("created_at", { ascending: false }).limit(20),
     supabase.from("trial_licenses").select("id, trial_status, trial_end_at, workspace_id").order("created_at", { ascending: false }).limit(20),
     supabase.from("workspace_activations").select("workspace_id, activated_at, initialization_status").order("activated_at", { ascending: false }).limit(20),
+    supabase.from("early_access_events").select("invite_id, event_type, event_payload, created_at").in("event_type", ["invite_email_send_attempted", "invite_email_sent", "invite_email_failed"]).order("created_at", { ascending: false }).limit(200),
   ]);
 
   const typedInvites = (invites ?? []) as InviteRow[];
   const typedTrials = (trials ?? []) as TrialRow[];
   const typedActivations = (activations ?? []) as ActivationRow[];
+  const typedEvents = (events ?? []) as InviteEventRow[];
+
+  const deliveryByInvite = new Map<string, { label: string; tone: keyof typeof statusBadgeStyles; detail?: string }>();
+  for (const event of typedEvents) {
+    if (deliveryByInvite.has(event.invite_id)) continue;
+    if (event.event_type === "invite_email_sent") {
+      deliveryByInvite.set(event.invite_id, { label: "Email sent", tone: "active", detail: `Sent ${new Date(event.created_at).toLocaleString()}` });
+    } else if (event.event_type === "invite_email_failed") {
+      const reason = typeof event.event_payload?.reason === "string" ? event.event_payload.reason : "Delivery failed";
+      deliveryByInvite.set(event.invite_id, { label: "Email failed", tone: "issue", detail: reason });
+    } else if (event.event_type === "invite_email_send_attempted") {
+      deliveryByInvite.set(event.invite_id, { label: "Sending", tone: "pending" });
+    }
+  }
 
   const pendingInvites = typedInvites.filter((invite) => !invite.accepted_at);
   const activeTrials = typedTrials.filter((trial) => trial.trial_status === "active" || trial.trial_status === "pending" || trial.trial_status === "expired" || trial.trial_status === "revoked");
@@ -134,6 +156,11 @@ export default async function EarlyAccessPage() {
                     {invite.accepted_at ? <StatusBadge label="Activated" tone="accepted" /> : null}
                   </div>
                   <p className="mt-2 text-xs text-slate-300">Expires {new Date(invite.expires_at).toLocaleDateString()}</p>
+                  {deliveryByInvite.get(invite.id) ? (
+                    <p className="mt-1 text-xs text-slate-300">Delivery: {deliveryByInvite.get(invite.id)?.label} · {deliveryByInvite.get(invite.id)?.detail ?? "No provider details"}</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-slate-300">Delivery: Manual link fallback</p>
+                  )}
                   {invite.invite_note ? (
                     <div className="mt-3 rounded-xl border border-sky-200/20 bg-sky-100/5 p-3 text-sky-100">
                       <p className="text-[11px] uppercase tracking-[0.12em] text-sky-200/90">Why you received access</p>
@@ -153,6 +180,14 @@ export default async function EarlyAccessPage() {
                       <input type="hidden" name="inviteId" value={invite.id} />
                       <button className="underline underline-offset-4">Withdraw invite</button>
                     </form>
+                    {!invite.revoked_at ? (
+                      <form method="post" action="/api/early-access/founder-actions">
+                        <input type="hidden" name="action" value="resend_invite_email" />
+                        <input type="hidden" name="inviteId" value={invite.id} />
+                        <button className="underline underline-offset-4">Resend invite email</button>
+                      </form>
+                    ) : null
+                    }
                   </div>
                 </li>
               );
