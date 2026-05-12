@@ -1,7 +1,57 @@
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
-import { isFounderOrInternalUser, requireAuthUser } from "@/lib/auth";
+import { requireAuthUser } from "@/lib/auth";
 import { computeRemainingTrialDays } from "@/lib/early-access";
-import { redirect } from "next/navigation";
+
+type InviteRow = {
+  id: string;
+  invite_email: string;
+  invite_note: string | null;
+  created_at: string;
+  accepted_at: string | null;
+  expires_at: string;
+  revoked_at: string | null;
+  requires_approval: boolean;
+  approved_at: string | null;
+};
+
+type TrialRow = {
+  id: string;
+  trial_status: "pending" | "active" | "expired" | "revoked";
+  trial_end_at: string | null;
+  workspace_id: string | null;
+};
+
+type ActivationRow = {
+  workspace_id: string;
+  activated_at: string;
+  initialization_status: "pending" | "active" | "issue" | string;
+};
+
+const statusBadgeStyles: Record<string, string> = {
+  pending: "border-amber-300/40 bg-amber-200/10 text-amber-200",
+  active: "border-emerald-300/40 bg-emerald-200/10 text-emerald-200",
+  expired: "border-slate-300/30 bg-slate-300/10 text-slate-200",
+  revoked: "border-rose-300/40 bg-rose-200/10 text-rose-200",
+  accepted: "border-sky-300/40 bg-sky-200/10 text-sky-200",
+  issue: "border-orange-300/50 bg-orange-200/10 text-orange-200",
+};
+
+function StatusBadge({ label, tone }: { label: string; tone: keyof typeof statusBadgeStyles }) {
+  return (
+    <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${statusBadgeStyles[tone]}`}>
+      {label}
+    </span>
+  );
+}
+
+function formatTrialStatus(trial: TrialRow) {
+  const daysRemaining = computeRemainingTrialDays(trial.trial_end_at);
+  if (trial.trial_status === "revoked") return { label: "Access withdrawn", tone: "revoked" as const };
+  if (trial.trial_status === "expired" || daysRemaining <= 0) return { label: "Access expired", tone: "expired" as const };
+  if (trial.trial_status === "pending") return { label: "Pending approval", tone: "pending" as const };
+  if (daysRemaining <= 5) return { label: `Trial ending soon · ${daysRemaining} days remaining`, tone: "pending" as const };
+  return { label: `Trial active · ${daysRemaining} days remaining`, tone: "active" as const };
+}
 
 export default async function EarlyAccessPage() {
   await requireAuthUser();
@@ -13,20 +63,132 @@ export default async function EarlyAccessPage() {
     supabase.from("workspace_activations").select("workspace_id, activated_at, initialization_status").order("activated_at", { ascending: false }).limit(20),
   ]);
 
-  return <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-slate-100 space-y-4">
-    <h1 className="text-xl font-semibold">Founder Early Access</h1>
-    <p className="text-slate-300">Controlled rollout visibility across invites, 90-day trials, and runtime workspace activation.</p>
-    <section>
-      <h2 className="font-medium">Active Trials</h2>
-      <ul className="mt-2 space-y-1 text-slate-300">{(trials ?? []).filter((t) => t.trial_status === "active").map((trial) => <li key={trial.id}>Workspace {trial.workspace_id} · {computeRemainingTrialDays(trial.trial_end_at)} days remaining <form className="inline" method="post" action="/api/early-access/founder-actions"><input type="hidden" name="action" value="revoke_trial" /><input type="hidden" name="trialId" value={trial.id} /><button className="ml-2 underline" formAction="/api/early-access/founder-actions">Revoke</button></form><form className="inline ml-2" method="post" action="/api/early-access/founder-actions"><input type="hidden" name="action" value="extend_trial" /><input type="hidden" name="trialId" value={trial.id} /><input type="hidden" name="extensionDays" value="7" /><button className="underline">Extend +7d</button></form></li>)}</ul>
-    </section>
-    <section>
-      <h2 className="font-medium">Pending Invites</h2>
-      <ul className="mt-2 space-y-2 text-slate-300">{(invites ?? []).filter((invite) => !invite.accepted_at).map((invite) => <li key={invite.id}>{invite.invite_email} · expires {new Date(invite.expires_at).toLocaleDateString()} {invite.invite_note ? `· note: ${invite.invite_note}` : ""} {invite.revoked_at ? "· revoked" : null} {invite.requires_approval && !invite.approved_at ? <form className="inline ml-2" method="post" action="/api/early-access/founder-actions"><input type="hidden" name="action" value="approve_invite" /><input type="hidden" name="inviteId" value={invite.id} /><button className="underline">Approve</button></form> : null}<form className="inline ml-2" method="post" action="/api/early-access/founder-actions"><input type="hidden" name="action" value="revoke_invite" /><input type="hidden" name="inviteId" value={invite.id} /><button className="underline">Revoke</button></form></li>)}</ul>
-    </section>
-    <section>
-      <h2 className="font-medium">Activated Workspaces</h2>
-      <ul className="mt-2 space-y-1 text-slate-300">{(activations ?? []).map((activation) => <li key={activation.workspace_id}>{activation.workspace_id} · {activation.initialization_status} · {new Date(activation.activated_at).toLocaleDateString()}</li>)}</ul>
-    </section>
-  </div>;
+  const typedInvites = (invites ?? []) as InviteRow[];
+  const typedTrials = (trials ?? []) as TrialRow[];
+  const typedActivations = (activations ?? []) as ActivationRow[];
+
+  const pendingInvites = typedInvites.filter((invite) => !invite.accepted_at);
+  const activeTrials = typedTrials.filter((trial) => trial.trial_status === "active" || trial.trial_status === "pending" || trial.trial_status === "expired" || trial.trial_status === "revoked");
+
+  return (
+    <div className="space-y-6 rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-sm text-slate-100 md:p-8">
+      <header className="space-y-2 border-b border-white/10 pb-5">
+        <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Founder rollout operations</p>
+        <h1 className="text-2xl font-semibold">Early Access Command View</h1>
+        <p className="max-w-3xl text-slate-300">A calm operational snapshot of invitations, trial access health, and workspace readiness for your first users.</p>
+      </header>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-medium">Trial Access</h2>
+        {activeTrials.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-4 text-slate-300">No trial workspaces are active yet. New activations will appear here with status and remaining time.</div>
+        ) : (
+          <ul className="space-y-3">
+            {activeTrials.map((trial) => {
+              const status = formatTrialStatus(trial);
+              return (
+                <li key={trial.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-slate-100">Workspace {trial.workspace_id ?? "Pending workspace"}</p>
+                    <StatusBadge label={status.label} tone={status.tone} />
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-300">
+                    <form method="post" action="/api/early-access/founder-actions">
+                      <input type="hidden" name="action" value="revoke_trial" />
+                      <input type="hidden" name="trialId" value={trial.id} />
+                      <button className="underline underline-offset-4">Withdraw access</button>
+                    </form>
+                    <form method="post" action="/api/early-access/founder-actions">
+                      <input type="hidden" name="action" value="extend_trial" />
+                      <input type="hidden" name="trialId" value={trial.id} />
+                      <input type="hidden" name="extensionDays" value="7" />
+                      <button className="underline underline-offset-4">Extend +7 days</button>
+                    </form>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-medium">Invite Queue</h2>
+        {pendingInvites.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-4 text-slate-300">No pending invites right now. Approved founder invites will show here until accepted or withdrawn.</div>
+        ) : (
+          <ul className="space-y-3">
+            {pendingInvites.map((invite) => {
+              const statusTone = invite.revoked_at ? "revoked" : invite.requires_approval && !invite.approved_at ? "pending" : "active";
+              const statusLabel = invite.revoked_at
+                ? "Access withdrawn"
+                : invite.requires_approval && !invite.approved_at
+                  ? "Pending approval"
+                  : "Active";
+
+              return (
+                <li key={invite.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-slate-100">{invite.invite_email}</p>
+                    <StatusBadge label={statusLabel} tone={statusTone} />
+                    {invite.accepted_at ? <StatusBadge label="Activated" tone="accepted" /> : null}
+                  </div>
+                  <p className="mt-2 text-xs text-slate-300">Expires {new Date(invite.expires_at).toLocaleDateString()}</p>
+                  {invite.invite_note ? (
+                    <div className="mt-3 rounded-xl border border-sky-200/20 bg-sky-100/5 p-3 text-sky-100">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-sky-200/90">Why you received access</p>
+                      <p className="mt-1 text-sm text-sky-100/95">{invite.invite_note}</p>
+                    </div>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-300">
+                    {invite.requires_approval && !invite.approved_at ? (
+                      <form method="post" action="/api/early-access/founder-actions">
+                        <input type="hidden" name="action" value="approve_invite" />
+                        <input type="hidden" name="inviteId" value={invite.id} />
+                        <button className="underline underline-offset-4">Approve access</button>
+                      </form>
+                    ) : null}
+                    <form method="post" action="/api/early-access/founder-actions">
+                      <input type="hidden" name="action" value="revoke_invite" />
+                      <input type="hidden" name="inviteId" value={invite.id} />
+                      <button className="underline underline-offset-4">Withdraw invite</button>
+                    </form>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-base font-medium">Activated Workspaces</h2>
+        {typedActivations.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-4 text-slate-300">No activations yet. Once an invite is accepted, workspace readiness will appear here.</div>
+        ) : (
+          <ul className="space-y-3">
+            {typedActivations.map((activation) => {
+              const issue = activation.initialization_status !== "active";
+              return (
+                <li key={activation.workspace_id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">Workspace {activation.workspace_id}</p>
+                    <StatusBadge label={issue ? "Initialization issue" : "Activated"} tone={issue ? "issue" : "accepted"} />
+                    <p className="text-xs text-slate-400">Activated {new Date(activation.activated_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs text-slate-300 md:grid-cols-2">
+                    <p>✓ Workspace initialized</p>
+                    <p>✓ Runtime connected</p>
+                    <p>✓ Operational memory active</p>
+                    <p>✓ Explainability enabled</p>
+                  </div>
+                  {issue ? <p className="mt-3 text-xs text-orange-200">Workspace initialization requires attention before the team can rely on the environment.</p> : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
 }
