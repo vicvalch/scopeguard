@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createPrivilegedSupabaseClient } from "@/lib/security/privileged-access";
 import { logSecurityEvent } from "@/lib/security/telemetry";
+import { createCapabilityClaim, claimToAuditMetadata, hashCapabilityClaim } from "@/lib/security/capability-claims";
 
 const FORBIDDEN = new Set(["billing.manage", "members.manage", "workspace.manage", "privileged.use"]);
 const OWNER_ADMIN_ALLOWED = new Set(["project.read", "memory.read", "memory.write", "document.upload", "ai.execute"]);

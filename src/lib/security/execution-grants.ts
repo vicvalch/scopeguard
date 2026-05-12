@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createPrivilegedSupabaseClient } from "@/lib/security/privileged-access";
 import { logSecurityEvent } from "@/lib/security/telemetry";
+import { createCapabilityClaim, claimToAuditMetadata, hashCapabilityClaim } from "@/lib/security/capability-claims";
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 export const generateExecutionGrantToken = () => randomBytes(32).toString("base64url");
@@ -14,7 +15,8 @@ export async function issueExecutionGrant(input: ExecutionGrantInput) {
   const { data, error } = await supabase.from("governance_execution_grants").upsert(payload, { onConflict: "approval_request_id", ignoreDuplicates: true }).select("*").single();
   if (error) throw new Error(`issue execution grant failed: ${error.message}`);
   await logSecurityEvent("execution_grant_issued", { workspaceId: data.workspace_id, projectId: data.project_id, actorUserId: data.actor_user_id, actorAgentId: data.actor_agent_id, requested_permission: data.requested_permission, metadata: { grantId: data.id, decisionId: data.decision_id, approvalRequestId: data.approval_request_id, action: data.action, status: data.status, reason: "approved" } });
-  return { grant: data, grantToken };
+  await logSecurityEvent("capability_claim_issued", { workspaceId: data.workspace_id, projectId: data.project_id, actorUserId: data.actor_user_id, actorAgentId: data.actor_agent_id, requested_permission: data.requested_permission, metadata: { ...claimToAuditMetadata(claim, "execution_grant") } });
+  return { grant: data, grantToken, capabilityClaim: claim };
 }
 
 export async function validateExecutionGrant(input: ExecutionGrantInput) { const supabase = createPrivilegedSupabaseClient({ routeId: "governance.execution_grants.validate", operation: "validate_execution_grant", reason: "pre_execution_validation", systemActor: "system", workspaceId: input.workspaceId, actorUserId: input.actorUserId ?? null }); const { data } = await supabase.from("governance_execution_grants").select("*").eq("grant_token_hash", hashToken(input.grantToken ?? "")).maybeSingle(); if (!data) return { ok: false, reason: "not_found" }; if (data.status !== "active") return { ok: false, reason: data.status, grant: data }; if (new Date(data.expires_at).getTime() <= Date.now()) return { ok: false, reason: "expired", grant: data }; if (data.workspace_id !== input.workspaceId || (input.projectId && data.project_id && data.project_id !== input.projectId) || data.action !== input.action || data.requested_permission !== input.requestedPermission || (input.resourceType && data.resource_type && data.resource_type !== input.resourceType) || (input.resourceId && data.resource_id && data.resource_id !== input.resourceId) || (input.actorUserId && data.actor_user_id && data.actor_user_id !== input.actorUserId) || (input.actorAgentId && data.actor_agent_id && data.actor_agent_id !== input.actorAgentId)) return { ok: false, reason: "scope_mismatch", grant: data }; return { ok: true, grant: data }; }
