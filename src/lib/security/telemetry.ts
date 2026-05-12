@@ -102,6 +102,15 @@ export type SecurityEventType =
   | "trust_policy_revoked"
   | "invalid_sequence_detected"
   | "verifier_trust_updated"
+  | "verification_snapshot_created"
+  | "verification_receipt_signed"
+  | "verification_receipt_verified"
+  | "deterministic_evaluation_completed"
+  | "verifier_divergence_detected"
+  | "forensic_replay_executed"
+  | "canonicalization_failed"
+  | "state_hash_generated"
+  | "replay_diff_detected"
 ;
 
 type SecurityEventPayload = {
