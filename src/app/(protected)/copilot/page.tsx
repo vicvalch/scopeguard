@@ -74,10 +74,32 @@ type CoordinationSnapshot = {
 };
 
 const MEMORY_DOMAINS = ["stakeholder_intelligence","delivery_intelligence","risk_intelligence","pmo_governance","team_health","executive_context","operational_memory"] as const;
+
+const FIRST_SESSION_PROMPTS = {
+  operational: [
+    "Summarize delivery health in plain executive language.",
+    "What execution pattern is most likely to fail this week?",
+  ],
+  escalation: [
+    "What should I escalate in the next 24 hours, and who owns the escalation?",
+    "Draft a calm escalation note for the sponsor with decision asks.",
+  ],
+  stakeholder: [
+    "Who is most likely to block progress and why?",
+    "How should I brief stakeholders with mixed alignment?",
+  ],
+  delivery: [
+    "Give me a recovery path for the top slipping milestone.",
+    "Convert today's risks into an accountable 3-step action plan.",
+  ],
+};
+
 const QUICK_NUDGES = [
   "What is the single most important risk right now?",
   "Give me the top 3 actions for the next 24 hours.",
   "Draft an executive-ready status update in 6 bullets.",
+  "Which issue should I escalate today, and to whom?",
+  "What are stakeholders likely to challenge in tomorrow's review?",
 ];
 
 export default function CopilotPage() {
@@ -255,6 +277,7 @@ export default function CopilotPage() {
               <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">PMFreak Copilot</p>
               <h1 className="mt-1 text-2xl font-semibold">Executive Copilot</h1>
               <p className="mt-1 text-sm text-slate-300">Ask once. PMFreak distills complexity into clear operational judgment with full depth running quietly underneath.</p>
+              <p className="mt-2 text-xs text-cyan-200">First 5 minutes: pick project scope, ask one risk question, then request an escalation-ready message.</p>
             </div>
             <div className="flex gap-2">
               <select value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className="rounded-xl border border-white/15 bg-white/30 px-3 py-2 text-xs">
@@ -266,6 +289,28 @@ export default function CopilotPage() {
               </select>
             </div>
           </header>
+
+          {messages.length === 0 ? (
+            <section className="mb-4 rounded-2xl border border-cyan-300/35 bg-cyan-400/10 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-cyan-200">First-session guide</p>
+              <h2 className="mt-1 text-lg font-semibold">Start with one real operational question</h2>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {Object.entries(FIRST_SESSION_PROMPTS).map(([group, prompts]) => (
+                  <div key={group} className="rounded-xl border border-white/15 bg-black/10 p-3">
+                    <p className="text-xs uppercase tracking-wide text-cyan-100">{group}</p>
+                    <div className="mt-2 space-y-2">
+                      {prompts.map((prompt) => (
+                        <button key={prompt} type="button" onClick={() => void send(prompt)} className="block w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-left text-xs text-slate-200 hover:border-cyan-300/60">
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
 
           <div className="mb-4 flex flex-wrap gap-2">
             {activeFollowUps.map((prompt) => <button key={prompt} onClick={() => void send(prompt)} className="rounded-full border border-white/20 px-3 py-1 text-xs text-slate-200 transition hover:-translate-y-0.5 hover:border-cyan-300/40 hover:bg-cyan-300/10">{prompt}</button>)}
