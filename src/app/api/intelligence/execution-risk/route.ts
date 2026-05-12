@@ -1,4 +1,5 @@
-import { requireProjectPermission } from "@/lib/security/access-guards";
+import { AccessDeniedError, requireProjectPermission } from "@/lib/security/access-guards";
+import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";
 
@@ -6,7 +7,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get("projectId")?.trim() ?? "";
   if (projectId) {
-    try { await requireProjectPermission(projectId, "read"); } catch { return Response.json({ error: "Invalid project context." }, { status: 403 }); }
+    try { await requireProjectPermission(projectId, "read"); } catch (error) { if (error instanceof AccessDeniedError) return denyFromAccessError(error, { status: 403, routeId: "/api/intelligence/execution-risk", message: "Invalid project context.", projectId, requestedPermission: "read", deniedPermission: "read", eventType: "project_scope_violation" }); throw error; }
   }
 
   // Operational scope resolution stays deterministic so future PMO-level agents
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
   const snapshot = projectId.length > 0 ? await readProjectMemorySnapshot(projectId) : null;
 
   if (projectId.length > 0 && !snapshot) {
-    return Response.json({ error: "Invalid project context." }, { status: 403 });
+    return denyResponse({ status: 403, routeId: "/api/intelligence/execution-risk", message: "Invalid project context.", reason: "project_not_found_or_out_of_scope", projectId, requestedPermission: "read", deniedPermission: "read", eventType: "project_scope_violation" });
   }
 
   const riskSnapshot = buildExecutionRiskSnapshot(projectId || null, snapshot);

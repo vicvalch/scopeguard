@@ -1,4 +1,6 @@
 import { requireProjectPermission, requireWorkspaceMembership } from "@/lib/security/access-guards";
+import { AccessDeniedError } from "@/lib/security/access-guards";
+import { denyFromAccessError } from "@/lib/security/deny-response";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { buildInterventionSnapshot } from "@/lib/intervention-engine";
 import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";
@@ -10,13 +12,13 @@ export async function GET(request: Request) {
   const workspaceId = searchParams.get("workspaceId")?.trim() ?? "";
 
   if (workspaceId) {
-    try { await requireWorkspaceMembership(workspaceId); } catch { return Response.json({ error: "Invalid workspace context." }, { status: 403 }); }
+    try { await requireWorkspaceMembership(workspaceId); } catch (error) { if (error instanceof AccessDeniedError) return denyFromAccessError(error, { status: 403, routeId: "/api/intelligence/interventions", message: "Invalid workspace context.", workspaceId, eventType: "workspace_scope_violation" }); throw error; }
   }
 
   let snapshot = null;
 
   if (projectId) {
-    try { await requireProjectPermission(projectId, "read"); } catch { return Response.json({ error: "Invalid project context." }, { status: 403 }); }
+    try { await requireProjectPermission(projectId, "read"); } catch (error) { if (error instanceof AccessDeniedError) return denyFromAccessError(error, { status: 403, routeId: "/api/intelligence/interventions", message: "Invalid project context.", projectId, requestedPermission: "read", deniedPermission: "read", eventType: "project_scope_violation" }); throw error; }
     snapshot = await readProjectMemorySnapshot(projectId);
   }
 

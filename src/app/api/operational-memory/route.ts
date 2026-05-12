@@ -1,5 +1,6 @@
 import { getAuthUser } from "@/lib/auth";
 import { AccessDeniedError, requireProjectPermission } from "@/lib/security/access-guards";
+import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 import {
   appendOperationalMemory,
   extractOperationalMemoryCandidates,
@@ -11,7 +12,7 @@ import {
 
 export async function GET(request: Request) {
   const user = await getAuthUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return denyResponse({ status: 401, routeId: "/api/operational-memory", message: "Unauthorized", reason: "unauthorized" });
 
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get("projectId")?.trim() ?? null;
@@ -20,8 +21,7 @@ export async function GET(request: Request) {
       await requireProjectPermission(projectId, "read");
     } catch (error) {
       if (error instanceof AccessDeniedError) {
-        console.warn("[security] operational_memory_access_denied", error.metadata);
-        return Response.json({ error: "Invalid project context." }, { status: 403 });
+        return denyFromAccessError(error, { status: 403, routeId: "/api/operational-memory", message: "Invalid project context.", actorUserId: user.id, projectId, requestedPermission: "read", deniedPermission: "read", eventType: "project_scope_violation" });
       }
       throw error;
     }
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getAuthUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return denyResponse({ status: 401, routeId: "/api/operational-memory", message: "Unauthorized", reason: "unauthorized" });
 
   const body = (await request.json()) as {
     projectId?: string | null;
@@ -57,8 +57,7 @@ export async function POST(request: Request) {
       await requireProjectPermission(body.projectId.trim(), "write_memory");
     } catch (error) {
       if (error instanceof AccessDeniedError) {
-        console.warn("[security] operational_memory_write_denied", error.metadata);
-        return Response.json({ error: "Invalid project context." }, { status: 403 });
+        return denyFromAccessError(error, { status: 403, routeId: "/api/operational-memory", message: "Invalid project context.", actorUserId: user.id, projectId: body.projectId.trim(), requestedPermission: "write_memory", deniedPermission: "write_memory", eventType: "project_scope_violation" });
       }
       throw error;
     }

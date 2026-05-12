@@ -3,10 +3,11 @@ import { routeOperationalInput } from "@/lib/input-routing";
 import { listOperationalMemory } from "@/lib/operational-memory";
 import type { InputHubMode } from "@/lib/operational-classifier";
 import { AccessDeniedError, requireProjectPermission } from "@/lib/security/access-guards";
+import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 
 export async function GET(request: Request) {
   const user = await getAuthUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return denyResponse({ status: 401, routeId: "/api/input-hub", message: "Unauthorized", reason: "unauthorized" });
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get("projectId");
   if (projectId?.trim()) {
@@ -14,8 +15,7 @@ export async function GET(request: Request) {
       await requireProjectPermission(projectId.trim(), "read");
     } catch (error) {
       if (error instanceof AccessDeniedError) {
-        console.warn("[security] input_hub_read_denied", error.metadata);
-        return Response.json({ error: "Invalid project context." }, { status: 403 });
+        return denyFromAccessError(error, { status: 403, routeId: "/api/input-hub", message: "Invalid project context.", actorUserId: user.id, projectId: projectId.trim(), requestedPermission: "read", deniedPermission: "read", eventType: "project_scope_violation" });
       }
       throw error;
     }
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getAuthUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return denyResponse({ status: 401, routeId: "/api/input-hub", message: "Unauthorized", reason: "unauthorized" });
 
   const body = (await request.json()) as {
     projectId?: string | null;
@@ -46,8 +46,7 @@ export async function POST(request: Request) {
       await requireProjectPermission(body.projectId.trim(), "write_memory");
     } catch (error) {
       if (error instanceof AccessDeniedError) {
-        console.warn("[security] input_hub_write_denied", error.metadata);
-        return Response.json({ error: "Invalid project context." }, { status: 403 });
+        return denyFromAccessError(error, { status: 403, routeId: "/api/input-hub", message: "Invalid project context.", actorUserId: user.id, projectId: body.projectId.trim(), requestedPermission: "write_memory", deniedPermission: "write_memory", eventType: "project_scope_violation" });
       }
       throw error;
     }
