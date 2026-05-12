@@ -13,3 +13,8 @@
 
 ## Why this is not full AOC capability-token infra
 - This layer is route-local authorization consumption tied to approval requests; it is not a generalized protocol token lifecycle with external trust federation.
+
+
+## Phase 5.3 delegated authority
+- Adds PMFreak-native delegated capabilities with lineage, revocation, expiry, and max-use constraints.
+- Explicitly *not* full AOC Protocol or decentralized federation.

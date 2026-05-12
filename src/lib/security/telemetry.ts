@@ -31,7 +31,16 @@ export type SecurityEventType =
   | "execution_grant_revoked"
   | "execution_grant_invalid"
   | "execution_grant_replay_attempt"
-  | "execution_grant_scope_mismatch";
+  | "execution_grant_scope_mismatch"
+  | "delegated_capability_issued"
+  | "delegated_capability_consumed"
+  | "delegated_capability_revoked"
+  | "delegated_capability_expired"
+  | "delegated_capability_invalid"
+  | "delegated_capability_replay_attempt"
+  | "delegated_capability_scope_mismatch"
+  | "delegated_capability_depth_exceeded"
+  | "delegated_capability_broaden_attempt";
 
 type SecurityEventPayload = {
   workspaceId?: string | null;

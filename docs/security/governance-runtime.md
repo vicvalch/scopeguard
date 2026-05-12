@@ -9,3 +9,8 @@
 
 ## Not implemented
 - Protocol-grade capability distribution and portable external grant verification.
+
+
+## Phase 5.3 delegated authority
+- Adds PMFreak-native delegated capabilities with lineage, revocation, expiry, and max-use constraints.
+- Explicitly *not* full AOC Protocol or decentralized federation.
