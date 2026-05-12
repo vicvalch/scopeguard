@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createPrivilegedSupabaseClient } from "@/lib/security/privileged-access";
 import { logSecurityEvent } from "@/lib/security/telemetry";
+import { createCapabilityClaim, claimToAuditMetadata, hashCapabilityClaim } from "@/lib/security/capability-claims";
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 export const generateExecutionGrantToken = () => randomBytes(32).toString("base64url");
@@ -8,6 +9,8 @@ export const generateExecutionGrantToken = () => randomBytes(32).toString("base6
 export async function issueExecutionGrant(input: any) {
   const grantToken = generateExecutionGrantToken();
   const supabase = createPrivilegedSupabaseClient({ routeId: "governance.execution_grants.issue", operation: "issue_execution_grant", reason: "approved_governance_action", systemActor: "governance_api", workspaceId: input.workspaceId, actorUserId: input.issuedByUserId ?? null });
+  const keyId = process.env.PMFREAK_CAPABILITY_CLAIM_KEY_ID ?? "pmfreak-k1";
+  const claim = createCapabilityClaim({ keyId, issuer: { app: "pmfreak", workspaceId: input.workspaceId, issuerType: input.issuedByUserId ? "user" : "system", issuerUserId: input.issuedByUserId }, subject: { subjectType: input.actorAgentId ? "agent" : "user", userId: input.actorUserId ?? undefined, agentId: input.actorAgentId ?? undefined }, authority: { action: input.action, requestedPermission: input.requestedPermission, resourceType: input.resourceType ?? undefined, resourceId: input.resourceId ?? undefined, workspaceId: input.workspaceId, projectId: input.projectId ?? undefined }, constraints: { maxUses: 1, allowedUntil: new Date(Date.now() + (input.ttlMs ?? 15 * 60 * 1000)).toISOString(), canDelegate: true, delegationDepth: 1 }, lineage: { parentDecisionId: input.decisionId, rootApprovalRequestId: input.approvalRequestId, issuedAt: new Date().toISOString() } });
   const payload = {
     approval_request_id: input.approvalRequestId,
     decision_id: input.decisionId,
@@ -24,12 +27,18 @@ export async function issueExecutionGrant(input: any) {
     issued_by_user_id: input.issuedByUserId ?? null,
     issued_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + (input.ttlMs ?? 15 * 60 * 1000)).toISOString(),
+    capability_claim_hash: hashCapabilityClaim(claim),
+    capability_claim_version: claim.version,
+    capability_claim_key_id: claim.proof.keyId,
+    capability_claim_issued_at: claim.lineage.issuedAt,
+    capability_claim_type: "execution_grant",
     metadata: input.metadata ?? {},
   };
   const { data, error } = await supabase.from("governance_execution_grants").upsert(payload, { onConflict: "approval_request_id", ignoreDuplicates: true }).select("*").single();
   if (error) throw new Error(`issue execution grant failed: ${error.message}`);
   await logSecurityEvent("execution_grant_issued", { workspaceId: data.workspace_id, projectId: data.project_id, actorUserId: data.actor_user_id, actorAgentId: data.actor_agent_id, requested_permission: data.requested_permission, metadata: { grantId: data.id, decisionId: data.decision_id, approvalRequestId: data.approval_request_id, action: data.action, status: data.status, reason: "approved" } });
-  return { grant: data, grantToken };
+  await logSecurityEvent("capability_claim_issued", { workspaceId: data.workspace_id, projectId: data.project_id, actorUserId: data.actor_user_id, actorAgentId: data.actor_agent_id, requested_permission: data.requested_permission, metadata: { ...claimToAuditMetadata(claim, "execution_grant") } });
+  return { grant: data, grantToken, capabilityClaim: claim };
 }
 
 export async function validateExecutionGrant(input: any) { const supabase = createPrivilegedSupabaseClient({ routeId: "governance.execution_grants.validate", operation: "validate_execution_grant", reason: "pre_execution_validation", systemActor: "governance_api", workspaceId: input.workspaceId, actorUserId: input.actorUserId ?? null }); const { data } = await supabase.from("governance_execution_grants").select("*").eq("grant_token_hash", hashToken(input.grantToken)).maybeSingle(); if (!data) return { ok: false, reason: "not_found" }; if (data.status !== "active") return { ok: false, reason: data.status, grant: data }; if (new Date(data.expires_at).getTime() <= Date.now()) return { ok: false, reason: "expired", grant: data }; if (data.workspace_id !== input.workspaceId || (input.projectId && data.project_id && data.project_id !== input.projectId) || data.action !== input.action || data.requested_permission !== input.requestedPermission || (input.resourceType && data.resource_type && data.resource_type !== input.resourceType) || (input.resourceId && data.resource_id && data.resource_id !== input.resourceId) || (input.actorUserId && data.actor_user_id && data.actor_user_id !== input.actorUserId) || (input.actorAgentId && data.actor_agent_id && data.actor_agent_id !== input.actorAgentId)) return { ok: false, reason: "scope_mismatch", grant: data }; return { ok: true, grant: data }; }

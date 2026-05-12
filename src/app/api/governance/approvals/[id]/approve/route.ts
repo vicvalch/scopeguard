@@ -16,5 +16,5 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   await supabase.from("governance_approval_requests").update({ status: "approved", resolved_at: new Date().toISOString(), resolved_by_user_id: user.id }).eq("id", id);
   const issuance = await issueExecutionGrant({ approvalRequestId: req.id, decisionId: req.decision_id, workspaceId: req.workspace_id, projectId: req.project_id, actorUserId: req.actor_user_id, actorAgentId: req.actor_agent_id, action: req.action, requestedPermission: req.requested_permission, issuedByUserId: user.id, resourceType: req.resource_type, resourceId: req.resource_id });
   await logSecurityEvent("approval_approved", { workspaceId: req.workspace_id, projectId: req.project_id, actorUserId: req.actor_user_id, actorAgentId: req.actor_agent_id, requested_permission: req.requested_permission, metadata: { decisionId: req.decision_id, approvalRequestId: req.id, reviewerUserId: user.id, action: req.action, status: "approved", grantId: issuance.grant.id } });
-  return Response.json({ ok: true, grant: { id: issuance.grant.id, expiresAt: issuance.grant.expires_at }, grantToken: issuance.grantToken });
+  return Response.json({ ok: true, grant: { id: issuance.grant.id, expiresAt: issuance.grant.expires_at }, grantToken: issuance.grantToken, capabilityClaim: issuance.capabilityClaim });
 }

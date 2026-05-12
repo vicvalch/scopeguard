@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   try {
     const issued = await issueDelegatedCapability({ ...body, delegatorUserId: user.id });
-    return Response.json({ ok: true, delegation: issued.delegation, delegationToken: issued.delegationToken, lineage: issued.lineage });
+    return Response.json({ ok: true, delegation: issued.delegation, delegationToken: issued.delegationToken, lineage: issued.lineage, capabilityClaim: issued.capabilityClaim });
   } catch (error) {
     return denyResponse({ status: 403, routeId: "/api/governance/delegations/issue", message: "Delegation denied.", reason: error instanceof Error ? error.message : "delegation_denied", actorUserId: user.id, workspaceId: body.workspaceId ?? null, projectId: body.projectId ?? null, requestedPermission: body.requestedPermission ?? null, deniedPermission: body.requestedPermission ?? null, eventType: "delegated_capability_broaden_attempt" });
   }

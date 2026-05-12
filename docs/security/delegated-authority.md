@@ -14,3 +14,6 @@ PMFreak now supports PMFreak-native delegated capabilities derived from governan
 - No portable cross-system capability protocol.
 
 This is an early delegated capability layer, not full AOC Protocol.
+
+## Phase 5.4 portable capability claim note
+Signed capability claims supplement local authorization records. They do not replace local token consumption or governance checks. This is not AOC Protocol/federation yet.

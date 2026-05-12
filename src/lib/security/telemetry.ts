@@ -40,7 +40,14 @@ export type SecurityEventType =
   | "delegated_capability_replay_attempt"
   | "delegated_capability_scope_mismatch"
   | "delegated_capability_depth_exceeded"
-  | "delegated_capability_broaden_attempt";
+  | "delegated_capability_broaden_attempt"
+  | "capability_claim_issued"
+  | "capability_claim_verified"
+  | "capability_claim_invalid"
+  | "capability_claim_expired"
+  | "capability_claim_scope_mismatch"
+  | "capability_claim_signature_invalid"
+  | "capability_claim_lineage_invalid";
 
 type SecurityEventPayload = {
   workspaceId?: string | null;
