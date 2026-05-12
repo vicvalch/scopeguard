@@ -17,3 +17,7 @@
 
 ## Phase 5.4 portable capability claim note
 Signed capability claims supplement local authorization records. They do not replace local token consumption or governance checks. This is not AOC Protocol/federation yet.
+
+
+## Phase 5.5 trust-domain note
+Capability verification is now trust-domain-aware with issuer and key metadata checks. This is not public federation, DID, blockchain, or AOC Protocol yet; it is structural preparation for protocol-grade verification.

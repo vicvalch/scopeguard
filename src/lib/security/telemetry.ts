@@ -47,7 +47,19 @@ export type SecurityEventType =
   | "capability_claim_expired"
   | "capability_claim_scope_mismatch"
   | "capability_claim_signature_invalid"
-  | "capability_claim_lineage_invalid";
+  | "capability_claim_lineage_invalid"
+  | "trust_domain_registered"
+  | "trust_domain_suspended"
+  | "trust_domain_revoked"
+  | "signing_key_rotated"
+  | "signing_key_revoked"
+  | "verifier_policy_created"
+  | "verifier_policy_denied"
+  | "federated_claim_verified"
+  | "federated_claim_rejected"
+  | "federated_claim_untrusted_issuer"
+  | "federated_claim_revoked_key"
+  | "federated_claim_expired_key";
 
 type SecurityEventPayload = {
   workspaceId?: string | null;
