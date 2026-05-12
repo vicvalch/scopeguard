@@ -24,7 +24,7 @@ export default async function ProjectsPage() {
   const projects = (data ?? []) as ProjectRow[];
 
   return (
-    <main className="rounded-3xl border border-white/10 bg-slate-900/55 p-6 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.95)] backdrop-blur-xl md:p-8">
+    <section className="rounded-3xl border border-white/10 bg-slate-900/55 p-6 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.95)] backdrop-blur-xl md:p-8">
       <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">Projects</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-50">Your projects</h1>
 
@@ -58,6 +58,6 @@ export default async function ProjectsPage() {
           </ul>
         )}
       </section>
-    </main>
+    </section>
   );
 }

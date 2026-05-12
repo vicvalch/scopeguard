@@ -269,8 +269,7 @@ export default function CopilotPage() {
   };
 
   return (
-    <div className="min-h-[82vh]">
-      <main className="mx-auto grid w-full gap-5 xl:grid-cols-[1fr_300px]">
+    <main className="mx-auto grid min-h-[82vh] w-full gap-5 xl:grid-cols-[1fr_300px]">
         <section className="rounded-3xl border border-white/10 bg-slate-900/55 p-4 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.95)] backdrop-blur-xl md:p-6">
           <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -411,7 +410,6 @@ export default function CopilotPage() {
             </div>
           </details>
         </aside>
-      </main>
-    </div>
+    </main>
   );
 }

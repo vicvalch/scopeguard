@@ -11,7 +11,7 @@ export default async function GovernancePage() {
   const grantByApproval = new Map((grants ?? []).map((g) => [g.approval_request_id, g]));
 
   return (
-    <main className="space-y-8 rounded-3xl border border-white/10 bg-slate-900/55 p-6 shadow-[0_30px_80px_-50px_rgba(15,23,42,0.95)] backdrop-blur-xl md:p-8">
+    <section className="space-y-8 rounded-3xl border border-white/10 bg-slate-900/55 p-6 shadow-[0_30px_80px_-50px_rgba(15,23,42,0.95)] backdrop-blur-xl md:p-8">
       <section>
         <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/90">Governance</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-50">Approval inbox</h1>
@@ -72,6 +72,6 @@ export default async function GovernancePage() {
           ))}
         </div>
       </section>
-    </main>
+    </section>
   );
 }
