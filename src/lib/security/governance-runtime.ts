@@ -65,7 +65,7 @@ export async function evaluateGovernanceAction(input: GovernanceEvaluationInput)
 
 export async function createApprovalRequestFromDecision(decision: Awaited<ReturnType<typeof evaluateGovernanceAction>>) {
   if (!decision.requiredApprovalType || !decision.scope.workspaceId) return null;
-  const supabase = createPrivilegedSupabaseClient({ routeId: "governance.approvals", operation: "create_approval", reason: "persist_approval_request", systemActor: "governance_runtime", workspaceId: decision.scope.workspaceId });
+  const supabase = createPrivilegedSupabaseClient({ routeId: "governance.approvals", operation: "create_approval", reason: "persist_approval_request", systemActor: "system", workspaceId: decision.scope.workspaceId });
   const payload = { decision_id: decision.decisionId, workspace_id: decision.scope.workspaceId, project_id: decision.scope.projectId, actor_user_id: decision.actor.userId, actor_agent_id: decision.actor.agentId, action: decision.matchedPolicy, requested_permission: decision.requiredPermission, required_approval_type: decision.requiredApprovalType, reviewer_role_required: decision.reviewerRoleRequired, status: "pending_approval", reason: decision.reason, risk_level: decision.riskLevel, trace: decision.trace, metadata: {}, expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() };
   const { data, error } = await supabase.from("governance_approval_requests").upsert(payload, { onConflict: "decision_id" }).select("id").single();
   if (error) throw new Error(`create approval failed: ${error.message}`);

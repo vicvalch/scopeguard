@@ -8,6 +8,12 @@ type CheckoutPayload = {
   plan?: "pro" | "pmo";
 };
 
+const toGovernanceRole = (role: string) => {
+  if (role === "pm") return "PM" as const;
+  if (role === "viewer") return "external_stakeholder" as const;
+  return role as "owner" | "admin";
+};
+
 export async function POST(request: Request) {
   const user = await getAuthUser();
 
@@ -20,7 +26,7 @@ export async function POST(request: Request) {
     actorType: "user",
     actorUserId: user.id,
     workspaceId,
-    actorRole: user.role,
+    actorRole: toGovernanceRole(user.role),
     action: "billing.manage",
     routeId: "/api/billing/create-checkout-session",
     resourceType: "billing",
