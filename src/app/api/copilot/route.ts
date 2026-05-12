@@ -7,6 +7,7 @@ import { readProjectMemory, type StoredProjectAnalysis } from "@/lib/project-mem
 import { getRuntimeAuthorityView } from "@/lib/aoc/runtime-observability";
 import { appendOperationalMemory, buildContinuityContext, extractOperationalMemoryCandidates } from "@/lib/operational-memory-v1";
 import { enforceGovernanceAction } from "@/lib/security/governance-runtime";
+import { consumeExecutionGrant } from "@/lib/security/execution-grants";
 // verifyAgentAttestation is enforced within governance-runtime for ai.execute actions.
 import { denyResponse } from "@/lib/security/deny-response";
 
@@ -92,19 +93,25 @@ export async function POST(request: Request) {
   const workspaceId = request.headers.get("x-pmf-workspace-id");
   if (!agentToken || !agentId || !workspaceId) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Agent attestation required.", reason: "missing_attestation_headers", actorUserId: user.id, eventType: "malformed_attestation" });
 
-  const governance = await enforceGovernanceAction({
-    actorType: "ai_agent",
-    actorUserId: user.id,
-    actorAgentId: agentId,
-    workspaceId,
-    projectId: payload.projectId?.trim() || undefined,
-    action: "ai.execute",
-    routeId: "/api/copilot",
-    requestedPermission: "execute_ai_action",
-    agentToken,
-    resourceType: "copilot",
-  });
-  if (governance.response) return governance.response;
+  const executionGrantToken = request.headers.get("x-pmf-execution-grant");
+  if (executionGrantToken) {
+    const granted = await consumeExecutionGrant({ grantToken: executionGrantToken, action: "ai.execute", workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", resourceType: "copilot", actorUserId: user.id, actorAgentId: agentId });
+    if (!granted.ok) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Invalid execution grant.", reason: granted.reason, actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "execution_grant_invalid" });
+  } else {
+    const governance = await enforceGovernanceAction({
+      actorType: "ai_agent",
+      actorUserId: user.id,
+      actorAgentId: agentId,
+      workspaceId,
+      projectId: payload.projectId?.trim() || undefined,
+      action: "ai.execute",
+      routeId: "/api/copilot",
+      requestedPermission: "execute_ai_action",
+      agentToken,
+      resourceType: "copilot",
+    });
+    if (governance.response) return governance.response;
+  }
 
   const methodology = payload.methodology ?? "Hybrid";
   const subscription = await getCompanySubscription(user.companyId);
