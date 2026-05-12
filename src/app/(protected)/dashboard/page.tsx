@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { ModuleShell } from "@/components/pmfreak/module-shell";
+import { FirstUserTelemetryEvent } from "@/components/pmfreak/telemetry/first-user-client-events";
 
 export default function DashboardPage() {
   return (
-    <ModuleShell
+    <>
+      <FirstUserTelemetryEvent eventType="first_workspace_loaded" />
+      <ModuleShell
       title="Home"
       subtitle="Monitor current operational state, align on workflow, and decide the next intervention move."
       metrics={[
@@ -30,5 +33,6 @@ export default function DashboardPage() {
         ))}
       </section>
     </ModuleShell>
+    </>
   );
 }

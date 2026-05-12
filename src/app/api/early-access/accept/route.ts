@@ -13,7 +13,8 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(accepted);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to accept invite.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    const raw = error instanceof Error ? error.message : "Unable to accept invite.";
+    const [code, message] = raw.includes("::") ? raw.split("::", 2) : ["unknown_error", raw];
+    return NextResponse.json({ error: message, code }, { status: 400 });
   }
 }

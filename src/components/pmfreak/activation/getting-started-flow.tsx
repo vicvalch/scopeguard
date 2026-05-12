@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type DomainTemplate = {
@@ -237,6 +237,20 @@ export function GettingStartedFlow() {
     storageStrategy: "cloud",
   });
   const [rows, setRows] = useState<DomainTemplate[]>(templates);
+  const completedRef = useRef(false);
+  const stepRef = useRef<StepId>(1);
+
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
+
+  useEffect(() => {
+    void fetch("/api/telemetry/first-user", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventType: "onboarding_started", metadata: { surface: "getting_started" } }) });
+    return () => {
+      if (completedRef.current) return;
+      void fetch("/api/telemetry/first-user", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventType: "onboarding_abandoned", metadata: { lastStep: stepRef.current } }) });
+    };
+  }, []);
 
   const completion = useMemo(
     () =>
@@ -292,6 +306,8 @@ export function GettingStartedFlow() {
     });
     setLoading(false);
     if (response.ok) {
+      completedRef.current = true;
+      await fetch("/api/telemetry/first-user", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ eventType: "onboarding_completed", metadata: { readinessScore: readiness.readinessScore } }) });
       router.push("/executive?from=getting-started");
     }
   };

@@ -64,11 +64,12 @@ export default async function EarlyAccessPage() {
   await requireAuthUser();
   const supabase = createSupabaseServiceRoleClient({ routeId: "/early-access/page", operation: "service_role_query", reason: "existing_privileged_flow", systemActor: "system" });
 
-  const [{ data: invites }, { data: trials }, { data: activations }, { data: events }] = await Promise.all([
+  const [{ data: invites }, { data: trials }, { data: activations }, { data: events }, { data: telemetry }] = await Promise.all([
     supabase.from("early_access_invites").select("id, invite_email, invite_note, created_at, accepted_at, expires_at, revoked_at, requires_approval, approved_at").order("created_at", { ascending: false }).limit(20),
     supabase.from("trial_licenses").select("id, trial_status, trial_end_at, workspace_id").order("created_at", { ascending: false }).limit(20),
     supabase.from("workspace_activations").select("workspace_id, activated_at, initialization_status").order("activated_at", { ascending: false }).limit(20),
     supabase.from("early_access_events").select("invite_id, event_type, event_payload, created_at").in("event_type", ["invite_email_send_attempted", "invite_email_sent", "invite_email_failed"]).order("created_at", { ascending: false }).limit(200),
+    supabase.from("first_user_telemetry_events").select("event_type, created_at, user_id").order("created_at", { ascending: false }).limit(400),
   ]);
 
   const typedInvites = (invites ?? []) as InviteRow[];
@@ -89,6 +90,8 @@ export default async function EarlyAccessPage() {
     }
   }
 
+  const telemetryEvents = telemetry ?? [];
+  const eventCount = (eventType: string) => telemetryEvents.filter((event) => event.event_type === eventType).length;
   const pendingInvites = typedInvites.filter((invite) => !invite.accepted_at);
   const activeTrials = typedTrials.filter((trial) => trial.trial_status === "active" || trial.trial_status === "pending" || trial.trial_status === "expired" || trial.trial_status === "revoked");
 
@@ -99,6 +102,19 @@ export default async function EarlyAccessPage() {
         <h1 className="text-2xl font-semibold">Early Access Command View</h1>
         <p className="max-w-3xl text-slate-300">A calm operational snapshot of invitations, trial access health, and workspace readiness for your first users.</p>
       </header>
+
+
+      <section className="space-y-3">
+        <h2 className="text-base font-medium">First-user telemetry</h2>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">Onboarding completion: {eventCount("onboarding_completed")}/{Math.max(eventCount("onboarding_started"), eventCount("onboarding_completed"))}</div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">Invite conversion: {eventCount("invite_activation_completed")}/{Math.max(eventCount("invite_link_opened"), 1)}</div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">Activation failures: {eventCount("invite_activation_failed")}</div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">Runtime initialization issues: {eventCount("runtime_initialization_issue")}</div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">First workspace loads: {eventCount("first_workspace_loaded")}</div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">Friction hotspots: activation failure + runtime issues</div>
+        </div>
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-base font-medium">Trial Access</h2>

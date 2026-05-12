@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/provider";
 import { buildEarlyAccessInviteEmail } from "@/lib/email/templates/early-access-invite";
+import { logFirstUserTelemetryEvent } from "@/lib/first-user-telemetry";
 
 const TRIAL_DAYS = 90;
 
@@ -23,7 +24,11 @@ export const computeRemainingTrialDays = (trialEndAt: string | null) => {
 
 
 function buildEarlyAccessActivationLink(token: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (!configured) {
+    console.warn("[early-access] NEXT_PUBLIC_APP_URL not configured. Falling back to localhost activation link.");
+  }
+  const appUrl = configured && /^https?:\/\//.test(configured) ? configured : "http://localhost:3000";
   return `${appUrl.replace(/\/$/, "")}/accept-invite?token=${encodeURIComponent(token)}`;
 }
 
@@ -116,11 +121,13 @@ export async function acceptEarlyAccessInvite(input: { inviteToken: string; user
     .maybeSingle();
 
   if (error) throw new Error(`Unable to validate invite: ${error.message}`);
-  if (!invite) throw new Error("Invalid invite token.");
-  if (invite.revoked_at) throw new Error("Invite has been revoked.");
-  if (invite.accepted_at) throw new Error("Invite has already been used.");
-  if (new Date(invite.expires_at).getTime() < Date.now()) throw new Error("Invite has expired.");
-  if (invite.requires_approval && !invite.approved_at) throw new Error("Founder approval is required.");
+  if (!invite) throw new Error("invalid_token::Invalid invite token.");
+  if (invite.revoked_at) throw new Error("revoked_token::Invite access is no longer active.");
+  if (invite.accepted_at) throw new Error("reused_token::Invite has already been used.");
+  if (new Date(invite.expires_at).getTime() < Date.now()) throw new Error("expired_token::Invite has expired.");
+  if (invite.requires_approval && !invite.approved_at) throw new Error("pending_approval::Founder approval is required before activation.");
+
+  await logFirstUserTelemetryEvent({ eventType: "invite_activation_attempted", userId: input.userId, inviteId: invite.id });
 
   const { data: existingActivation } = await supabase
     .from("workspace_activations")
@@ -182,6 +189,7 @@ export async function acceptEarlyAccessInvite(input: { inviteToken: string; user
       event_type: "runtime_initialization_failed",
       event_payload: { reason: activationError.message },
     });
+    await logFirstUserTelemetryEvent({ eventType: "runtime_initialization_issue", userId: input.userId, workspaceId, inviteId: invite.id, metadata: { reason: activationError.message } });
     throw new Error(`Runtime initialization failed: ${activationError.message}`);
   }
 
@@ -190,6 +198,8 @@ export async function acceptEarlyAccessInvite(input: { inviteToken: string; user
     { invite_id: invite.id, trial_license_id: trial.id, workspace_id: workspaceId, event_type: "workspace_activated", event_payload: activationPayload },
     { invite_id: invite.id, trial_license_id: trial.id, workspace_id: workspaceId, event_type: "workspace_initialized", event_payload: { memoryNamespace: `workspace:${workspaceId}` } },
   ]);
+
+  await logFirstUserTelemetryEvent({ eventType: "invite_activation_completed", userId: input.userId, workspaceId, inviteId: invite.id, metadata: { trialEndsAt: trialEnd.toISOString() } });
 
   return { workspaceId, trialEndsAt: trialEnd.toISOString() };
 }

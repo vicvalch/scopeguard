@@ -3,6 +3,7 @@ import { AccessDeniedError, requireWorkspaceMembership } from "@/lib/security/ac
 import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensurePersonalWorkspaceForUser } from "@/lib/workspaces";
+import { logFirstUserTelemetryEvent } from "@/lib/first-user-telemetry";
 
 type OnboardingPayload = {
   workspace: string;
@@ -85,6 +86,8 @@ export async function POST(request: Request) {
   }
 
   const { data: sessionData } = await supabase.auth.getSession();
+
+  await logFirstUserTelemetryEvent({ eventType: "onboarding_completed", userId: user.id, workspaceId, metadata: { source } });
 
   return Response.json({ ok: true, session: sessionData });
 }

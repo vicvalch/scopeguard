@@ -8,7 +8,7 @@ import { getRuntimeAuthorityView } from "@/lib/aoc/runtime-observability";
 import { appendOperationalMemory, buildContinuityContext, extractOperationalMemoryCandidates } from "@/lib/operational-memory-v1";
 import { enforceGovernanceAction } from "@/lib/security/governance-runtime";
 import { consumeExecutionGrant } from "@/lib/security/execution-grants";
-import { consumeDelegatedCapability, explainDelegationChain } from "@/lib/security/delegated-capabilities";
+import { buildAuthorityLineage, consumeDelegatedCapability, explainDelegationChain } from "@/lib/security/delegated-capabilities";
 // verifyAgentAttestation is enforced within governance-runtime for ai.execute actions.
 import { denyResponse } from "@/lib/security/deny-response";
 
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
   if (delegatedCapabilityToken) {
     const delegated = await consumeDelegatedCapability({ delegationToken: delegatedCapabilityToken, action: "ai.execute", workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", resourceType: "copilot", actorUserId: user.id, actorAgentId: agentId });
     if (!delegated.ok) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Invalid delegated capability.", reason: delegated.reason, actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "delegated_capability_invalid" });
-    console.info("[delegation]", explainDelegationChain({ parentGrantId: delegated.delegation.parent_grant_id, parentDecisionId: delegated.delegation.parent_decision_id, delegatorUserId: delegated.delegation.delegator_user_id, delegatorAgentId: delegated.delegation.delegator_agent_id, delegateeUserId: delegated.delegation.delegatee_user_id, delegateeAgentId: delegated.delegation.delegatee_agent_id, action: delegated.delegation.action, requestedPermission: delegated.delegation.requested_permission, workspaceId: delegated.delegation.workspace_id, projectId: delegated.delegation.project_id, resourceType: delegated.delegation.resource_type, resourceId: delegated.delegation.resource_id, constraints: delegated.delegation.constraints, expiresAt: delegated.delegation.expires_at, depth: delegated.delegation.constraints?.delegationDepth ?? 0 }));
+    console.info("[delegation]", explainDelegationChain(buildAuthorityLineage({ parentGrantId: delegated.delegation.parent_grant_id, parentDecisionId: delegated.delegation.parent_decision_id, delegatorUserId: delegated.delegation.delegator_user_id, delegatorAgentId: delegated.delegation.delegator_agent_id, delegateeUserId: delegated.delegation.delegatee_user_id, delegateeAgentId: delegated.delegation.delegatee_agent_id, action: delegated.delegation.action, requestedPermission: delegated.delegation.requested_permission, workspaceId: delegated.delegation.workspace_id, projectId: delegated.delegation.project_id, constraints: delegated.delegation.constraints, expiresAt: delegated.delegation.expires_at, depth: delegated.delegation.constraints?.delegationDepth ?? 0 })));
   } else {
   const executionGrantToken = request.headers.get("x-pmf-execution-grant");
   if (executionGrantToken) {
