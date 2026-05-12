@@ -2,6 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createPrivilegedSupabaseClient } from "@/lib/security/privileged-access";
 import { logSecurityEvent } from "@/lib/security/telemetry";
 import { createVerifierPolicy, getTrustDomain } from "@/lib/security/trust-domains";
+import { resolveTrustAnchor } from "@/lib/security/trust-coordination";
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 const scopeAllowed = (allowed: string[] | null | undefined, requested?: string) => !allowed?.length || !requested || allowed.includes(requested);
@@ -65,3 +66,31 @@ export async function consumeOrAssertHandshake(input: Parameters<typeof validate
 }
 
 export function explainTrustHandshake(handshake: any) { return { id: handshake.id, verifierName: handshake.verifier_name, verifierDomain: handshake.verifier_domain, requestedTrustDomain: handshake.requested_trust_domain, requestedActions: handshake.requested_actions, requestedResourceTypes: handshake.requested_resource_types, status: handshake.status, expiresAt: handshake.expires_at }; }
+
+
+export function negotiateVerifierCapabilities(input: { localCapabilities: string[]; remoteCapabilities: string[]; minimumProtocolVersion: number; remoteProtocolVersion: number }) {
+  if (input.remoteProtocolVersion < input.minimumProtocolVersion) return { ok: false, reason: 'protocol_too_old', capabilities: [] as string[] };
+  const capabilities = input.localCapabilities.filter((c) => input.remoteCapabilities.includes(c));
+  return { ok: true, reason: 'capabilities_negotiated', capabilities };
+}
+
+export function createVerifierHandshake(input: { verifierId: string; trustDomain: string; targetDomain: string; protocolVersion: number; capabilities: string[]; challengeTtlSeconds?: number }) {
+  const challenge = randomBytes(32).toString('base64url');
+  return { verifierId: input.verifierId, trustDomain: input.trustDomain, targetDomain: input.targetDomain, protocolVersion: input.protocolVersion, capabilities: input.capabilities, challenge, challengeExpiresAt: new Date(Date.now() + 1000 * (input.challengeTtlSeconds ?? 120)).toISOString(), createdAt: new Date().toISOString() };
+}
+
+export async function verifyVerifierHandshake(input: { handshake: any; signedChallenge?: string; trustAnchorId?: string; localDomain: string; minimumProtocolVersion: number; localCapabilities: string[] }) {
+  await logSecurityEvent('verifier_handshake_started', { metadata: { verifierId: input.handshake?.verifierId ?? null, trustDomain: input.handshake?.trustDomain ?? null } });
+  if (input.handshake.protocolVersion < input.minimumProtocolVersion) { await logSecurityEvent('verifier_handshake_failed', { metadata: { reason: 'protocol_too_old' } }); return { ok: false, reason: 'protocol_too_old' }; }
+  if (new Date(input.handshake.challengeExpiresAt).getTime() <= Date.now()) { await logSecurityEvent('verifier_handshake_failed', { metadata: { reason: 'challenge_expired' } }); return { ok: false, reason: 'challenge_expired' }; }
+  if (input.handshake.targetDomain !== input.localDomain) { await logSecurityEvent('verifier_handshake_failed', { metadata: { reason: 'trust_domain_mismatch' } }); return { ok: false, reason: 'trust_domain_mismatch' }; }
+  const anchor = await resolveTrustAnchor({ trustDomain: input.handshake.trustDomain, anchorId: input.trustAnchorId ?? undefined, anchorType: 'verifier_key' });
+  if (!anchor || anchor.status !== 'active') { await logSecurityEvent('verifier_handshake_failed', { metadata: { reason: 'invalid_anchor' } }); return { ok: false, reason: 'invalid_anchor' }; }
+  const negotiated = negotiateVerifierCapabilities({ localCapabilities: input.localCapabilities, remoteCapabilities: input.handshake.capabilities ?? [], minimumProtocolVersion: input.minimumProtocolVersion, remoteProtocolVersion: input.handshake.protocolVersion });
+  if (!negotiated.ok) { await logSecurityEvent('verifier_handshake_failed', { metadata: { reason: negotiated.reason } }); return { ok: false, reason: negotiated.reason }; }
+  if (!input.signedChallenge) { await logSecurityEvent('verifier_handshake_failed', { metadata: { reason: 'missing_signed_challenge' } }); return { ok: false, reason: 'missing_signed_challenge' }; }
+  await logSecurityEvent('verifier_handshake_succeeded', { metadata: { verifierId: input.handshake.verifierId, capabilities: negotiated.capabilities } });
+  return { ok: true, reason: 'handshake_valid', negotiatedCapabilities: negotiated.capabilities, anchorId: anchor.anchor_id };
+}
+
+export function explainVerifierHandshake(input: { verification: any; handshake: any }) { return { verifierId: input.handshake.verifierId, trustDomain: input.handshake.trustDomain, targetDomain: input.handshake.targetDomain, protocolVersion: input.handshake.protocolVersion, result: input.verification.reason, controlledInteroperabilityOnly: true }; }

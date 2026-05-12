@@ -12,3 +12,15 @@ export function applyRevocationEvent(input: { event: any; registry: any[] }) { c
 export function updateLocalTrustPolicyFromEvent(input: { event: any; trustPolicy: any }) { if (input.event.event_type === "issuer_distrusted") input.trustPolicy.distrustedIssuers = [...(input.trustPolicy.distrustedIssuers ?? []), input.event.issuer_app]; if (input.event.event_type === "trust_domain_revoked") input.trustPolicy.revokedDomains = [...(input.trustPolicy.revokedDomains ?? []), input.event.trust_domain]; void logSecurityEvent("verifier_trust_updated", { metadata: { eventId: input.event.event_id, eventType: input.event.event_type } }); return input.trustPolicy; }
 export function explainTrustUpdate(input: { event: any }) { return { eventId: input.event.event_id, applied: ["trust posture updated", "verification remains non-executable"] }; }
 export function explainIndependentVerification() { return { independentlyVerifiable: true, limitations: ["independent verification does not imply execution authorization", "HMAC claims remain server-mediated", "not public federation", "not DID/blockchain", "not AOC Protocol yet"] }; }
+
+
+export function validateImportedTrustEvent(input: { event: any; anchors: any[]; seenNonces: Set<string>; lastSequenceNumber?: number; now?: number; windowSeconds?: number }) {
+  const now = input.now ?? Date.now();
+  const windowMs = (input.windowSeconds ?? 300) * 1000;
+  const anchor = input.anchors.find((a:any)=>a.trust_domain===input.event.trust_domain && a.status==='active');
+  if (!anchor) return { ok: false, reason: 'anchor_missing' };
+  if (input.seenNonces.has(input.event.nonce)) return { ok: false, reason: 'duplicate_nonce' };
+  if (Math.abs(now - new Date(input.event.created_at).getTime()) > windowMs) return { ok: false, reason: 'stale_event_detected' };
+  if (typeof input.lastSequenceNumber === 'number' && input.event.sequence_number !== input.lastSequenceNumber + 1) return { ok: false, reason: 'invalid_sequence_detected' };
+  return { ok: true, reason: 'offline_event_valid' };
+}

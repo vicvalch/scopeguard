@@ -7,10 +7,28 @@ export type TrustEventType = "trust_domain_suspended" | "trust_domain_revoked" |
 export type TrustSeverity = "info" | "warning" | "critical";
 export type RevocationReason = "claim_revoked" | "key_revoked" | "trust_domain_revoked" | "delegation_revoked" | "grant_revoked" | "verifier_policy_revoked" | "issuer_distrusted" | null;
 
+
+const TRUST_EVENT_WINDOW_SECONDS = 300;
+
+const TRUST_LEVEL_RANK: Record<string, number> = { local: 1, approved_external: 2, critical: 3 };
+
+export function verifyTrustEventSequence(input: { event: any; previousEvent?: any; seenNonces?: Set<string>; windowSeconds?: number }) {
+  const ev = input.event;
+  const windowMs = (input.windowSeconds ?? TRUST_EVENT_WINDOW_SECONDS) * 1000;
+  const createdAt = new Date(ev.created_at).getTime();
+  if (!Number.isFinite(createdAt) || Math.abs(Date.now() - createdAt) > windowMs) return { ok: false, reason: 'stale_event_detected' };
+  if (input.seenNonces?.has(ev.nonce)) return { ok: false, reason: 'duplicate_nonce' };
+  if (input.previousEvent) {
+    if ((ev.sequence_number ?? 0) !== (input.previousEvent.sequence_number ?? 0) + 1) return { ok: false, reason: 'invalid_sequence_detected' };
+    if (ev.previous_event_hash !== hashTrustEvent({ ...input.previousEvent, signature: undefined })) return { ok: false, reason: 'invalid_previous_event_hash' };
+  }
+  return { ok: true, reason: 'sequence_valid' };
+}
+
 export function hashTrustEvent(event: Record<string, unknown>) { const canonical = JSON.stringify(event, Object.keys(event).sort()); return createHash("sha256").update(canonical).digest("hex"); }
 
 export function createTrustEvent(input: any) {
-  const event = { id: randomUUID(), event_id: input.eventId ?? `te_${Date.now()}`, event_type: input.eventType, issuer_app: input.issuerApp, trust_domain: input.trustDomain, key_id: input.keyId ?? null, claim_hash: input.claimHash ?? null, delegation_id: input.delegationId ?? null, grant_id: input.grantId ?? null, workspace_id: input.workspaceId ?? null, source_verifier: input.sourceVerifier ?? null, severity: input.severity ?? "warning", reason: input.reason ?? null, event_payload: input.eventPayload ?? {}, signature: null, created_at: input.createdAt ?? new Date().toISOString(), expires_at: input.expiresAt ?? null, propagated_at: input.propagatedAt ?? null };
+  const event = { id: randomUUID(), event_id: input.eventId ?? `te_${Date.now()}`, event_type: input.eventType, issuer_app: input.issuerApp, trust_domain: input.trustDomain, key_id: input.keyId ?? null, claim_hash: input.claimHash ?? null, delegation_id: input.delegationId ?? null, grant_id: input.grantId ?? null, workspace_id: input.workspaceId ?? null, source_verifier: input.sourceVerifier ?? null, severity: input.severity ?? "warning", reason: input.reason ?? null, event_payload: input.eventPayload ?? {}, signature: null, created_at: input.createdAt ?? new Date().toISOString(), expires_at: input.expiresAt ?? null, propagated_at: input.propagatedAt ?? null, sequence_number: input.sequenceNumber ?? null, nonce: input.nonce ?? randomUUID(), previous_event_hash: input.previousEventHash ?? null };
   void logSecurityEvent("trust_event_created", { workspaceId: event.workspace_id, metadata: { eventId: event.event_id, eventType: event.event_type, trustDomain: event.trust_domain, severity: event.severity } });
   return event;
 }
@@ -70,3 +88,45 @@ export async function getRevocationReason(input: { trustDomain: string; keyId?: 
 export async function upsertTrustGraphEdge(input: any) { const supabase = createPrivilegedSupabaseClient({ routeId: "security.trust_coordination", operation: "upsert_trust_graph_edge", reason: "trust_graph_update" }); const now = new Date().toISOString(); const { data, error } = await supabase.from("capability_trust_graph_edges").upsert({ source_domain: input.sourceDomain, target_domain: input.targetDomain, relationship: input.relationship, scope: input.scope ?? {}, status: input.status ?? "active", created_at: input.createdAt ?? now, updated_at: now }, { onConflict: "source_domain,target_domain,relationship" }).select("*").single(); if (error) throw error; await logSecurityEvent(input.status === "revoked" ? "trust_graph_edge_revoked" : "trust_graph_edge_created", { metadata: { sourceDomain: input.sourceDomain, targetDomain: input.targetDomain, relationship: input.relationship, status: input.status ?? "active" } }); return data; }
 export async function getTrustGraphForDomain(domain: string) { const supabase = createPrivilegedSupabaseClient({ routeId: "security.trust_coordination", operation: "get_trust_graph", reason: "trust_graph_read" }); const { data } = await supabase.from("capability_trust_graph_edges").select("*").or(`source_domain.eq.${domain},target_domain.eq.${domain}`); return data ?? []; }
 export async function explainTrustGraphPath(input: { sourceDomain: string; targetDomain: string }) { const edges = await getTrustGraphForDomain(input.sourceDomain); const direct = edges.find((e: any) => e.target_domain === input.targetDomain); return direct ? { connected: true, relationship: direct.relationship, status: direct.status } : { connected: false, relationship: null, status: "unknown" }; }
+
+
+export async function resolveTrustAnchor(input: { trustDomain: string; anchorId?: string; anchorType?: string; algorithm?: string }) {
+  const supabase = createPrivilegedSupabaseClient({ routeId: 'security.trust_coordination', operation: 'resolve_trust_anchor', reason: 'trust_anchor_validation' });
+  let q = supabase.from('capability_trust_anchors').select('*').eq('trust_domain', input.trustDomain);
+  if (input.anchorId) q = q.eq('anchor_id', input.anchorId);
+  if (input.anchorType) q = q.eq('anchor_type', input.anchorType);
+  if (input.algorithm) q = q.eq('algorithm', input.algorithm);
+  const { data } = await q.limit(1).maybeSingle();
+  return data ?? null;
+}
+
+export async function evaluateVerifierTrustPolicy(input: { trustDomain: string; targetDomain: string; eventType: string; eventAgeSeconds: number; trustLevel?: string; isSigned?: boolean; hasAnchor?: boolean; hasSequenceIntegrity?: boolean }) {
+  const supabase = createPrivilegedSupabaseClient({ routeId: 'security.trust_coordination', operation: 'evaluate_policy', reason: 'policy_lifecycle' });
+  const { data } = await supabase.from('verifier_trust_policies').select('*').eq('trust_domain', input.trustDomain).eq('target_domain', input.targetDomain).order('updated_at', { ascending: false }).limit(1).maybeSingle();
+  if (!data) return { ok: false, reason: 'missing_policy' };
+  if (data.policy_status !== 'active') return { ok: false, reason: `policy_${data.policy_status}` };
+  if (data.allowed_event_types?.length && !data.allowed_event_types.includes(input.eventType)) return { ok: false, reason: 'event_type_denied' };
+  if (input.eventAgeSeconds > (data.max_event_age_seconds ?? 300)) return { ok: false, reason: 'stale_event_detected' };
+  if (data.require_signed_events && !input.isSigned) return { ok: false, reason: 'unsigned_event' };
+  if (data.require_anchor_validation && !input.hasAnchor) return { ok: false, reason: 'anchor_missing' };
+  if (data.require_sequence_integrity && !input.hasSequenceIntegrity) return { ok: false, reason: 'invalid_sequence_detected' };
+  if ((TRUST_LEVEL_RANK[input.trustLevel ?? 'local'] ?? 0) < (TRUST_LEVEL_RANK[data.minimum_trust_level] ?? 0)) return { ok: false, reason: 'insufficient_trust_level' };
+  return { ok: true, reason: 'policy_allow', policy: data };
+}
+
+export async function revokeVerifierTrustPolicy(input: { policyId: string }) { const supabase = createPrivilegedSupabaseClient({ routeId: 'security.trust_coordination', operation: 'revoke_policy', reason: 'policy_lifecycle' }); const now = new Date().toISOString(); const { data, error } = await supabase.from('verifier_trust_policies').update({ policy_status: 'revoked', revoked_at: now, updated_at: now }).eq('policy_id', input.policyId).select('*').single(); if (error) throw error; await logSecurityEvent('trust_policy_revoked', { metadata: { policyId: input.policyId } }); return data; }
+export function explainVerifierTrustPolicy(policy: any) { return { policyId: policy.policy_id, trustDomain: policy.trust_domain, targetDomain: policy.target_domain, policyStatus: policy.policy_status, minimumTrustLevel: policy.minimum_trust_level, maxEventAgeSeconds: policy.max_event_age_seconds }; }
+
+export async function quarantineTrustEvent(input: { eventId: string; reason: string; riskScore: number }) { const supabase = createPrivilegedSupabaseClient({ routeId: 'security.trust_coordination', operation: 'quarantine_event', reason: 'unsafe_import' }); const { data, error } = await supabase.from('capability_trust_event_quarantine').upsert({ event_id: input.eventId, reason: input.reason, risk_score: input.riskScore, quarantine_status: 'pending' }, { onConflict: 'event_id' }).select('*').single(); if (error) throw error; await logSecurityEvent('event_quarantined', { metadata: { eventId: input.eventId, reason: input.reason, riskScore: input.riskScore } }); return data; }
+
+export async function evaluateTrustPath(input: { sourceDomain: string; targetDomain: string; minimumTrustLevel?: 'local'|'approved_external'|'critical' }) {
+  const edges = await getTrustGraphForDomain(input.sourceDomain);
+  const directDistrust = edges.find((e:any)=>e.source_domain===input.sourceDomain && e.target_domain===input.targetDomain && e.relationship==='distrusts' && e.status==='active');
+  if (directDistrust) return { trusted: false, reason: 'distrust_override' };
+  const directTrust = edges.find((e:any)=>e.source_domain===input.sourceDomain && e.target_domain===input.targetDomain && e.relationship==='trusts' && e.status==='active');
+  if (!directTrust) return { trusted: false, reason: 'no_direct_trust' };
+  const anchor = await resolveTrustAnchor({ trustDomain: input.targetDomain });
+  if (!anchor || anchor.status !== 'active') return { trusted: false, reason: 'anchor_unavailable' };
+  if (input.minimumTrustLevel && (TRUST_LEVEL_RANK[anchor.trust_level] ?? 0) < TRUST_LEVEL_RANK[input.minimumTrustLevel]) return { trusted: false, reason: 'insufficient_trust_level' };
+  return { trusted: true, reason: 'direct_trust_with_anchor', anchorId: anchor.anchor_id };
+}
