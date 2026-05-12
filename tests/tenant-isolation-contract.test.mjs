@@ -29,3 +29,10 @@ test('copilot and upload flows validate project ownership before memory access o
     assert.match(text, /Invalid project context/);
   }
 });
+
+
+test('analyze-ai route uses canonical project access guard instead of direct user ownership checks', () => {
+  const analyzeRoute = fs.readFileSync('src/app/api/analyze-ai/route.ts', 'utf8');
+  assert.match(analyzeRoute, /requireProjectAccess/);
+  assert.doesNotMatch(analyzeRoute, /from\("projects"\)\.select\("id"\)\.eq\("id", projectId\)\.eq\("user_id", user\.id\)/);
+});

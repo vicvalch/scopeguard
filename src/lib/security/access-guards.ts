@@ -1,5 +1,6 @@
 import { getAuthUser, type AuthUserContext } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logSecurityEvent } from "@/lib/security/telemetry";
 
 export class AccessDeniedError extends Error {
   constructor(message: string, public readonly metadata: Record<string, unknown> = {}) {
@@ -8,9 +9,6 @@ export class AccessDeniedError extends Error {
   }
 }
 
-const logSecurityEvent = (event: string, metadata: Record<string, unknown>) => {
-  console.warn(`[security] ${event}`, metadata);
-};
 
 export async function requireWorkspaceMembership(workspaceId: string): Promise<{ user: AuthUserContext; workspaceId: string; role: string }> {
   const user = await getAuthUser();
@@ -21,7 +19,7 @@ export async function requireWorkspaceMembership(workspaceId: string): Promise<{
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.from("workspace_memberships").select("workspace_id, role").eq("workspace_id", workspaceId).eq("user_id", user.id).maybeSingle();
   if (!data) {
-    logSecurityEvent("membership_missing", { userId: user.id, workspaceId });
+    logSecurityEvent("revoked_membership_attempt", { userId: user.id, workspaceId, routeId: "requireWorkspaceMembership" });
     throw new AccessDeniedError("Workspace membership required.", { userId: user.id, workspaceId, reason: "membership_missing" });
   }
   return { user, workspaceId, role: data.role };
@@ -42,7 +40,7 @@ export async function requireProjectAccess(projectId: string): Promise<{ user: A
     .maybeSingle();
 
   if (!data) {
-    logSecurityEvent("project_scope_violation", { userId: user.id, projectId });
+    logSecurityEvent("project_scope_violation", { userId: user.id, projectId, routeId: "requireProjectAccess" });
     throw new AccessDeniedError("Project access denied.", { userId: user.id, projectId, reason: "membership_chain_denied" });
   }
 

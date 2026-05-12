@@ -1,4 +1,5 @@
 import { getAuthUser } from "@/lib/auth";
+import { AccessDeniedError, requireProjectAccess } from "@/lib/security/access-guards";
 import { getCompanySubscription } from "@/lib/billing";
 import {
   enrichWithPortfolioIntelligence,
@@ -67,7 +68,16 @@ export async function POST(request: Request) {
   if (!extractedScopeText) return Response.json({ error: "Extracted scope text is required." }, { status: 400 });
 
   const supabase = await createSupabaseServerClient();
-  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).maybeSingle();
+  let workspaceId = "";
+  try {
+    const access = await requireProjectAccess(projectId);
+    workspaceId = access.workspaceId;
+  } catch (error) {
+    if (error instanceof AccessDeniedError) return Response.json({ error: "Invalid project context." }, { status: 403 });
+    throw error;
+  }
+
+  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("workspace_id", workspaceId).maybeSingle();
   if (!project) return Response.json({ error: "Invalid project context." }, { status: 403 });
 
   const projectAccess = await canCreateMoreProjects(user.id);
@@ -104,7 +114,7 @@ export async function POST(request: Request) {
     if (portfolioEnabled) await writeProjectMemory(user.companyId, [{ ...recordBase, ...intelligence }, ...previousProjects]);
 
     const enrichedResponse: AIAnalysisResponse = { ...analysis, similar_projects: intelligence.similarProjects, historical_risks: intelligence.historicalRisks, estimated_relative_complexity: intelligence.estimatedRelativeComplexity };
-    await supabase.from("onboarding_analyses").insert({ company_id: user.companyId, user_id: user.id, workspace: "project", role: user.role, project_type: "project_analysis", problem: projectName, analysis: JSON.stringify(enrichedResponse), source: "onboarding", project_id: projectId });
+    await supabase.from("onboarding_analyses").insert({ company_id: user.companyId, user_id: user.id, workspace_id: workspaceId, workspace: "project", role: user.role, project_type: "project_analysis", problem: projectName, analysis: JSON.stringify(enrichedResponse), source: "onboarding", project_id: projectId });
     return Response.json(enrichedResponse, { headers: { "X-Usage-Remaining": String(Math.max(0, projectAccess.projectLimit - (currentUsageCount + 1))) } });
   } catch {
     return Response.json({ error: "Unable to run AI analysis right now. Please retry shortly." }, { status: 502 });
