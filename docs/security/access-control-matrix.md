@@ -1,19 +1,21 @@
-# PMFreak Access Control Matrix (Phase 4)
+# PMFreak Access Control Matrix V3 (Phase 4.1)
 
-| Domain | Entity | Action | Required role | Primitive | Enforcement | AI-agent compatible | External-safe |
+| route_id | Classification | Required primitive | Required role/permission | Audit event emitted on deny | RLS status | Agent-safe | Remaining enforcement gaps |
 |---|---|---|---|---|---|---|---|
-| Core tenancy | `workspaces` | read | any workspace role | `requireWorkspaceRole` | route + `workspace_memberships` (+ selective RLS) | no | yes |
-| Core tenancy | `workspaces` | manage workspace settings | owner/admin | `requireGovernancePermission(manage_workspace)` | route enforced | no | no |
-| Team governance | `workspace_memberships` | manage members | owner/admin | `requireGovernancePermission(manage_members)` | route + RLS | no | no |
-| Project operations | `projects` | read/write/delete | contributor+/PM+/admin/owner | `requireProjectPermission` | route + membership chain + targeted RLS | yes (scoped grants) | write/delete no |
-| Executive views | `executive dashboards` | view executive | executive_viewer+/PM+/admin/owner | `requireGovernancePermission(view_executive)` | route enforced | optional read-only | yes |
-| Billing | `company_subscriptions` | manage billing | owner | `requireGovernancePermission(manage_billing)` | route enforced | no | no |
-| AI governance | `ai_agent_permissions` | manage ai scopes | owner/admin | `requireGovernancePermission(manage_ai)` | route + RLS | n/a | no |
-| Document ingestion | `project_memories` | upload docs | contributor+/PM+/admin/owner/ai_agent(scoped) | `requireProjectPermission(upload_documents)` + `requireAgentScope` | route + RLS + FK | yes | no |
+| `api/copilot:POST` | AI-agent-scoped + project-scoped | `requireProjectAccess` (+ `verifyAgentAttestation` when agent headers present) | workspace member + project `read`; agent scope `read` | `project_scope_violation`, `revoked_agent_access`, `suspicious_permission_escalation` | Route-level only for request path | Partial | Needs explicit workspace-role gating for write-like copilot actions |
+| `api/copilot/memory:GET` | AI-agent-scoped + project-scoped | `requireProjectAccess` (+ `verifyAgentAttestation` when agent headers present) | workspace member + project `read`; agent scope `read` | `project_scope_violation`, `revoked_agent_access` | Route-level | Partial | Company-based memory backend still used in some internals |
+| `api/upload:POST` | project-scoped | `requireProjectAccess` | role with project `read` baseline (upload permission policy not yet split) | `project_scope_violation`, `denied_permission` | Route-level + project FK | No | Should be upgraded to `requireProjectPermission(upload_documents)` |
+| `api/operational-memory:*` | project/workspace scoped | `requireProjectAccess` for project reads/writes | workspace member + project `read` | `project_scope_violation` | Route-level | No | Workspace-only branch still relies on company-based query fallback |
+| `api/input-hub:*` | project/workspace scoped | `requireProjectAccess` for project branch | workspace member + project `read` | `project_scope_violation` | Route-level | No | Company ID still used for storage backend lookups |
+| `api/projects:*` | workspace-scoped / project-scoped | `requireProjectAccess`; membership lookup in list route | workspace member | `workspace_scope_violation`, `project_scope_violation` | Partial RLS + route | No | `api/projects` list should use `requireWorkspaceMembership` explicitly |
+| `api/analyze-ai:POST` | project-scoped + billing-feature scoped | `requireProjectAccess` | workspace member + project `read` | `project_scope_violation` | Route-level | No | Still coupled to `companyId` feature gate checks |
+| `api/billing/*` | billing-scoped | (in progress) | owner/admin target | `governance_violation` (when wired) | Table-level billing data RLS partial | No | Routes still mostly auth-only; governance primitive missing |
+| `api/intelligence/*` | workspace/project scoped | mixed (`requireProjectAccess` missing in some routes) | workspace member | mixed / inconsistent | Mixed | No | Legacy direct `user_id` filters remain in coordination/interventions/stakeholders |
+| `api/onboarding`, `api/getting-started` | authenticated/workspace bootstrap | auth only + implicit insert path | authenticated user | `auth_denied` | none | No | Must bind created records to explicit workspace guard |
 
-## RLS Evolution Notes
+## Security event persistence status
 
-- **DB-enforced now:** `ai_agent_permissions` membership/read and owner-admin writes via dedicated RLS policies.
-- **DB-enforced already:** project/workspace row isolation through FK constraints and existing membership-related RLS.
-- **Route-enforced remains:** high-level governance permissions (`manage_billing`, `manage_ai`, `view_executive`) while policy abstraction stabilizes.
-- **Planned next:** policy-function-backed RLS checks once conditional governance DSL is introduced.
+- `security_events` now exists as a persistent audit table and receives writes from `logSecurityEvent`.  
+- Workspace owner/admin read access is enforced via RLS; anon/authenticated client inserts are revoked.  
+- Server/service role insertion is permitted (no client-side arbitrary insert policy).  
+- Delete/update are restricted from anon/authenticated roles.

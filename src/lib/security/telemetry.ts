@@ -1,3 +1,5 @@
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
+
 export type SecurityEventType =
   | "auth_denied"
   | "workspace_scope_violation"
@@ -11,10 +13,46 @@ export type SecurityEventType =
   | "governance_violation"
   | "denied_permission";
 
-export function logSecurityEvent(event: SecurityEventType, metadata: Record<string, unknown>) {
-  console.warn("[security]", {
-    event,
-    timestamp: new Date().toISOString(),
-    ...metadata,
-  });
+type SecurityEventPayload = {
+  workspaceId?: string | null;
+  projectId?: string | null;
+  actorUserId?: string | null;
+  actorAgentId?: string | null;
+  actorRole?: string | null;
+  routeId?: string | null;
+  requested_permission?: string | null;
+  denied_permission?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  metadata?: Record<string, unknown>;
+};
+
+const scrubMetadata = (metadata: Record<string, unknown> = {}) => {
+  const redactedKeys = ["token", "secret", "password", "authorization", "cookie", "rawDocument", "content"];
+  return Object.fromEntries(Object.entries(metadata).filter(([key]) => !redactedKeys.some((blocked) => key.toLowerCase().includes(blocked))));
+};
+
+export async function logSecurityEvent(event: SecurityEventType, payload: SecurityEventPayload = {}) {
+  const metadata = scrubMetadata(payload.metadata ?? {});
+  console.warn("[security]", { event, timestamp: new Date().toISOString(), ...payload, metadata });
+
+  try {
+    const supabase = createSupabaseServiceRoleClient();
+    await supabase.from("security_events").insert({
+      workspace_id: payload.workspaceId ?? null,
+      project_id: payload.projectId ?? null,
+      actor_user_id: payload.actorUserId ?? null,
+      actor_agent_id: payload.actorAgentId ?? null,
+      actor_role: payload.actorRole ?? null,
+      event_type: event,
+      route_id: payload.routeId ?? null,
+      requested_permission: payload.requested_permission ?? null,
+      denied_permission: payload.denied_permission ?? null,
+      resource_type: payload.resourceType ?? null,
+      resource_id: payload.resourceId ?? null,
+      metadata,
+    });
+  } catch (error) {
+    console.error("[security] failed_to_persist_event", error);
+  }
 }

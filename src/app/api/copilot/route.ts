@@ -7,6 +7,7 @@ import { readProjectMemory, type StoredProjectAnalysis } from "@/lib/project-mem
 import { getRuntimeAuthorityView } from "@/lib/aoc/runtime-observability";
 import { appendOperationalMemory, buildContinuityContext, extractOperationalMemoryCandidates } from "@/lib/operational-memory-v1";
 import { AccessDeniedError, requireProjectAccess } from "@/lib/security/access-guards";
+import { verifyAgentAttestation } from "@/lib/security/agent-attestation";
 
 type CopilotRequest = {
   message?: string;
@@ -140,6 +141,19 @@ export async function POST(request: Request) {
   if (payload.companyId && payload.companyId !== user.companyId) {
     return Response.json({ error: "Tenant mismatch." }, { status: 403 });
   }
+  const agentToken = request.headers.get("x-pmf-agent-token");
+  const agentId = request.headers.get("x-pmf-agent-id");
+  const workspaceId = request.headers.get("x-pmf-workspace-id");
+  if (agentToken || agentId || workspaceId) {
+    if (!agentToken || !agentId || !workspaceId) return Response.json({ error: "Incomplete agent attestation headers." }, { status: 400 });
+    try {
+      await verifyAgentAttestation({ token: agentToken, expectedAgentId: agentId, workspaceId, permission: "read", projectId: payload.projectId?.trim() || undefined });
+    } catch (error) {
+      if (error instanceof AccessDeniedError) return Response.json({ error: "Agent attestation denied." }, { status: 403 });
+      throw error;
+    }
+  }
+
   if (payload.projectId?.trim()) {
     try {
       await requireProjectAccess(payload.projectId.trim());

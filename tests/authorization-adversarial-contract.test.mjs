@@ -5,6 +5,9 @@ import fs from 'node:fs';
 const guards = fs.readFileSync('src/lib/security/access-guards.ts', 'utf8');
 const rbac = fs.readFileSync('src/lib/security/rbac.ts', 'utf8');
 const telemetry = fs.readFileSync('src/lib/security/telemetry.ts', 'utf8');
+const agentAttestation = fs.readFileSync('src/lib/security/agent-attestation.ts', 'utf8');
+const securityEventsMigration = fs.readFileSync('supabase/migrations/20260512195500_security_events.sql', 'utf8');
+const copilotRoute = fs.readFileSync('src/app/api/copilot/route.ts', 'utf8');
 
 test('contributor and external stakeholder cannot perform admin/billing actions via centralized governance primitives', () => {
   assert.match(rbac, /contributor:[\s\S]*upload_documents/);
@@ -19,17 +22,27 @@ test('executive viewer remains read/view only and PM cannot manage billing', () 
   assert.doesNotMatch(rbac, /PM:[\s\S]*manage_billing/);
 });
 
-test('revoked agents and forged scopes are denied through requireAgentScope', () => {
+test('revoked agents and forged scopes are denied through requireAgentScope + attestation', () => {
   assert.match(guards, /from\("ai_agent_permissions"\)/);
   assert.match(guards, /\.is\("revoked_at", null\)/);
-  assert.match(guards, /agent_scope_denied/);
-  assert.match(guards, /requested_permission/);
+  assert.match(agentAttestation, /signature_mismatch/);
+  assert.match(agentAttestation, /claims\.exp/);
+  assert.match(agentAttestation, /workspaceId !== input\.workspaceId/);
 });
 
-test('role-aware telemetry includes escalation and governance violation events', () => {
-  assert.match(telemetry, /suspicious_permission_escalation/);
-  assert.match(telemetry, /revoked_agent_access/);
-  assert.match(telemetry, /governance_violation/);
-  assert.match(guards, /actor_role/);
+test('role-aware telemetry includes persisted audit writes', () => {
+  assert.match(telemetry, /from\("security_events"\)\.insert/);
+  assert.match(telemetry, /do not log|redacted|scrub/i);
   assert.match(guards, /denied_permission/);
+});
+
+test('security_events table is RLS protected against client forge attempts', () => {
+  assert.match(securityEventsMigration, /enable row level security/);
+  assert.match(securityEventsMigration, /owner','admin/);
+  assert.match(securityEventsMigration, /revoke insert, update, delete on public\.security_events from anon, authenticated/);
+});
+
+test('copilot route enforces attested agent headers when agent context is presented', () => {
+  assert.match(copilotRoute, /x-pmf-agent-token/);
+  assert.match(copilotRoute, /verifyAgentAttestation/);
 });
