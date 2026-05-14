@@ -1,0 +1,2 @@
+import { getAuthUser } from "@/lib/auth"; import { grantAgentScope } from "@/lib/security/agent-access";
+export async function POST(request: Request) { const user = await getAuthUser(); if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 }); const body = await request.json(); await grantAgentScope({ workspaceId: body.workspaceId, agentId: body.agentId, resourceType: body.resourceType, resourceId: body.resourceId, permission: body.permission, expiresAt: body.expiresAt ?? null, grantedByUserId: user.id }); return Response.json({ ok: true }); }
