@@ -2,22 +2,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuthUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { evaluateCapabilityAccess } from "@/lib/security/capability-flow";
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function ProjectDetailPage({ params }: Props) {
-  const user = await requireAuthUser();
+  await requireAuthUser();
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
 
   const { data: project } = await supabase
     .from("projects")
-    .select("id, name, description, status")
+    .select("id, workspace_id, name, description, status")
     .eq("id", id)
-    .eq("user_id", user.id)
     .maybeSingle();
 
   if (!project) notFound();
+
+  await evaluateCapabilityAccess({ workspaceId: project.workspace_id, projectId: project.id, permission: "read" });
 
   const { data: analyses } = await supabase
     .from("onboarding_analyses")
