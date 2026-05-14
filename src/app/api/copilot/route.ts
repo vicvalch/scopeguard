@@ -9,6 +9,7 @@ import { appendOperationalMemory, buildContinuityContext, extractOperationalMemo
 import { enforceGovernanceAction } from "@/lib/security/governance-runtime";
 import { consumeExecutionGrant } from "@/lib/security/execution-grants";
 import { buildAuthorityLineage, consumeDelegatedCapability, explainDelegationChain } from "@/lib/security/delegated-capabilities";
+import { evaluateAgentAccess } from "@/lib/security/agent-access";
 // verifyAgentAttestation is enforced within governance-runtime for ai.execute actions.
 import { denyResponse } from "@/lib/security/deny-response";
 
@@ -93,6 +94,9 @@ export async function POST(request: Request) {
   const agentId = request.headers.get("x-pmf-agent-id");
   const workspaceId = request.headers.get("x-pmf-workspace-id");
   if (!agentToken || !agentId || !workspaceId) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Agent attestation required.", reason: "missing_attestation_headers", actorUserId: user.id, eventType: "malformed_attestation" });
+
+  const agentAuth = await evaluateAgentAccess({ workspaceId, agentId, resourceType: "copilot", resourceId: payload.projectId?.trim() || workspaceId, permission: "execute_ai_action" });
+  if (agentAuth.decision !== "allow") return denyResponse({ status: 403, routeId: "/api/copilot", message: "Agent scope denied.", reason: `agent_${agentAuth.decision}`, actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "revoked_agent_access" });
 
   const delegatedCapabilityToken = request.headers.get("x-pmf-delegation-token");
   if (delegatedCapabilityToken) {
