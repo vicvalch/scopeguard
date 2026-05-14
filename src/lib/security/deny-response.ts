@@ -3,7 +3,7 @@ import { AccessDeniedError } from "@/lib/security/access-guards";
 import { logSecurityEvent, type SecurityEventType } from "@/lib/security/telemetry";
 
 type DenyInput = {
-  status: 401 | 403;
+  status: 401 | 403 | 404 | 409;
   routeId: string;
   message: string;
   eventType?: SecurityEventType;
