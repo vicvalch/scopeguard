@@ -77,3 +77,42 @@ Target progression:
 2. monorepo workspace links
 3. git/tag or registry-published `@aoc/*` packages
 4. remove TS path alias fallbacks once package publishing is stable
+
+## Import Boundary Guardrail
+
+Forbidden in product/API/SDK code:
+- `@/lib/security/governance-runtime`
+- `src/lib/security/governance-runtime`
+- relative imports that resolve to `security/governance-runtime`
+
+Allowed only for internal ownership:
+- `src/aoc/enterprise/runtime/index.ts`
+- `src/lib/security/governance-runtime.ts`
+
+Enforced by: `npm run lint:aoc-boundaries` (also run inside `npm run lint`).
+
+## Route Migration Policy
+
+When migrating a route:
+1. Keep PMFreak business rules in the route (feature gates, plan gating, ownership checks).
+2. Replace legacy runtime imports with `@/lib/aoc/enterprise/runtime`.
+3. Preserve deny payload and telemetry behavior.
+
+Before:
+- `import { enforceGovernanceAction } from "@/lib/security/governance-runtime";`
+
+After:
+- `import { enforceRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";`
+
+## Current Migrated Routes
+
+- `src/app/api/upload/route.ts`
+- `src/app/api/billing/create-checkout-session/route.ts`
+- `src/app/api/billing/create-portal-session/route.ts`
+- `src/app/api/copilot/route.ts`
+
+## Remaining Legacy Runtime Route Imports
+
+- None in `src/app/api/*` after this pass.
+
+Legacy runtime remains intentionally used internally by `src/aoc/enterprise/runtime/index.ts` and `src/lib/security/governance-runtime.ts` while enterprise internals are replaced incrementally.

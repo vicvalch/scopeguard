@@ -5,7 +5,13 @@ import {
 } from "@aoc-enterprise/runtime";
 
 /**
- * AOC Enterprise runtime boundary for PMFreak product code.
+ * PMFreak product-facing runtime authorization boundary.
+ *
+ * Product/API/SDK code must call these wrapper functions rather than importing
+ * legacy governance runtime modules directly.
+ *
+ * Keep this surface intentionally small and stable: only safe evaluation/enforcement
+ * operations are exported here.
  */
 export type { GovernanceEvaluationInput } from "@aoc-enterprise/runtime";
 

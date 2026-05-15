@@ -37,7 +37,7 @@ test('traceability and decision audit metadata include explainable reasons', () 
 
 test('denied decisions emit security events and routes enforce governance runtime', () => {
   assert.match(runtime, /logSecurityEvent\(result.allowed \? "governance_violation" : policy.denyEventType/);
-  assert.match(routes.copilot, /enforceGovernanceAction/);
-  assert.match(routes.upload, /enforceGovernanceAction/);
-  assert.match(routes.billing, /enforceGovernanceAction/);
+  assert.match(routes.copilot, /enforceRuntimeAuthorization/);
+  assert.match(routes.upload, /enforceRuntimeAuthorization/);
+  assert.match(routes.billing, /enforceRuntimeAuthorization/);
 });

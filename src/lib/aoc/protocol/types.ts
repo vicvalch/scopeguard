@@ -33,6 +33,7 @@ export type Policy = {
   conditions: Record<string, unknown> | null;
 };
 
+// TODO(aoc-migration): replace compatibility consumers that still expect agent entity shape.
 export type Agent = {
   id: string;
   workspace_id: string;

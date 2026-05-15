@@ -1,7 +1,7 @@
 import { getAuthUser } from "@/lib/auth";
 import { getCompanySubscription } from "@/lib/billing";
-import { AccessDeniedError, requireGovernancePermission } from "@/lib/security/access-guards";
-import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
+import { enforceRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
+import { denyResponse } from "@/lib/security/deny-response";
 import { getStripeServerClient } from "@/lib/stripe";
 
 export async function POST(request: Request) {
@@ -12,14 +12,16 @@ export async function POST(request: Request) {
   }
   const workspaceId = request.headers.get("x-pmf-workspace-id");
   if (!workspaceId) return denyResponse({ status: 403, routeId: "/api/billing/create-portal-session", message: "Workspace context required.", reason: "workspace_missing", eventType: "billing_governance_denied", actorUserId: user.id });
-  try {
-    await requireGovernancePermission(workspaceId, "manage_billing");
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return denyFromAccessError(error, { status: 403, routeId: "/api/billing/create-portal-session", message: "Billing governance permission denied.", eventType: "billing_governance_denied", actorUserId: user.id, workspaceId, requestedPermission: "manage_billing", deniedPermission: "manage_billing" });
-    }
-    throw error;
-  }
+  const governance = await enforceRuntimeAuthorization({
+    actorType: "user",
+    actorUserId: user.id,
+    workspaceId,
+    action: "billing.manage",
+    routeId: "/api/billing/create-portal-session",
+    requestedPermission: "manage_billing",
+    resourceType: "billing",
+  });
+  if (governance.response) return governance.response;
 
   const subscription = await getCompanySubscription(user.companyId);
 

@@ -6,7 +6,7 @@ import { buildPmNativeResponse } from "@/lib/pm-response-shaping";
 import { readProjectMemory, type StoredProjectAnalysis } from "@/lib/project-memory";
 import { getRuntimeAuthorityView } from "@/lib/aoc/runtime-observability";
 import { appendOperationalMemory, buildContinuityContext, extractOperationalMemoryCandidates } from "@/lib/operational-memory-v1";
-import { enforceGovernanceAction } from "@/lib/security/governance-runtime";
+import { enforceRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
 import { consumeExecutionGrant } from "@/lib/security/execution-grants";
 import { buildAuthorityLineage, consumeDelegatedCapability, explainDelegationChain } from "@/lib/security/delegated-capabilities";
 import { evaluateAgentAccess } from "@/lib/security/agent-access";
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     const granted = await consumeExecutionGrant({ grantToken: executionGrantToken, action: "ai.execute", workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", resourceType: "copilot", actorUserId: user.id, actorAgentId: agentId });
     if (!granted.ok) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Invalid execution grant.", reason: granted.reason, actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "execution_grant_invalid" });
   } else {
-    const governance = await enforceGovernanceAction({
+    const governance = await enforceRuntimeAuthorization({
       actorType: "ai_agent",
       actorUserId: user.id,
       actorAgentId: agentId,
