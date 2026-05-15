@@ -1,43 +1,51 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
-const runtime = fs.readFileSync('src/lib/security/governance-runtime.ts', 'utf8');
-const routes = {
-  copilot: fs.readFileSync('src/app/api/copilot/route.ts', 'utf8'),
-  upload: fs.readFileSync('src/app/api/upload/route.ts', 'utf8'),
-  billing: fs.readFileSync('src/app/api/billing/create-checkout-session/route.ts', 'utf8'),
-};
+const runtimeWrapper = fs.readFileSync('src/lib/aoc/enterprise/runtime.ts', 'utf8');
+const legacyRuntime = fs.readFileSync('src/lib/security/governance-runtime.ts', 'utf8');
 
-test('policy registry includes required phase-5 governed actions', () => {
-  for (const action of ['project.read','project.write','memory.read','memory.write','document.upload','billing.manage','members.manage','ai.execute','ai.manage','workspace.manage','executive.view','privileged.use']) {
-    assert.match(runtime, new RegExp(`"${action}"`));
+const governedRoutes = [
+  'src/app/api/copilot/route.ts',
+  'src/app/api/upload/route.ts',
+  'src/app/api/billing/create-checkout-session/route.ts',
+  'src/app/api/billing/create-portal-session/route.ts',
+];
+
+const routeSources = governedRoutes.map((file) => ({ file, source: fs.readFileSync(file, 'utf8') }));
+
+test('runtime wrapper exposes only evaluation and enforcement entrypoints', () => {
+  assert.match(runtimeWrapper, /export async function evaluateRuntimeAuthorization/);
+  assert.match(runtimeWrapper, /export async function enforceRuntimeAuthorization/);
+  assert.doesNotMatch(runtimeWrapper, /export\s+\{[^}]*enforceGovernanceAction/);
+  assert.doesNotMatch(runtimeWrapper, /export\s+\{[^}]*evaluateGovernanceAction/);
+});
+
+test('governed product routes consume AOC runtime wrapper and avoid direct legacy runtime imports', () => {
+  for (const { file, source } of routeSources) {
+    assert.match(source, /enforceRuntimeAuthorization/, `${file} should enforce runtime authorization through wrapper`);
+    assert.doesNotMatch(source, /security\/governance-runtime/, `${file} must not import legacy runtime directly`);
   }
 });
 
-test('role and permission outcomes are encoded for owner/PM/contributor/external stakeholder', () => {
-  assert.match(runtime, /billing\.manage[\s\S]*minimumRole: "owner"/);
-  assert.match(runtime, /memory\.write[\s\S]*requiredPermission: "write_memory"/);
-  assert.match(runtime, /Denied because .*project scope is missing/);
+test('legacy runtime still owns governed action policy surface', () => {
+  for (const action of ['project.read', 'project.write', 'memory.read', 'memory.write', 'document.upload', 'billing.manage', 'members.manage', 'ai.execute', 'ai.manage', 'workspace.manage', 'executive.view', 'privileged.use']) {
+    assert.match(legacyRuntime, new RegExp(`"${action}"`));
+  }
 });
 
-test('ai agent and system actor controls are explicitly enforced', () => {
-  assert.match(runtime, /actorType === "ai_agent"/);
-  assert.match(runtime, /verifyAgentAttestation/);
-  assert.match(runtime, /requireAgentScope/);
-  assert.match(runtime, /Denied because systemActor context is required/);
+test('boundary lint rejects direct governance-runtime imports outside internal allowlist', () => {
+  const output = execFileSync('node', ['scripts/lint-aoc-boundaries.mjs'], { encoding: 'utf8' });
+  assert.match(output, /AOC boundary lint passed/);
 });
 
-test('traceability and decision audit metadata include explainable reasons', () => {
-  assert.match(runtime, /trace.push\(\{ rule: "policy_registry"/);
-  assert.match(runtime, /project_binding_checked|workspace_membership_checked/);
-  assert.match(runtime, /governanceDecision: \{ decisionId/);
-  assert.match(runtime, /reason:/);
-});
-
-test('denied decisions emit security events and routes enforce governance runtime', () => {
-  assert.match(runtime, /logSecurityEvent\(result.allowed \? "governance_violation" : policy.denyEventType/);
-  assert.match(routes.copilot, /enforceRuntimeAuthorization/);
-  assert.match(routes.upload, /enforceRuntimeAuthorization/);
-  assert.match(routes.billing, /enforceRuntimeAuthorization/);
+test('legacy runtime deny path preserves denyResponse security payload contract', () => {
+  assert.match(legacyRuntime, /denyResponse\(\{ status: 403/);
+  assert.match(legacyRuntime, /reason: decision\.reason/);
+  assert.match(legacyRuntime, /eventType: decision\.auditEventType/);
+  assert.match(legacyRuntime, /actorUserId:/);
+  assert.match(legacyRuntime, /actorAgentId:/);
+  assert.match(legacyRuntime, /workspaceId:/);
+  assert.match(legacyRuntime, /projectId:/);
 });

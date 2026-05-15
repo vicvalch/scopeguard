@@ -116,3 +116,70 @@ After:
 - None in `src/app/api/*` after this pass.
 
 Legacy runtime remains intentionally used internally by `src/aoc/enterprise/runtime/index.ts` and `src/lib/security/governance-runtime.ts` while enterprise internals are replaced incrementally.
+
+## Legacy Runtime Collapse Status (May 15, 2026)
+
+- Legacy runtime is still present as an internal compatibility implementation in:
+  - `src/lib/security/governance-runtime.ts`
+  - `src/aoc/enterprise/runtime/index.ts`
+- PMFreak product/API code must consume runtime authorization through `src/lib/aoc/enterprise/runtime.ts`.
+- `src/lib/aoc/enterprise/runtime.ts` intentionally exposes only:
+  - `evaluateRuntimeAuthorization`
+  - `enforceRuntimeAuthorization`
+
+## Behavior-Based Testing Policy
+
+- Prefer behavior/architecture contract tests over implementation text assertions.
+- Required contract checks:
+  - governed routes import `enforceRuntimeAuthorization`
+  - product/API/SDK/test code does not directly import `security/governance-runtime`
+  - `npm run lint:aoc-boundaries` passes
+  - deny path preserves `denyResponse` semantics and metadata contract
+- Avoid testing exact internal string layout in legacy runtime implementation.
+
+## Remaining Legacy Runtime Internals
+
+Kept for now as safety net while route migrations continue:
+- `evaluateGovernanceAction` (decision construction + guard composition)
+- `enforceGovernanceAction` (deny payload + approval side effects)
+- `createApprovalRequestFromDecision`
+- `explainGovernanceDecision`
+- `GOVERNANCE_POLICY_REGISTRY`
+
+Removal condition: only after all product/API callers are migrated to the AOC boundary and deny/approval behavior remains fully covered by behavior tests.
+
+## Remaining Compatibility Type Consumers (`Policy` / `Agent`)
+
+Current consumers are SDK-facing compatibility surfaces:
+- `src/sdk/types.ts`
+- `src/sdk/client.ts`
+
+Removal path:
+1. Replace SDK response typing with canonical protocol/enterprise contract types where available.
+2. If canonical shapes differ, define PMFreak SDK-local DTO types (not protocol compatibility types) and map at boundary.
+3. Remove `Policy` and `Agent` exports from `src/lib/aoc/protocol/types.ts` once callers are migrated.
+
+## Test Migration Strategy
+
+1. Replace brittle source-string assertions with boundary and behavior assertions.
+2. Keep deterministic architecture checks for forbidden imports.
+3. Keep deny-path contract checks for status/reason/event metadata shape.
+4. Keep approval lifecycle behavior checks (`Already resolved`, `Expired`, etc.).
+
+## Allowed vs Forbidden Imports
+
+Allowed internal-only imports of legacy runtime:
+- `src/lib/security/governance-runtime.ts`
+- `src/aoc/enterprise/runtime/index.ts`
+
+Forbidden outside internal ownership (product/API/SDK/tests):
+- any import (static or dynamic) resolving to `security/governance-runtime`
+
+Enforced by `scripts/lint-aoc-boundaries.mjs`.
+
+## Next Cleanup Priorities
+
+1. Finish migration of remaining governance-enforced routes to wrapper-only runtime calls.
+2. Replace SDK `Policy`/`Agent` compatibility types with canonical or SDK-local DTO types.
+3. Move more deny-semantics checks into runtime execution tests where fixture isolation permits.
+4. Delete legacy runtime internals only when no direct callers remain and behavior coverage is complete.
