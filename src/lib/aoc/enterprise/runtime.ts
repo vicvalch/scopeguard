@@ -1,18 +1,18 @@
 import {
-  enforceGovernanceAction,
-  evaluateGovernanceAction,
+  enforceEnforcementPipeline,
+  evaluateEnforcementPipeline,
   type GovernanceEvaluationInput,
-} from "@/lib/security/governance-runtime";
+} from "@aoc-enterprise/runtime";
 
 /**
  * AOC Enterprise runtime boundary for PMFreak product code.
- *
- * TODO(aoc-migration): replace these delegations with @aoc-enterprise/runtime imports.
  */
+export type { GovernanceEvaluationInput } from "@aoc-enterprise/runtime";
+
 export async function evaluateRuntimeAuthorization(input: GovernanceEvaluationInput) {
-  return evaluateGovernanceAction(input);
+  return evaluateEnforcementPipeline(input);
 }
 
 export async function enforceRuntimeAuthorization(input: GovernanceEvaluationInput) {
-  return enforceGovernanceAction(input);
+  return enforceEnforcementPipeline(input);
 }

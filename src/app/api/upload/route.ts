@@ -7,7 +7,7 @@ import path from "node:path";
 import mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
 import { appendOperationalMemory, extractOperationalMemoryCandidates } from "@/lib/operational-memory-v1";
-import { enforceGovernanceAction } from "@/lib/security/governance-runtime";
+import { enforceRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
 
 type ExtractedFile = {
   fileName: string;
@@ -112,7 +112,7 @@ export async function POST(request: Request) {
 
 
   const supabase = await createSupabaseServerClient();
-  const governance = await enforceGovernanceAction({
+  const governance = await enforceRuntimeAuthorization({
     actorType: "user",
     actorUserId: user.id,
     projectId,

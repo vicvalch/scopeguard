@@ -1,7 +1,7 @@
 import { getAuthUser } from "@/lib/auth";
 import { getCompanySubscription, updateCompanySubscription } from "@/lib/billing";
 import { denyResponse } from "@/lib/security/deny-response";
-import { enforceGovernanceAction } from "@/lib/security/governance-runtime";
+import { enforceRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
 import { getStripeServerClient } from "@/lib/stripe";
 
 type CheckoutPayload = {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   }
   const workspaceId = request.headers.get("x-pmf-workspace-id");
   if (!workspaceId) return denyResponse({ status: 403, routeId: "/api/billing/create-checkout-session", message: "Workspace context required.", reason: "workspace_missing", eventType: "billing_governance_denied", actorUserId: user.id });
-  const governance = await enforceGovernanceAction({
+  const governance = await enforceRuntimeAuthorization({
     actorType: "user",
     actorUserId: user.id,
     workspaceId,
