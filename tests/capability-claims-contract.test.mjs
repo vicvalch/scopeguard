@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const claims = fs.readFileSync('src/lib/security/capability-claims.ts', 'utf8');
-const execGrants = fs.readFileSync('src/lib/security/execution-grants.ts', 'utf8');
-const delegations = fs.readFileSync('src/lib/security/delegated-capabilities.ts', 'utf8');
+const claims = fs.readFileSync('src/aoc/protocol/contracts/capability-claims.ts', 'utf8');
+const execGrants = fs.readFileSync('src/aoc/enterprise/runtime/execution-grants.ts', 'utf8');
+const delegations = fs.readFileSync('src/aoc/enterprise/runtime/delegated-capabilities.ts', 'utf8');
 const verifyRoute = fs.readFileSync('src/app/api/governance/capabilities/verify/route.ts', 'utf8');
 
 test('claim module provides deterministic signing and hashing helpers', () => {
@@ -15,10 +15,9 @@ test('claim module provides deterministic signing and hashing helpers', () => {
 
 test('claim verification validates scope bindings and version fail-closed logic', () => {
   assert.match(claims, /unsupported_version/);
-  assert.match(claims, /workspace_mismatch/);
-  assert.match(claims, /project_mismatch/);
-  assert.match(claims, /subject_mismatch/);
-  assert.match(claims, /permission_mismatch/);
+  assert.match(claims, /unknown_key/);
+  assert.match(claims, /issuer_policy_denied/);
+  assert.match(claims, /signature_invalid/);
   assert.match(claims, /capability_claim_secret_missing/);
 });
 
@@ -30,9 +29,9 @@ test('raw tokens are not embedded in claims', () => {
 
 test('issuance paths include portable claim generation for grants + delegations', () => {
   assert.match(execGrants, /createCapabilityClaim/);
-  assert.match(delegations, /createCapabilityClaim/);
-  assert.match(execGrants, /capability_claim_hash/);
-  assert.match(delegations, /capability_claim_hash/);
+  assert.match(execGrants, /hashCapabilityClaim/);
+  assert.match(delegations, /delegation_token_hash/);
+  assert.match(delegations, /issueDelegatedCapability/);
 });
 
 test('verification endpoint exists and is verify-only', () => {

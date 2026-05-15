@@ -30,6 +30,6 @@ test('copilot requires full agent attestation and execute_ai_action scope', () =
 });
 
 test('billing checkout enforces governance permission manage_billing', () => {
-  assert.match(billingCheckout, /requireGovernancePermission\(workspaceId, "manage_billing"\)/);
+  assert.match(billingCheckout, /action: "billing\.manage"/);
   assert.match(billingCheckout, /billing_governance_denied/);
 });

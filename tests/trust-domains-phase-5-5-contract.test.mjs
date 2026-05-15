@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const claims = fs.readFileSync('src/lib/security/capability-claims.ts', 'utf8');
+const claims = fs.readFileSync('src/aoc/protocol/contracts/capability-claims.ts', 'utf8');
 const trustDomains = fs.readFileSync('src/lib/security/trust-domains.ts', 'utf8');
 const telemetry = fs.readFileSync('src/lib/security/telemetry.ts', 'utf8');
 const verifyRoute = fs.readFileSync('src/app/api/governance/capabilities/verify/route.ts', 'utf8');
