@@ -1,75 +1,79 @@
 # PMFreak ↔ AOC Integration Boundary
 
-## Target Architecture
+## Current Consumption Mode (May 15, 2026)
 
-```text
-PMFreak (vertical SaaS product)
-  ↓ consumes
-AOC Enterprise (runtime enforcement, delegated execution governance)
-  ↓ consumes
-AOC Protocol (capability/delegation/consent semantic contracts)
-```
+PMFreak now consumes AOC surfaces through package names:
+- `@aoc/protocol/contracts`
+- `@aoc-enterprise/runtime`
 
-PMFreak is the PMO/product vertical. It owns PM-specific workflows and UX, while consuming AOC contracts/runtime through a narrow boundary.
+These package names are currently linked locally via `file:` dependencies (`src/aoc/protocol` and `src/aoc/enterprise`) so PMFreak behaves as a **vertical consumer** while we keep migration-safe compatibility wrappers.
+
+## Linkage Strategy
+
+- `package.json` uses local package links:
+  - `"@aoc/protocol": "file:src/aoc/protocol"`
+  - `"@aoc-enterprise/runtime": "file:src/aoc/enterprise"`
+- `tsconfig.json` adds temporary path aliases for TypeScript/editor resolution.
+- Product code is still required to consume AOC through `src/lib/aoc/*`.
+
+This keeps runtime/build stable now and allows future swap to published/GitHub packages with minimal churn.
 
 ## Ownership Boundaries
 
 ### PMFreak owns
-- PM workflows: projects, stakeholders, escalations, risks, changes, lessons learned
-- Workspace UX, onboarding, billing, dashboard and copilot product behavior
-- Product authorization semantics tied to workspace roles and PM operations
+- PM workflows, UX, business semantics
+- product routes and SDK UX contracts
 
-### AOC Enterprise owns (consumed by PMFreak)
-- Runtime authorization/enforcement pipeline
-- Delegated execution governance
-- Runtime audit/governance event handling
-- Agent execution authority checks
+### AOC Protocol owns
+- capability/delegation/policy/audit contracts
 
-### AOC Protocol owns (consumed by PMFreak)
-- Capability, delegation, consent, policy contract semantics
-- Canonical protocol-level decision/result types
-- Cross-runtime protocol compatibility guarantees
+### AOC Enterprise owns
+- authorization evaluation/enforcement pipeline runtime surface
 
 ## Integration Boundary in PMFreak
 
-Primary entry points are now centralized under `src/lib/aoc/`:
+Primary entry points:
+- `src/lib/aoc/protocol/types.ts` – thin bridge to `@aoc/protocol/contracts`
+- `src/lib/aoc/enterprise/runtime.ts` – thin runtime wrapper over `@aoc-enterprise/runtime`
+- `src/lib/aoc/compatibility/*` – temporary payload adapters
 
-- `src/lib/aoc/protocol/types.ts` – protocol type bridge (future canonical import target: `@aoc/protocol`)
-- `src/lib/aoc/enterprise/runtime.ts` – runtime enforcement boundary (future canonical import target: `@aoc-enterprise/runtime`)
-- `src/lib/aoc/compatibility/*` – temporary migration shims for legacy policy/audit/delegation payloads
-- `src/lib/aoc/index.ts` – PMFreak-safe export barrel
+## Migrated Vertical Slice
 
-## Temporary Compatibility Shims
+Migrated slice: **governance action enforcement for billing + upload APIs**.
 
-- `legacy-policy-map.ts` maps pre-boundary policy decisions to protocol decision values.
-- `legacy-audit-map.ts` normalizes legacy audit records.
-- `legacy-delegation-map.ts` normalizes delegation payload metadata.
+- `src/app/api/billing/create-checkout-session/route.ts` now calls `enforceRuntimeAuthorization` from `src/lib/aoc/enterprise/runtime`.
+- `src/app/api/upload/route.ts` now calls `enforceRuntimeAuthorization` from the same boundary.
 
-These files are transitional and should be deleted once direct AOC package bindings are in place.
+This bypasses direct product imports from `src/lib/security/governance-runtime` for this slice while preserving behavior.
 
-## Local Development Linking Strategy
+## Legacy Runtime Quarantine
 
-Current state:
-- PMFreak uses an internal type bridge at `src/lib/aoc/protocol/types.ts`.
-- Runtime boundary delegates to existing PMFreak governance runtime via `src/lib/aoc/enterprise/runtime.ts`.
+`src/lib/security/governance-runtime.ts` is explicitly marked as **LEGACY GOVERNANCE RUNTIME** with migration TODO comments. It remains for compatibility while additional routes are migrated.
 
-Next step:
-1. Add workspace/local package links for `@aoc/protocol` and `@aoc-enterprise/runtime`.
-2. Replace bridge internals with thin re-exports/import adapters.
-3. Keep product code importing only from `@/lib/aoc/*` (not direct external deep imports).
+## Remaining Compatibility Shims
 
-## Guardrails to Prevent Regression
+Still active and intentionally retained:
+- `src/lib/aoc/compatibility/legacy-policy-map.ts`
+- `src/lib/aoc/compatibility/legacy-audit-map.ts`
+- `src/lib/aoc/compatibility/legacy-delegation-map.ts`
 
-- Do not add new protocol contract types under product feature folders.
-- Do not deep-import future AOC enterprise internals from feature routes.
-- Route all governance runtime access through `src/lib/aoc/enterprise/*`.
-- Route all protocol-level type usage through `src/lib/aoc/protocol/*`.
+## Remaining Drift / Debt
 
-## Migration Plan (Incremental)
+1. `Policy` + `Agent` shapes are still local compatibility types in `src/lib/aoc/protocol/types.ts`.
+2. Copilot and other routes still import legacy security runtime/services directly.
+3. `@aoc-enterprise/runtime` currently wraps existing governance implementation; future step is replacing internals with upstream enterprise package sources.
 
-1. Inventory + classify local AOC duplication (security/runtime/protocol types).
-2. Move protocol-facing type usage to `src/lib/aoc/protocol/*`.
-3. Move runtime enforcement calls behind `src/lib/aoc/enterprise/*`.
-4. Keep temporary compatibility mappers for legacy payloads.
-5. Replace bridge internals with `@aoc/protocol` and `@aoc-enterprise/runtime` package imports.
-6. Quarantine/delete redundant local AOC logic once runtime parity is verified.
+## Removal Roadmap
+
+1. Continue route-by-route migration to `src/lib/aoc/enterprise/runtime`.
+2. Replace remaining compatibility `Policy`/`Agent` with protocol contracts or enterprise-owned representations.
+3. Restrict direct imports from `src/lib/security/*` in product layers via lint rules.
+4. Swap local `file:` links to published or git-based package refs when multi-repo release flow is finalized.
+
+## Future Publish / Package Strategy
+
+Target progression:
+1. Local `file:` links (current)
+2. monorepo workspace links
+3. git/tag or registry-published `@aoc/*` packages
+4. remove TS path alias fallbacks once package publishing is stable

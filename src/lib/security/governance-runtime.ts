@@ -1,3 +1,7 @@
+/**
+ * LEGACY GOVERNANCE RUNTIME
+ * TODO(aoc-migration): keep for compatibility until all routes use @/lib/aoc/enterprise/runtime wrappers backed by @aoc-enterprise/runtime.
+ */
 import { AccessDeniedError, requireAgentScope, requireGovernancePermission, requireProjectPermission, requireWorkspaceMembership } from "@/lib/security/access-guards";
 import { verifyAgentAttestation } from "@/lib/security/agent-attestation";
 import { denyResponse } from "@/lib/security/deny-response";
