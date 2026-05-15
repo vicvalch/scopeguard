@@ -1,5 +1,6 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createPrivilegedSupabaseClient } from "@/lib/security/privileged-access";
 import { AccessDeniedError, requireAgentScope } from "@/lib/security/access-guards";
 import { logSecurityEvent } from "@/lib/security/telemetry";
 import type { Permission } from "@/lib/security/rbac";
@@ -38,5 +39,39 @@ export async function verifyAgentAttestation(input: { token: string; expectedAge
   if ((revoked ?? []).length > 0) throw new AccessDeniedError("Agent has been revoked.", { reason: "revoked_agent_access" });
 
   await requireAgentScope({ workspaceId: input.workspaceId, agentId: input.expectedAgentId, permission: input.permission, projectId: input.projectId });
+
+  const nonce = createHash("sha256").update(input.token).digest("hex");
+  const privileged = createPrivilegedSupabaseClient({
+    routeId: "verifyAgentAttestation",
+    operation: "replay_nonce_check",
+    reason: "replay_protection",
+    workspaceId: input.workspaceId,
+    systemActor: "system",
+  });
+
+  const { data: existing, error: lookupError } = await privileged
+    .from("agent_attestation_nonces")
+    .select("nonce")
+    .eq("nonce", nonce)
+    .maybeSingle();
+
+  if (lookupError) throw new Error("Replay protection check failed: " + lookupError.message);
+
+  if (existing) {
+    void logSecurityEvent("replay_detected", { workspaceId: input.workspaceId, actorAgentId: claims.agentId, routeId: "verifyAgentAttestation", metadata: { nonce } });
+    throw new AccessDeniedError("Token already used.", { reason: "replay_detected" });
+  }
+
+  const { error: insertError } = await privileged
+    .from("agent_attestation_nonces")
+    .insert({ nonce, agent_id: claims.agentId, workspace_id: claims.workspaceId, expires_at: new Date(claims.exp * 1000).toISOString() });
+
+  if (insertError) {
+    if (insertError.code === "23505") {
+      throw new AccessDeniedError("Token already used.", { reason: "replay_detected" });
+    }
+    throw new Error("Replay protection insert failed: " + insertError.message);
+  }
+
   return claims;
 }

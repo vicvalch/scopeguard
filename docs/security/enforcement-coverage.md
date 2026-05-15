@@ -5,5 +5,7 @@
 - Billing webhook privileged writes are explicitly system-scoped.
 - Telemetry persistence uses privileged context with recursion bypass guard.
 
+- Replay-protection persistence for agent attestation is complete: nonce-based tracking in `agent_attestation_nonces` with service-role privileged access, race-condition handling (unique violation → replay_detected), and telemetry on replay attempts.
+
 Known gap:
-- Replay-protection persistence and deterministic malformed-payload telemetry for attestation v2 are not complete.
+- Deterministic malformed-payload telemetry for attestation v2 is not complete.

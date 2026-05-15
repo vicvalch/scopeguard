@@ -12,4 +12,4 @@
 
 ## Remaining risks
 - Service-role blast radius remains high if server runtime compromised.
-- Replay prevention for agent attestation is not yet persisted/enforced.
+- Replay prevention for agent attestation is implemented via nonce-based persistence in the `agent_attestation_nonces` table. Each token's sha256 hash is recorded on first use; subsequent uses are rejected with `replay_detected`. Expired rows can be purged via `purge_expired_nonces()`.
