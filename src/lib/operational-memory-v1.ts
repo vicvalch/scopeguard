@@ -1,4 +1,4 @@
-import { OperationalMemoryCandidateContract } from "@/lib/contracts";
+import { OperationalMemoryCandidateContract, OperationalMemoryEntryContract } from "@/lib/contracts";
 
 export const MEMORY_TYPES = [
   "risks",
@@ -132,7 +132,7 @@ export async function appendOperationalMemory(input: {
     .select("id, company_id, project_id, memory_type, memory_text, status, source_type, source_reference, created_at");
 
   if (error) throw new Error(`Unable to persist operational memory entries: ${error.message}`);
-  return (data ?? []).map(mapRow);
+  return (data ?? []).map(validateAndMapRow).filter((e): e is OperationalMemoryEntry => e !== null);
 }
 
 type OperationalMemoryRow = { id: string; company_id: string; project_id: string | null; memory_type: MemoryType; memory_text: string; status: MemoryStatus; source_type: MemorySourceType; source_reference: string; created_at: string; };
@@ -148,6 +148,19 @@ const mapRow = (row: OperationalMemoryRow): OperationalMemoryEntry => ({
   sourceReference: row.source_reference,
   createdAt: row.created_at,
 });
+
+function validateAndMapRow(row: OperationalMemoryRow): OperationalMemoryEntry | null {
+  const mapped = mapRow(row);
+  const result = OperationalMemoryEntryContract(mapped);
+  if (!result.ok) {
+    console.warn("[contracts] operational_memory_entry_invalid", {
+      errors: result.errors,
+      rowId: row.id ?? "unknown",
+    });
+    return null;
+  }
+  return result.data as OperationalMemoryEntry;
+}
 
 export async function getOperationalMemory(input: {
   companyId: string;
@@ -171,7 +184,7 @@ export async function getOperationalMemory(input: {
 
   const { data, error } = await query;
   if (error) throw new Error(`Unable to read operational memory entries: ${error.message}`);
-  return (data ?? []).map(mapRow);
+  return (data ?? []).map(validateAndMapRow).filter((e): e is OperationalMemoryEntry => e !== null);
 }
 
 export async function buildContinuityContext(companyId: string, projectId: string | null) {

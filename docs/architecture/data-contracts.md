@@ -87,6 +87,20 @@ This is intentional for AI responses: AI output is opportunistic. A malformed `c
 
 By contrast, request validation uses `object()` which is fail-hard: if any required field is missing or invalid, the entire validation fails and a 400 is returned.
 
-## Residual risk
+## Residual risk (updated)
 
-**CONTRACT 3** (`OperationalMemoryEntryContract`) is defined but not yet integrated at the Supabase read callsites (`getOperationalMemory`, `appendOperationalMemory` return mapping). Supabase rows are currently mapped via `mapRow()` without shape validation. This is flagged as a follow-up: adding `OperationalMemoryEntryContract` to the `mapRow` pipeline would catch schema drift at read time rather than propagating it silently into application state.
+**CONTRACT 3** (`OperationalMemoryEntryContract`) is now integrated at both
+mapRow callsites in `operational-memory-v1.ts`. Invalid rows are filtered
+and logged rather than propagated into application state.
+
+**CONTRACT 6** (`OperationalMemoryRecordContract`) is now integrated at the
+`listOperationalMemory` callsite in `aoc/providers/supabase.ts`.
+
+**CONTRACT 7** (`StoredProjectAnalysisContract`) is now integrated at the
+`readProjectMemory` callsite in `project-memory.ts`.
+
+Remaining unvalidated read paths:
+- `writeProjectMemory` read-before-delete pattern — low risk (delete operation)
+- `aoc/providers/supabase.ts` saveOperationalMemory insert return — low risk
+  (insert is controlled by the application, not external schema drift)
+- `message_analyses` table reads in `gateway.ts` — medium risk, tracked as P12

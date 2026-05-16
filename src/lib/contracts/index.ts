@@ -374,3 +374,107 @@ export function createAIResponseEnvelopeValidator<T>(
     error: optionalString("error"),
   });
 }
+
+// --- New primitives for contracts 6 and 7 ---
+
+export function recordOrNull(field: string): Validator<Record<string, string>> {
+  return (value) => {
+    if (value === null || value === undefined) return { ok: true, data: {} };
+    if (Array.isArray(value) || typeof value !== "object") {
+      return { ok: false, errors: [{ field, message: "must be a plain object or null", received: value }] };
+    }
+    return { ok: true, data: value as Record<string, string> };
+  };
+}
+
+export function numberInRange(field: string, min: number, max: number): Validator<number> {
+  return (value) => {
+    if (typeof value !== "number" || !isFinite(value)) {
+      return { ok: false, errors: [{ field, message: "must be a finite number", received: value }] };
+    }
+    if (value < min || value > max) {
+      return { ok: false, errors: [{ field, message: `must be between ${min} and ${max}`, received: value }] };
+    }
+    return { ok: true, data: value };
+  };
+}
+
+// --- CONTRACT 6: OperationalMemoryRecordContract ---
+
+const OPERATIONAL_DOMAIN_VALUES = [
+  "stakeholder_intelligence",
+  "delivery_intelligence",
+  "risk_intelligence",
+  "pmo_governance",
+  "team_health",
+  "executive_context",
+  "operational_memory",
+] as const;
+
+type OperationalMemoryRecordShape = {
+  id: string;
+  companyId: string;
+  projectId: string | null;
+  domain: (typeof OPERATIONAL_DOMAIN_VALUES)[number];
+  title: string;
+  data: Record<string, string>;
+  confidenceScore: number;
+  completionScore: number;
+  missingFields: string[] | undefined;
+  extractedFacts: string[] | undefined;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const OperationalMemoryRecordContract: Validator<OperationalMemoryRecordShape> =
+  object<OperationalMemoryRecordShape>("OperationalMemoryRecord", {
+    id: nonEmptyString("id"),
+    companyId: nonEmptyString("companyId"),
+    projectId: nullable("projectId", string("projectId")),
+    domain: stringEnum("domain", OPERATIONAL_DOMAIN_VALUES),
+    title: nonEmptyString("title"),
+    data: recordOrNull("data"),
+    confidenceScore: numberInRange("confidenceScore", 0, 100),
+    completionScore: numberInRange("completionScore", 0, 100),
+    missingFields: optionalStringArray("missingFields"),
+    extractedFacts: optionalStringArray("extractedFacts"),
+    createdAt: nonEmptyString("createdAt"),
+    updatedAt: nonEmptyString("updatedAt"),
+  });
+
+// --- CONTRACT 7: StoredProjectAnalysisContract ---
+
+const COMPLEXITY_LEVEL_VALUES = ["Low", "Medium", "High"] as const;
+
+type StoredProjectAnalysisShape = {
+  id: string;
+  projectName: string;
+  uploadDate: string;
+  executiveSummary: string;
+  requirements: string[] | undefined;
+  risks: string[] | undefined;
+  dependencies: string[] | undefined;
+  ambiguities: string[] | undefined;
+  complexity: (typeof COMPLEXITY_LEVEL_VALUES)[number];
+  sourceFileNames: string[] | undefined;
+  similarProjects: string[] | undefined;
+  historicalRisks: string[] | undefined;
+  estimatedRelativeComplexity: string;
+};
+
+export const StoredProjectAnalysisContract: Validator<StoredProjectAnalysisShape> =
+  object<StoredProjectAnalysisShape>("StoredProjectAnalysis", {
+    id: nonEmptyString("id"),
+    projectName: nonEmptyString("projectName"),
+    uploadDate: nonEmptyString("uploadDate"),
+    executiveSummary: string("executiveSummary"),
+    requirements: optionalStringArray("requirements"),
+    risks: optionalStringArray("risks"),
+    dependencies: optionalStringArray("dependencies"),
+    ambiguities: optionalStringArray("ambiguities"),
+    complexity: stringEnum("complexity", COMPLEXITY_LEVEL_VALUES),
+    sourceFileNames: optionalStringArray("sourceFileNames"),
+    similarProjects: optionalStringArray("similarProjects"),
+    historicalRisks: optionalStringArray("historicalRisks"),
+    estimatedRelativeComplexity: string("estimatedRelativeComplexity"),
+  });

@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { StoredProjectAnalysisContract } from "@/lib/contracts";
 
 export type ComplexityLevel = "Low" | "Medium" | "High";
 
@@ -88,7 +89,19 @@ export const readProjectMemory = async (companyId: string): Promise<StoredProjec
     throw new Error(`Unable to read project memory: ${error.message}`);
   }
 
-  return (data ?? []).map(mapRowToStoredProject);
+  return (data ?? [])
+    .map(mapRowToStoredProject)
+    .filter((project) => {
+      const result = StoredProjectAnalysisContract(project);
+      if (!result.ok) {
+        console.warn("[contracts] stored_project_analysis_invalid", {
+          errors: result.errors,
+          projectId: project.id ?? "unknown",
+        });
+        return false;
+      }
+      return true;
+    });
 };
 
 export const writeProjectMemory = async (companyId: string, projects: StoredProjectAnalysis[]) => {
