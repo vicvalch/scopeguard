@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const runtimeWrapper = fs.readFileSync('src/lib/aoc/enterprise/runtime.ts', 'utf8');
-const legacyRuntime = fs.readFileSync('src/lib/security/governance-runtime.ts', 'utf8');
+const legacyRuntime = fs.readFileSync('src/aoc/enterprise/runtime/governance-core.ts', 'utf8');
 
 const governedRoutes = [
   'src/app/api/copilot/route.ts',
@@ -29,7 +29,7 @@ test('governed product routes consume AOC runtime wrapper and avoid direct legac
   }
 });
 
-test('legacy runtime still owns governed action policy surface', () => {
+test('governance core owns governed action policy surface', () => {
   for (const action of ['project.read', 'project.write', 'memory.read', 'memory.write', 'document.upload', 'billing.manage', 'members.manage', 'ai.execute', 'ai.manage', 'workspace.manage', 'executive.view', 'privileged.use']) {
     assert.match(legacyRuntime, new RegExp(`"${action}"`));
   }
@@ -40,7 +40,7 @@ test('boundary lint rejects direct governance-runtime imports outside internal a
   assert.match(output, /AOC boundary lint passed/);
 });
 
-test('legacy runtime deny path preserves denyResponse security payload contract', () => {
+test('governance core deny path preserves denyResponse security payload contract', () => {
   assert.match(legacyRuntime, /denyResponse\(\{ status: 403/);
   assert.match(legacyRuntime, /reason: decision\.reason/);
   assert.match(legacyRuntime, /eventType: decision\.auditEventType/);

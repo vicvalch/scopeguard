@@ -40,3 +40,10 @@ git push origin aoc-v0.1.0
 |---|---|---|
 | `@aoc-enterprise/runtime` | `src/aoc/enterprise/` | Delegation chain logic, policy evaluation, execution grant issuance, governance domain types |
 | `@aoc/protocol` | `src/aoc/protocol/` | `CapabilityClaim` type, HMAC-SHA256 / Ed25519 claim issuance and verification |
+
+## Legacy Runtime Collapse (completed)
+
+- **What moved**: The entire governance evaluation pipeline (types, policy registry, `evaluateGovernanceAction`, `enforceGovernanceAction`, `createApprovalRequestFromDecision`, `explainGovernanceDecision`) has been inlined into `src/aoc/enterprise/runtime/governance-core.ts`. This module is now the canonical source of truth for governance logic.
+- **What remains**: `src/lib/security/governance-runtime.ts` is now a re-export shim — it contains no logic, only `export … from "@aoc-enterprise/runtime"` declarations. It is preserved for backward compatibility only.
+- **Direct importers of governance-runtime.ts**: 0 — all traffic flows through `@aoc-enterprise/runtime` (which resolves to `src/aoc/enterprise/runtime/index.ts`).
+- **What this unlocks**: The package is now the canonical source of truth for governance logic. Removing the `file:` link in `package.json` is the only remaining step before full externalization — once a build pipeline (`tsc --declaration` / `tsup`) is in place, `@aoc-enterprise/runtime` can be published and the `file:` link replaced with a version range.
