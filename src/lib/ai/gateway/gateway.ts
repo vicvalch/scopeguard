@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AIResponseEnvelope } from "@/lib/ai/types";
 import { aiModuleRegistry } from "@/lib/ai/gateway/registry";
 import type { AIModuleId, MemoryContext, RunAIModuleInput } from "@/lib/ai/gateway/types";
+import { traceGatewayCall, traceGatewayError, measureAsync } from "@/lib/ai/gateway/tracer";
 import { resilientFetch } from "@/lib/ai/resilient-fetch";
 import { escalationGuidePromptPackV1 } from "@/lib/ai/prompts/escalation-guide.v1";
 import { meetingsPromptPackV1 } from "@/lib/ai/prompts/meetings.v1";
@@ -268,6 +269,9 @@ export async function runAIModule({
     throw new Error(`Unknown AI module: ${moduleId}`);
   }
 
+  const _startMs = Date.now();
+
+  try {
   const promptPack = promptPacks[moduleId];
   void promptPack;
 
@@ -276,7 +280,24 @@ export async function runAIModule({
 
   if (moduleConfig.mode === "openai") {
     if (moduleId !== "message-nudges") {
-      throw new Error(`OpenAI mode is not implemented for module: ${moduleId}`);
+      console.warn("[gateway] openai_not_implemented_fallback", {
+        moduleId,
+        reason: "OpenAI mode only implemented for message-nudges; falling back to mock handler"
+      });
+      const { result, durationMs } = await measureAsync(() =>
+        moduleConfig.handler({ input, context, memory: memoryContext })
+      );
+      traceGatewayCall({
+        moduleId,
+        mode: "openai_fallback_mock",
+        projectId: context?.projectId ?? null,
+        durationMs,
+        outcome: "fallback",
+        fallbackReason: "openai_not_implemented",
+        memoryEventCount: memoryContext.recentEvents.length,
+        memoryProjectCount: memoryContext.projectMemory.length,
+      });
+      return result;
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
@@ -429,6 +450,15 @@ export async function runAIModule({
       aiOutput: enrichedOutput,
     });
 
+    traceGatewayCall({
+      moduleId,
+      mode: "openai",
+      projectId: context?.projectId ?? null,
+      durationMs: 0,
+      outcome: "success",
+      memoryEventCount: memoryContext.recentEvents.length,
+      memoryProjectCount: memoryContext.projectMemory.length,
+    });
     return {
       module: moduleId,
       generatedAt: new Date().toISOString(),
@@ -439,15 +469,41 @@ export async function runAIModule({
   }
 
   if (moduleConfig.mode === "hybrid") {
-    // TODO: integrate OpenAI
-    // TODO: integrate Supabase memory
-    throw new Error(`Hybrid mode is not implemented for module: ${moduleId}`);
+    console.warn("[gateway] hybrid_not_implemented_fallback", {
+      moduleId,
+      reason: "Hybrid mode not yet implemented; falling back to mock handler"
+    });
+    const { result, durationMs } = await measureAsync(() =>
+      moduleConfig.handler({ input, context, memory: memoryContext })
+    );
+    traceGatewayCall({
+      moduleId,
+      mode: "hybrid_fallback_mock",
+      projectId: context?.projectId ?? null,
+      durationMs,
+      outcome: "fallback",
+      fallbackReason: "hybrid_not_implemented",
+      memoryEventCount: memoryContext.recentEvents.length,
+      memoryProjectCount: memoryContext.projectMemory.length,
+    });
+    return result;
   }
 
-  // TODO: add tracing / logging
-  return moduleConfig.handler({
-    input,
-    context,
-    memory: memoryContext,
+  const { result, durationMs } = await measureAsync(() =>
+    moduleConfig.handler({ input, context, memory: memoryContext })
+  );
+  traceGatewayCall({
+    moduleId,
+    mode: moduleConfig.mode,
+    projectId: context?.projectId ?? null,
+    durationMs,
+    outcome: "success",
+    memoryEventCount: memoryContext.recentEvents.length,
+    memoryProjectCount: memoryContext.projectMemory.length,
   });
+  return result;
+  } catch (error) {
+    traceGatewayError(moduleId, moduleConfig?.mode ?? "unknown", error);
+    throw error;
+  }
 }
