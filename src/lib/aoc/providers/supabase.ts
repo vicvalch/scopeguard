@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/db/supabase-server";
 import type { OperationalDomain, OperationalMemoryRecord } from "@/lib/operational-memory";
+import { OperationalMemoryRecordContract } from "@/lib/contracts";
 import type {
   AuditProvider,
   CapabilityEvaluation,
@@ -59,7 +60,19 @@ export class SupabaseMemoryProvider implements MemoryProvider {
     if (domain) query = query.eq("domain", domain);
     const { data, error } = await query;
     if (error) throw new Error(`Unable to list operational memory: ${error.message}`);
-    return (data ?? []).map(mapRecord);
+    return (data ?? [])
+      .map(mapRecord)
+      .filter((record) => {
+        const result = OperationalMemoryRecordContract(record);
+        if (!result.ok) {
+          console.warn("[contracts] operational_memory_record_invalid", {
+            errors: result.errors,
+            recordId: record.id ?? "unknown",
+          });
+          return false;
+        }
+        return true;
+      });
   }
 
   async saveOperationalMemory(input: SaveOperationalMemoryInput): Promise<OperationalMemoryRecord> {
