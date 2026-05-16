@@ -8,6 +8,9 @@ export type AIModuleId =
   | "message-nudges"
   | "project-memory";
 
+// "mock"   — returns pre-built mock envelope; always available
+// "openai" — calls OpenAI API; currently only message-nudges is implemented
+// "hybrid" — planned: OpenAI + memory integration; falls back to mock until implemented
 export type AIModuleMode = "mock" | "openai" | "hybrid";
 
 export type MemoryContext = {
@@ -29,6 +32,7 @@ export type RunAIModuleInput = {
     projectId?: string;
     [key: string]: unknown;
   };
+  traceId?: string;
 };
 
 export type AIModuleHandler = (args: {

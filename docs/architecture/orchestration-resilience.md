@@ -82,3 +82,35 @@ These statuses return immediately on first occurrence without waiting for `maxAt
 **No streaming:** All OpenAI responses are fully buffered before parsing. Streaming responses (chunked transfer encoding) are not implemented. The timeout budget must cover the full round-trip including generation time.
 
 **No circuit breaker:** A circuit breaker would require shared state across serverless function instances (e.g. Redis or a global in-memory counter). This is not currently wired. Under sustained OpenAI outages, each request still attempts the full retry sequence independently.
+
+---
+
+## Gateway Tracing
+
+All module invocations through `runAIModule` are now traced via `src/lib/ai/gateway/tracer.ts`.
+
+### Three execution paths and their tracing behaviour
+
+| Path | Condition | Tracing |
+|---|---|---|
+| `openai` (message-nudges) | `moduleConfig.mode === "openai"` and `moduleId === "message-nudges"` | `traceGatewayCall` with `mode: "openai"`, `durationMs: 0`, `outcome: "success"` |
+| `openai` (other modules) | `moduleConfig.mode === "openai"` and `moduleId !== "message-nudges"` | Falls back to mock handler; traced with `mode: "openai_fallback_mock"`, `outcome: "fallback"`, `fallbackReason: "openai_not_implemented"` |
+| `hybrid` | `moduleConfig.mode === "hybrid"` | Falls back to mock handler; traced with `mode: "hybrid_fallback_mock"`, `outcome: "fallback"`, `fallbackReason: "hybrid_not_implemented"` |
+| `mock` | All other modules | Traced with actual `durationMs`, `outcome: "success"` |
+
+### Fallback strategy
+
+Modules whose mode is `"openai"` (but is not `message-nudges`) or `"hybrid"` do **not** throw. Instead they fall back to the module's mock handler and emit a `console.warn` with a structured payload. This allows new modules to be added to the registry with a forward-looking mode before the implementation is complete, without breaking callers.
+
+### Why `durationMs: 0` for the message-nudges openai path
+
+The `resilientFetch` call inside the message-nudges path already emits `[resilient-fetch]` structured log events that include the full round-trip duration per attempt. Adding a second wall-clock measurement around the same code would double-count the duration. `durationMs: 0` is an explicit marker meaning "measured elsewhere."
+
+### `traceId` for request correlation
+
+`RunAIModuleInput` accepts an optional `traceId?: string` field. API routes can populate this with a `randomUUID()` at request ingress and pass it through to `runAIModule`. This allows log aggregation tools to correlate all `[gateway]` events belonging to a single HTTP request without changing existing callers (the field is optional).
+
+### Remaining gaps
+
+- **No circuit breaker:** per-module failure counts are not tracked; a failing module still attempts every invocation.
+- **No per-module rate limiting:** a noisy module cannot be throttled independently of others.
