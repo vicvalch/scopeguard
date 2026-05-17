@@ -1,0 +1,22 @@
+# Enterprise Runtime Sovereignty Audit — PMFreak
+Date: 2026-05-17
+
+## Scope limitation
+Only the PMFreak repository is present in this workspace. `AOC-Enterprise` and `Architects_of_Change_Protocol` are not available as separate repositories, so this audit assesses them through the in-repo staging layers at `src/aoc/enterprise` and `src/aoc/protocol` plus architecture docs.
+
+## Core verdict
+PMFreak is **not** cleanly consuming an external enterprise runtime. It still embeds runtime, authz, policy, trust, and audit logic locally, with only partial namespace-layering and shim-based separation.
+
+## Key architectural breaks
+1. Protocol layer imports PMFreak runtime security modules (`src/aoc/protocol/contracts/capability-claims.ts` imports `@/lib/security/*`), violating protocol sovereignty.
+2. Enterprise runtime modules directly depend on PMFreak auth/access modules (`src/aoc/enterprise/runtime/policy-engine.ts` imports `@/lib/security/server-authorization` and `@/lib/security/access-guards`).
+3. PMFreak route handlers and server helpers can call Supabase directly, bypassing a singular runtime enforcement choke point.
+4. SDK is mixed contract+implementation and points at PMFreak-local API routes, not a separate enterprise service endpoint.
+5. Authorization pipeline is duplicated across RBAC checks, policy checks, and ad hoc guard calls, creating inconsistent enforcement paths.
+
+## Immediate hardening priorities
+- Extract protocol contracts into a package with zero PMFreak imports.
+- Extract runtime policy/authorization/enforcement into enterprise package/service and make PMFreak consume only client APIs.
+- Block direct DB access for governance/capability domains from PMFreak app layer.
+- Replace local guard fan-out with single enterprise authorization gateway.
+- Enforce import rules in CI for dependency direction.
