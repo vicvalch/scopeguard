@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 const capabilityPills = [
@@ -101,10 +100,6 @@ export function HeroSection() {
         </div>
 
         <div className="relative isolate overflow-hidden rounded-3xl border border-white/10 bg-black/35 p-4 sm:p-6 lg:p-7">
-          <div className="pointer-events-none absolute right-4 top-4 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 backdrop-blur">
-            <Image src="/brand/pmfreak-logo.png" alt="PMFreak" width={78} height={18} className="h-4 w-auto opacity-80" />
-          </div>
-
           <div className="relative flex min-h-[360px] flex-col gap-4 overflow-hidden md:min-h-[400px] md:flex-row md:gap-5">
             <div className="w-full space-y-2 md:w-[27%]">
               {tools.map((tool, i) => (
@@ -138,7 +133,7 @@ export function HeroSection() {
               ))}
 
               <span className="absolute right-2 top-[24%] rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-cyan-200">classify</span>
-              <span className="absolute right-1 top-[45%] rounded-full border border-fuchsia-300/30 bg-fuchsia-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-fuchsia-200">synthesize</span>
+              <span className="absolute right-1 top-[52%] rounded-full border border-fuchsia-300/30 bg-fuchsia-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-fuchsia-200">synthesize</span>
               <span className="absolute right-3 top-[66%] rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-cyan-200">reinforce</span>
             </div>
 
