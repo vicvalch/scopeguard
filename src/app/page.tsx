@@ -1,14 +1,6 @@
 import { MarketingNavbar } from "@/components/marketing-navbar";
 import Link from "next/link";
-
-const painSignals = [
-  "You hear about risks when they are already urgent",
-  "Stakeholder tension shows up right before key meetings",
-  "Important decisions get lost across chats and docs",
-  "Updates are scattered and hard to turn into action",
-  "Teams drift out of sync without anyone noticing early",
-  "You spend more time chasing status than moving delivery",
-];
+import { HeroSection } from "@/components/landing/hero-section";
 
 const failureMetrics = [
   { label: "Escalation delay", value: "48-96 hrs", detail: "How long critical issues can sit before the right decision maker sees them." },
@@ -72,33 +64,7 @@ export default function Home() {
 
       <main className="min-h-screen bg-white px-5 py-8 text-zinc-950 md:px-8 md:py-12">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-7">
-          <section className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-950 p-7 shadow-[0_30px_100px_rgba(15,23,42,0.18)] md:p-12">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">Built for real-world project delivery</p>
-            <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight text-white md:text-6xl">See project problems before they blow up.</h1>
-            <p className="mt-6 max-w-3xl text-base font-medium leading-relaxed text-zinc-200 md:text-lg">
-              PMFreak helps you track risks, decisions, stakeholders, and next steps so you can lead with confidence instead of reacting late.
-            </p>
-
-            <div className="mt-8 grid gap-3 md:grid-cols-2">
-              {painSignals.map((pain) => (
-                <div key={pain} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-zinc-100">
-                  {pain}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/signup" className={primaryCtaClass}>
-                Start Free
-              </Link>
-              <Link href="/demo" className={secondaryCtaClass}>
-                Try Demo
-              </Link>
-              <Link href="/interactive-demo" className={secondaryCtaClass}>
-                See Example
-              </Link>
-            </div>
-          </section>
+          <HeroSection />
 
           <section id="why-pmfreak" className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm md:p-10">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">Why PMFreak Exists</p>
