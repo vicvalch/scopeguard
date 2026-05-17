@@ -4,7 +4,16 @@
 // via adapter implementations registered in src/aoc/runtime/adapters/registry.ts.
 // Do NOT import from host application modules in this file.
 
-export type AocActorType = "user" | "agent" | "system";
+export type AocActorType = "user" | "ai_agent" | "system" | "service";
+
+export type AocActorContext = {
+  actorId: string;
+  actorType: AocActorType;
+  workspaceId?: string;
+  projectId?: string;
+  roles?: string[];
+  permissions?: string[];
+};
 
 // Canonical governance permissions owned by AOC protocol.
 // PMFreak projects its workspace permission model onto these identifiers.

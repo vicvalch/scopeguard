@@ -4,6 +4,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getAocAdapter } from "../../runtime/adapters";
 import type { PolicyDecision } from "../../protocol/ports/policy-evaluation";
+import type { AocActorContext } from "../../protocol/actor-model";
 
 const FORBIDDEN = new Set(["billing.manage", "members.manage", "workspace.manage", "privileged.use"]);
 const OWNER_ADMIN_ALLOWED = new Set(["project.read", "memory.read", "memory.write", "document.upload", "ai.execute"]);
@@ -67,7 +68,12 @@ export async function evaluateDelegatedAccess(input: DelegationInput & { delegat
   if (!validated.ok) return { decision: validated.reason as DelegationDecision, allowed: false, delegation: validated.delegation ?? null };
   const chainRes = await resolveAuthorityChain({ workspaceId: input.workspaceId, delegationId: validated.delegation.id, maxDepth: input.maxDelegationDepth ?? DEFAULT_MAX_DELEGATION_DEPTH });
   if (!chainRes.ok) return { decision: chainRes.reason, allowed: false, delegation: validated.delegation, chain: chainRes.chain };
-  const policy = await getAocAdapter("policyEvaluator").evaluatePolicyDecision({ workspaceId: input.workspaceId, resourceType: (validated.delegation.resource_type ?? "workspace") as any, resourceId: (validated.delegation.resource_id ?? input.workspaceId) as string, permission: validated.delegation.requested_permission as PolicyDecision extends never ? never : any, rbacAllowed: true });
+  const delegationActor: AocActorContext = validated.delegation.delegatee_agent_id
+    ? { actorId: validated.delegation.delegatee_agent_id, actorType: "ai_agent", workspaceId: input.workspaceId }
+    : validated.delegation.delegatee_user_id
+      ? { actorId: validated.delegation.delegatee_user_id, actorType: "user", workspaceId: input.workspaceId }
+      : { actorId: "system:delegation", actorType: "system", workspaceId: input.workspaceId };
+  const policy = await getAocAdapter("policyEvaluator").evaluatePolicyDecision({ actor: delegationActor, workspaceId: input.workspaceId, resourceType: (validated.delegation.resource_type ?? "workspace") as any, resourceId: (validated.delegation.resource_id ?? input.workspaceId) as string, permission: validated.delegation.requested_permission as PolicyDecision extends never ? never : any, rbacAllowed: true });
   if (policy.decision !== "allow") return { decision: "policy_denied" as const, allowed: false, delegation: validated.delegation, chain: chainRes.chain, policy };
   return { decision: "allow" as const, allowed: true, delegation: validated.delegation, chain: chainRes.chain, policy };
 }

@@ -4,9 +4,14 @@
 // grant/policy queries, and audit recording.
 // Do NOT import from host application modules in this file.
 
+import type { AocActorContext } from "../actor-model";
+
+export type { AocActorContext };
+
 export type PolicyDecision = "allow" | "deny" | "require_approval" | "expired" | "no_match";
 
 export type PolicyEvaluationInput = {
+  actor: AocActorContext;
   workspaceId?: string;
   resourceType: string;
   resourceId: string;
@@ -22,6 +27,7 @@ export type PolicyEvaluationResult = {
   matchedPolicyIds: string[];
   matchedGrantId?: string;
   actorUserId: string;
+  actorType: string;
   workspaceId: string | null;
   resourceType: string;
   resourceId: string;

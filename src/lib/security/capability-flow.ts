@@ -3,6 +3,7 @@ import { type Permission } from "@/lib/security/rbac";
 import { AccessDeniedError, requireProjectPermission, requireWorkspaceRole } from "@/lib/security/access-guards";
 import { evaluatePolicyDecision } from "@/lib/security/policy-engine";
 import { requireAuthenticatedUser } from "@/lib/security/server-authorization";
+import { resolveUserAocActorContext } from "@/lib/aoc/actor-context";
 
 export type CapabilityPermission = "read" | "write" | "approve" | "manage" | "execute" | "delegate";
 export type CapabilityResourceType = "workspace" | "project" | "operational_memory" | "governance_object" | "ai_coprocess";
@@ -19,7 +20,7 @@ export async function createCapabilityRequest(input: { workspaceId: string; targ
   await requireWorkspaceRole(input.workspaceId, ["owner", "admin", "PM", "contributor", "executive_viewer", "external_stakeholder", "ai_agent"]);
   const supabase = await createSupabaseServerClient();
   const reqHours = input.expiresAt ? Math.ceil((new Date(input.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)) : undefined;
-  const evaluation = await evaluatePolicyDecision({ workspaceId: input.workspaceId, resourceType: input.targetResourceType, resourceId: input.targetResourceId, permission: input.requestedPermission as Permission, requestedDurationHours: reqHours, justification: input.justification, rbacAllowed: false });
+  const evaluation = await evaluatePolicyDecision({ actor: resolveUserAocActorContext(user, { workspaceId: input.workspaceId }), workspaceId: input.workspaceId, resourceType: input.targetResourceType, resourceId: input.targetResourceId, permission: input.requestedPermission as Permission, requestedDurationHours: reqHours, justification: input.justification, rbacAllowed: false });
 
   const initialStatus = evaluation.decision === "deny" || evaluation.decision === "expired" ? "denied" : "pending";
   const { data, error } = await supabase.from("capability_requests").insert({ workspace_id: input.workspaceId, requester_user_id: user.id, target_resource_type: input.targetResourceType, target_resource_id: input.targetResourceId, requested_permission: input.requestedPermission, requested_scope: input.requestedScope ?? {}, justification: input.justification ?? null, grant_expires_at: input.expiresAt ?? null, status: initialStatus }).select("id").single<{ id: string }>();
@@ -46,10 +47,11 @@ export async function evaluateCapabilityAccess(input: { workspaceId: string; pro
     return { allowed: true as const, reason: "rbac" };
   } catch {
     const { user } = await requireAuthenticatedUser();
+    const actor = resolveUserAocActorContext(user, { workspaceId: input.workspaceId, projectId: input.projectId });
     const supabase = await createSupabaseServerClient();
     const now = nowIso();
     const { data } = await supabase.from("capability_grants").select("id, target_resource_id, permission, expires_at, status").eq("workspace_id", input.workspaceId).eq("granted_user_id", user.id).eq("target_resource_type", input.projectId ? "project" : "workspace").eq("target_resource_id", input.projectId ?? input.workspaceId).eq("permission", input.permission).eq("status", "active");
-    const decision = await evaluatePolicyDecision({ workspaceId: input.workspaceId, resourceType: input.projectId ? "project" : "workspace", resourceId: input.projectId ?? input.workspaceId, permission: input.permission, rbacAllowed: false });
+    const decision = await evaluatePolicyDecision({ actor, workspaceId: input.workspaceId, resourceType: input.projectId ? "project" : "workspace", resourceId: input.projectId ?? input.workspaceId, permission: input.permission, rbacAllowed: false });
     if (decision.decision === "allow") {
       await audit(input.workspaceId, "consumed", user.id, { permission: input.permission, resourceId: input.projectId ?? input.workspaceId, policyReason: decision.reason }, { grantId: decision.matchedGrantId });
       return { allowed: true as const, reason: "policy_allow", grantId: decision.matchedGrantId };

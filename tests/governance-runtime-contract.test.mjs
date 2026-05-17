@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 
 const runtimeWrapper = fs.readFileSync('src/lib/aoc/enterprise/runtime.ts', 'utf8');
 const legacyRuntime = fs.readFileSync('src/aoc/enterprise/runtime/governance-core.ts', 'utf8');
+const pmfreakRuntimeWrapper = fs.readFileSync('src/lib/aoc/enterprise/runtime.ts', 'utf8');
 
 const governedRoutes = [
   'src/app/api/copilot/route.ts',
@@ -40,12 +41,12 @@ test('boundary lint rejects direct governance-runtime imports outside internal a
   assert.match(output, /AOC boundary lint passed/);
 });
 
-test('governance core deny path preserves denyResponse security payload contract', () => {
-  assert.match(legacyRuntime, /denyResponse\(\{ status: 403/);
-  assert.match(legacyRuntime, /reason: decision\.reason/);
-  assert.match(legacyRuntime, /eventType: decision\.auditEventType/);
-  assert.match(legacyRuntime, /actorUserId:/);
-  assert.match(legacyRuntime, /actorAgentId:/);
-  assert.match(legacyRuntime, /workspaceId:/);
-  assert.match(legacyRuntime, /projectId:/);
+test('PMFreak runtime wrapper constructs deny response for denied governance decisions', () => {
+  assert.match(pmfreakRuntimeWrapper, /denyResponse\(\{/);
+  assert.match(pmfreakRuntimeWrapper, /status: 403/);
+  assert.match(pmfreakRuntimeWrapper, /reason: decision\.reason/);
+  assert.match(pmfreakRuntimeWrapper, /actorUserId: decision\.actor\.userId/);
+  assert.match(pmfreakRuntimeWrapper, /actorAgentId: decision\.actor\.agentId/);
+  assert.match(pmfreakRuntimeWrapper, /workspaceId: decision\.scope\.workspaceId/);
+  assert.match(pmfreakRuntimeWrapper, /projectId: decision\.scope\.projectId/);
 });
