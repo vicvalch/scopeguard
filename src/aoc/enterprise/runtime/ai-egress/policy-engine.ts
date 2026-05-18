@@ -6,7 +6,7 @@ const SENSITIVITY_ORDER: DataSensitivity[] = ["public", "internal", "confidentia
 export function evaluateAIEgressPolicy(request: AIEgressRequest, providerMetadata: ProviderMetadata): AIEgressDecision {
   const sensitivity = request.estimatedSensitivity;
 
-  if (!request.actor?.actorType) {
+  if (!request.actorId || !request.actorType) {
     return deny("actor_missing", "Missing actor context.");
   }
   if (!sensitivity) {
