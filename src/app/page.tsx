@@ -68,27 +68,6 @@ const operationalFlowSteps = [
   },
 ] as const;
 
-const governanceCards = [
-  {
-    title: "Controlled AI workspace",
-    description: "Keep operational reasoning inside structured project boundaries.",
-  },
-  {
-    title: "Audit-ready operational history",
-    description: "Track risks, decisions, blockers, and actions with persistent context.",
-  },
-  {
-    title: "Enterprise isolation",
-    description:
-      "Separate organizational intelligence from public AI conversations and fragmented tooling.",
-  },
-  {
-    title: "Operational memory",
-    description:
-      "Build a reusable institutional memory instead of losing delivery knowledge over time.",
-  },
-] as const;
-
 const comparisonRows = [
   ["Passive dashboards", "Clear next actions"],
   ["Reactive follow-up", "Early risk warning"],
@@ -101,10 +80,10 @@ const footerColumns = [
   {
     heading: "Product",
     links: [
+      { label: "Product", href: "#intelligence" },
       { label: "How it Works", href: "#how-it-works" },
-      { label: "Security", href: "#security" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Demo", href: "/demo" },
+      { label: "Command Center", href: "/command-center" },
     ],
   },
   {
@@ -373,34 +352,72 @@ function GovernanceSection() {
   return (
     <section
       id="security"
-      className="rounded-3xl border border-zinc-800 bg-zinc-950 p-7 shadow-[0_24px_90px_rgba(15,23,42,0.24)] md:p-9"
+      className="rounded-3xl border border-zinc-800 bg-zinc-950 p-7 shadow-[0_24px_90px_rgba(15,23,42,0.24)] md:p-10"
     >
       <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">
         Governance and control
       </p>
 
       <h2 className="mt-3 text-3xl font-black text-white md:text-4xl">
-        Built for controlled operational intelligence.
+        Governed intelligence, not scattered AI.
       </h2>
 
-      <p className="mt-3 max-w-4xl text-sm leading-relaxed text-zinc-300 md:text-base">
-        PMFreak helps teams operationalize AI safely instead of scattering
-        sensitive project intelligence across disconnected tools.
+      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-300 md:text-base">
+        PMFreak keeps operational reasoning inside structured project boundaries,
+        helping teams build reusable intelligence without scattering sensitive
+        context across disconnected tools.
       </p>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        {governanceCards.map((item) => (
-          <article
-            key={item.title}
-            className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
-          >
-            <h3 className="text-lg font-black text-white">{item.title}</h3>
+      <div className="mt-10 grid gap-8 lg:grid-cols-[0.85fr_1fr] lg:items-center">
+        <div>
+          <ul className="space-y-3">
+            {[
+              "Controlled project boundaries",
+              "Audit-ready operational history",
+              "Persistent organizational memory",
+            ].map((point) => (
+              <li
+                key={point}
+                className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm font-semibold text-zinc-100"
+              >
+                {point}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-            <p className="mt-2 text-sm leading-relaxed text-zinc-300">
-              {item.description}
-            </p>
-          </article>
-        ))}
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-zinc-900 p-5">
+          <svg viewBox="0 0 580 320" className="h-full w-full" role="img" aria-label="Governance boundary filtering project signals into operational memory while leakage is blocked">
+            <defs>
+              <linearGradient id="flowLine" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(34,211,238,0.2)" />
+                <stop offset="100%" stopColor="rgba(34,211,238,0.75)" />
+              </linearGradient>
+            </defs>
+            <text x="18" y="38" fill="rgba(161,161,170,0.9)" fontSize="13" fontWeight="700">Project signals</text>
+            <text x="216" y="40" fill="rgba(244,244,245,0.95)" fontSize="13" fontWeight="700">Governance boundary</text>
+            <text x="430" y="40" fill="rgba(244,244,245,0.95)" fontSize="13" fontWeight="700">Operational memory</text>
+            <text x="392" y="278" fill="rgba(244,114,182,0.95)" fontSize="12" fontWeight="700">Uncontrolled leakage reduced</text>
+
+            <rect x="210" y="58" width="168" height="180" rx="20" fill="rgba(39,39,42,0.62)" stroke="rgba(34,211,238,0.42)" strokeWidth="1.2" />
+            <circle cx="110" cy="108" r="8" fill="rgba(34,211,238,0.92)" />
+            <circle cx="110" cy="158" r="8" fill="rgba(34,211,238,0.74)" />
+            <circle cx="110" cy="208" r="8" fill="rgba(34,211,238,0.54)" />
+            <path d="M118 108 C158 108, 176 94, 210 102" stroke="url(#flowLine)" strokeWidth="2.6" fill="none" />
+            <path d="M118 158 C158 158, 176 156, 210 154" stroke="url(#flowLine)" strokeWidth="2.6" fill="none" />
+            <path d="M118 208 C158 208, 176 220, 210 210" stroke="url(#flowLine)" strokeWidth="2.6" fill="none" />
+
+            <rect x="406" y="90" width="144" height="118" rx="16" fill="rgba(8,47,73,0.24)" stroke="rgba(34,211,238,0.45)" strokeWidth="1.1" />
+            <path d="M378 154 C396 154, 398 150, 406 150" stroke="rgba(34,211,238,0.78)" strokeWidth="2.6" fill="none" />
+            <circle cx="438" cy="126" r="6" fill="rgba(34,211,238,0.8)" />
+            <circle cx="472" cy="150" r="6" fill="rgba(34,211,238,0.9)" />
+            <circle cx="506" cy="172" r="6" fill="rgba(34,211,238,0.68)" />
+            <path d="M438 126 L472 150 L506 172" stroke="rgba(34,211,238,0.55)" strokeWidth="1.8" fill="none" />
+
+            <path d="M286 238 C294 264, 336 276, 372 266" stroke="rgba(244,114,182,0.5)" strokeDasharray="6 6" strokeWidth="2" fill="none" />
+            <path d="M372 266 l-8 -2 l2 -8" stroke="rgba(244,114,182,0.74)" strokeWidth="2" fill="none" />
+          </svg>
+        </div>
       </div>
     </section>
   );
@@ -408,34 +425,44 @@ function GovernanceSection() {
 
 function ComparisonSection() {
   return (
-    <section className={`${lightSectionClass} p-6 md:p-8`}>
+    <section className={`${lightSectionClass} p-7 md:p-10`}>
       <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">
         PMFreak vs Traditional PM Tools
       </p>
+      <h2 className="mt-3 text-3xl font-black text-zinc-950 md:text-4xl">
+        From passive reporting to active operational awareness.
+      </h2>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-200">
-        <div className="grid grid-cols-2 bg-zinc-950 text-xs font-black uppercase tracking-[0.12em] text-white md:text-sm">
-          <div className="border-r border-white/10 p-3 md:p-4">
-            Traditional PM Tools
-          </div>
+      <div className="mt-8 grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
+        <article className="rounded-2xl border border-zinc-200 bg-zinc-50 p-6">
+          <h3 className="text-xs font-black uppercase tracking-[0.18em] text-zinc-500">
+            Traditional PM tools
+          </h3>
+          <ul className="mt-4 space-y-3 text-sm font-medium text-zinc-600">
+            {comparisonRows.map(([legacy]) => (
+              <li key={legacy}>{legacy}</li>
+            ))}
+          </ul>
+        </article>
 
-          <div className="p-3 md:p-4">PMFreak</div>
+        <div className="hidden md:flex items-center justify-center px-2">
+          <div className="h-full w-px bg-gradient-to-b from-transparent via-[#ff008c]/40 to-transparent" />
+          <span className="mx-3 rounded-full border border-[#ff008c]/20 bg-[#ff008c]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[#b20062]">
+            Shift
+          </span>
+          <div className="h-full w-px bg-gradient-to-b from-transparent via-cyan-400/40 to-transparent" />
         </div>
 
-        {comparisonRows.map(([legacy, modern]) => (
-          <div
-            key={legacy}
-            className="grid grid-cols-2 border-t border-zinc-200 text-sm"
-          >
-            <div className="border-r border-zinc-200 bg-zinc-50 p-3 text-zinc-600 md:p-4">
-              {legacy}
-            </div>
-
-            <div className="bg-white p-3 font-semibold text-zinc-950 md:p-4">
-              {modern}
-            </div>
-          </div>
-        ))}
+        <article className="rounded-2xl border border-zinc-900 bg-zinc-950 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.18)]">
+          <h3 className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200">
+            PMFreak
+          </h3>
+          <ul className="mt-4 space-y-3 text-sm font-semibold text-white">
+            {comparisonRows.map(([, modern]) => (
+              <li key={modern}>{modern}</li>
+            ))}
+          </ul>
+        </article>
       </div>
     </section>
   );
@@ -462,8 +489,8 @@ function FinalCtaSection() {
           Start Free
         </Link>
 
-        <Link href="/demo" className={secondaryCtaClass}>
-          Try Demo
+        <Link href="/command-center" className={secondaryCtaClass}>
+          Open Command Center
         </Link>
       </div>
     </section>
@@ -523,7 +550,7 @@ export default function Home() {
       <MarketingNavbar />
 
       <main className="min-h-screen bg-white px-5 py-8 text-zinc-950 md:px-8 md:py-12">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 md:gap-10">
           <HeroSection />
 
           <OperationalRealitySection />
