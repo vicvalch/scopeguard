@@ -302,7 +302,7 @@ export function GettingStartedFlow() {
     const response = await fetch("/api/getting-started", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ form, templates: rows, loadDemo: demo }),
+      body: JSON.stringify({ form, templates: rows, loadSample: demo }),
     });
     setLoading(false);
     if (response.ok) {
@@ -505,7 +505,7 @@ export function GettingStartedFlow() {
           disabled={loading}
           className="rounded-xl border border-violet-300/60 px-4 py-2 text-sm"
         >
-          Load PMFreak Demo Project
+          Load PMFreak Sample Project
         </button>
       </div>
     </main>
