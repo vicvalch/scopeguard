@@ -154,3 +154,48 @@ html {
   scroll-behavior: smooth;
 }
 
+
+@keyframes feedFade {
+  0%, 18%, 100% { opacity: 0; transform: translateY(2px); }
+  26%, 70% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes streamSweep {
+  0% { transform: translateX(-110%); opacity: 0.35; }
+  35% { opacity: 0.9; }
+  100% { transform: translateX(320%); opacity: 0.2; }
+}
+
+@keyframes scanline {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 120px; }
+}
+
+@keyframes atmosDrift {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(-12px,8px,0) scale(1.03); }
+}
+
+@keyframes fogShift {
+  0%, 100% { transform: translate3d(0,0,0); opacity: 0.35; }
+  50% { transform: translate3d(10px,-8px,0); opacity: 0.55; }
+}
+
+@keyframes statusPulse {
+  0%,100% { box-shadow: 0 0 0 rgba(16,185,129,0); opacity: 0.8; }
+  50% { box-shadow: 0 0 18px rgba(16,185,129,0.35); opacity: 1; }
+}
+
+.orchestrate-line {
+  fill: none;
+  stroke: rgba(148, 233, 255, 0.22);
+  stroke-width: 0.8;
+  stroke-dasharray: 4 8;
+  animation: orchestrationFlow 8s linear infinite;
+}
+
+@keyframes orchestrationFlow {
+  0% { stroke-dashoffset: 0; opacity: 0.22; }
+  50% { opacity: 0.55; }
+  100% { stroke-dashoffset: -28; opacity: 0.18; }
+}
