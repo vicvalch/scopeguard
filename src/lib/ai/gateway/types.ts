@@ -30,6 +30,12 @@ export type RunAIModuleInput = {
   input: unknown;
   context?: {
     projectId?: string;
+    workspaceId?: string;
+    actor?: {
+      actorType?: string;
+      actorUserId?: string | null;
+      actorAgentId?: string | null;
+    };
     [key: string]: unknown;
   };
   traceId?: string;
@@ -47,4 +53,7 @@ export type AIModuleConfig = {
   promptVersion: string;
   mode: AIModuleMode;
   handler: AIModuleHandler;
+  // false = module returns static fixture data; callers receive inferenceMode: "mock".
+  // Omitted or true = module is production-ready and performs real inference.
+  productionReady?: boolean;
 };

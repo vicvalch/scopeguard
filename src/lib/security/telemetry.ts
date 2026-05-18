@@ -95,6 +95,7 @@ export type SecurityEventType =
   | "verifier_handshake_succeeded"
   | "verifier_handshake_failed"
   | "replay_attack_detected"
+  | "replay_detected"
   | "stale_event_detected"
   | "event_quarantined"
   | "quarantine_approved"

@@ -1,7 +1,10 @@
-import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { getAuthUser } from "@/lib/auth";
+import { canUseAdvancedAi } from "@/lib/feature-gates";
+import { denyResponse } from "@/lib/security/deny-response";
 import { metaIntelligencePromptV1 } from "@/lib/ai/prompts/meta-intelligence.v1";
-import { resilientFetch } from "@/lib/ai/resilient-fetch";
+import { runInference } from "@/lib/ai/providers/router";
+import { InferenceError } from "@/lib/ai/inference/types";
 
 type MetaIntelligenceRequest = {
   userInput?: string;
@@ -15,8 +18,29 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  let payload: MetaIntelligenceRequest;
+  const user = await getAuthUser();
+  if (!user) {
+    return denyResponse({
+      status: 401,
+      routeId: "/api/ai/meta-intelligence",
+      message: "Unauthorized",
+      reason: "unauthorized",
+    });
+  }
 
+  const advancedAiAccess = await canUseAdvancedAi(user.id);
+  if (!advancedAiAccess.ok) {
+    return NextResponse.json(
+      {
+        error: advancedAiAccess.error,
+        feature: advancedAiAccess.feature,
+        requiredPlan: advancedAiAccess.requiredPlan,
+      },
+      { status: 402 },
+    );
+  }
+
+  let payload: MetaIntelligenceRequest;
   try {
     payload = (await request.json()) as MetaIntelligenceRequest;
   } catch {
@@ -31,64 +55,34 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "Missing OPENAI_API_KEY on server." },
-      { status: 500 },
-    );
-  }
-
   try {
-    const fetchResult = await resilientFetch<{
-      choices?: Array<{ message?: { content?: string } }>;
-      error?: { message?: string };
-    }>(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: process.env.OPENAI_META_INTELLIGENCE_MODEL ?? "gpt-4.1-mini",
-          temperature: 0.1,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: metaIntelligencePromptV1.systemPrompt },
-            { role: "user", content: userInput },
-          ],
-        }),
-      },
-      {
-        timeoutMs: 15000,
-        maxAttempts: 2,
-        retryDelayMs: 800,
-        operationName: "meta-intelligence",
-        idempotencyKey: randomUUID(),
-      }
-    );
+    const inferenceResult = await runInference({
+      moduleId: "meta-intelligence",
+      actorId: user.id,
+      actorType: "user",
+      messages: [
+        { role: "system", content: metaIntelligencePromptV1.systemPrompt },
+        { role: "user", content: userInput },
+      ],
+      responseFormat: { type: "json_object" },
+      temperature: 0.1,
+      timeoutMs: 15000,
+      maxAttempts: 2,
+      retryDelayMs: 800,
+      operationName: "meta-intelligence",
+      idempotencyKey: randomUUID(),
+      metadata: { companyId: user.companyId },
+    });
 
-    if (!fetchResult.ok) {
-      return NextResponse.json(
-        { error: "Meta intelligence temporarily unavailable.", code: fetchResult.errorClass },
-        { status: fetchResult.errorClass === "rate_limited" ? 429 : 502 }
-      );
-    }
-
-    const body = fetchResult.data;
-    const content = body.choices?.[0]?.message?.content;
-    if (!content) {
-      return NextResponse.json(
-        { error: "Meta intelligence returned empty response." },
-        { status: 502 },
-      );
-    }
-
-    const parsed = JSON.parse(content) as unknown;
+    const parsed = inferenceResult.parsedJson ?? JSON.parse(inferenceResult.content);
     return NextResponse.json(parsed);
   } catch (error) {
+    if (error instanceof InferenceError) {
+      return NextResponse.json(
+        { error: "Meta intelligence temporarily unavailable.", code: error.errorClass },
+        { status: error.errorClass === "rate_limited" ? 429 : 502 },
+      );
+    }
     const message = error instanceof Error ? error.message : "Unexpected server error.";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -10,8 +10,10 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { canCreateMoreProjects, canUseAdvancedAi, requireFeatureAccess } from "@/lib/feature-gates";
 import { canUsePortfolioMemory } from "@/lib/usage-limits";
+import { runInference } from "@/lib/ai/providers/router";
+import { InferenceError } from "@/lib/ai/inference/types";
 
-const ANALYSIS_JSON_SCHEMA = { name: "pmfreak_ai_analysis", strict: true, schema: { type: "object", additionalProperties: false, properties: { executive_summary: { type: "string" }, functional_requirements: { type: "array", items: { type: "string" } }, non_functional_requirements: { type: "array", items: { type: "string" } }, risks: { type: "array", items: { type: "string" } }, dependencies: { type: "array", items: { type: "string" } }, ambiguities: { type: "array", items: { type: "string" } }, missing_information: { type: "array", items: { type: "string" } }, client_questions: { type: "array", items: { type: "string" } }, suggested_next_steps: { type: "array", items: { type: "string" } }, complexity: { type: "string", enum: ["Low", "Medium", "High"] } }, required: ["executive_summary", "functional_requirements", "non_functional_requirements", "risks", "dependencies", "ambiguities", "missing_information", "client_questions", "suggested_next_steps", "complexity"] } };
+const ANALYSIS_SCHEMA: Record<string, unknown> = { type: "object", additionalProperties: false, properties: { executive_summary: { type: "string" }, functional_requirements: { type: "array", items: { type: "string" } }, non_functional_requirements: { type: "array", items: { type: "string" } }, risks: { type: "array", items: { type: "string" } }, dependencies: { type: "array", items: { type: "string" } }, ambiguities: { type: "array", items: { type: "string" } }, missing_information: { type: "array", items: { type: "string" } }, client_questions: { type: "array", items: { type: "string" } }, suggested_next_steps: { type: "array", items: { type: "string" } }, complexity: { type: "string", enum: ["Low", "Medium", "High"] } }, required: ["executive_summary", "functional_requirements", "non_functional_requirements", "risks", "dependencies", "ambiguities", "missing_information", "client_questions", "suggested_next_steps", "complexity"] };
 
 type AnalyzeRequestPayload = { projectId?: string; projectName?: string; extractedScopeText?: string; sourceFileNames?: string[] };
 type AIAnalysisResult = { executive_summary: string; functional_requirements: string[]; non_functional_requirements: string[]; risks: string[]; dependencies: string[]; ambiguities: string[]; missing_information: string[]; client_questions: string[]; suggested_next_steps: string[]; complexity: "Low" | "Medium" | "High" };
@@ -43,9 +45,6 @@ export async function POST(request: Request) {
   if (!analysisAccess.ok) {
     return Response.json({ error: analysisAccess.code, feature: "ai_analysis", requiredPlan: analysisAccess.requiredPlan }, { status: analysisAccess.status });
   }
-
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return Response.json({ error: "Missing OPENAI_API_KEY on the server." }, { status: 500 });
 
   let payload: AnalyzeRequestPayload = {};
   const contentType = request.headers.get("content-type") ?? "";
@@ -97,15 +96,26 @@ export async function POST(request: Request) {
   const currentUsageCount = analysisCount ?? 0;
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model: "gpt-4.1-mini", temperature: 0.2, response_format: { type: "json_schema", json_schema: ANALYSIS_JSON_SCHEMA }, messages: [{ role: "system", content: "You are PMFreak AI. Return only valid JSON that matches the provided schema. Keep bullets practical and concise." }, { role: "user", content: `Analyze this project scope and produce a complete structured assessment.\n\nProject Name: ${projectName}\n\nExtracted Scope Text:\n${extractedScopeText.slice(0, 16000)}` }] }) });
-    const body = (await response.json()) as { choices?: Array<{ message?: { content?: string } }>; error?: { message?: string } };
-    if (!response.ok) return Response.json({ error: body.error?.message || "OpenAI API request failed. Please retry or use the Sprint 4 fallback analysis." }, { status: 502 });
+    const inferenceResult = await runInference({
+      moduleId: "scope-analysis",
+      workspaceId,
+      projectId,
+      messages: [
+        { role: "system", content: "You are PMFreak AI. Return only valid JSON that matches the provided schema. Keep bullets practical and concise." },
+        { role: "user", content: `Analyze this project scope and produce a complete structured assessment.\n\nProject Name: ${projectName}\n\nExtracted Scope Text:\n${extractedScopeText.slice(0, 16000)}` },
+      ],
+      responseFormat: {
+        type: "json_schema",
+        jsonSchema: { name: "pmfreak_ai_analysis", strict: true, schema: ANALYSIS_SCHEMA },
+      },
+      temperature: 0.2,
+      timeoutMs: 30000,
+      operationName: "scope-analysis",
+      metadata: { actorUserId: user.id, companyId: user.companyId },
+    });
 
-    const content = body.choices?.[0]?.message?.content;
-    if (!content) return Response.json({ error: "OpenAI API returned an empty response." }, { status: 502 });
-
-    const analysis = coerceAnalysisResult(JSON.parse(content));
-    if (!analysis) return Response.json({ error: "OpenAI response could not be validated." }, { status: 502 });
+    const analysis = coerceAnalysisResult(inferenceResult.parsedJson ?? (inferenceResult.content ? JSON.parse(inferenceResult.content) : null));
+    if (!analysis) return Response.json({ error: "AI response could not be validated." }, { status: 502 });
 
     const portfolioEnabled = canUsePortfolioMemory(subscription.plan);
     const previousProjects = portfolioEnabled ? await readProjectMemory(user.companyId) : [];
@@ -116,7 +126,10 @@ export async function POST(request: Request) {
     const enrichedResponse: AIAnalysisResponse = { ...analysis, similar_projects: intelligence.similarProjects, historical_risks: intelligence.historicalRisks, estimated_relative_complexity: intelligence.estimatedRelativeComplexity };
     await supabase.from("onboarding_analyses").insert({ company_id: user.companyId, user_id: user.id, workspace_id: workspaceId, workspace: "project", role: user.role, project_type: "project_analysis", problem: projectName, analysis: JSON.stringify(enrichedResponse), source: "onboarding", project_id: projectId });
     return Response.json(enrichedResponse, { headers: { "X-Usage-Remaining": String(Math.max(0, projectAccess.projectLimit - (currentUsageCount + 1))) } });
-  } catch {
+  } catch (error) {
+    if (error instanceof InferenceError) {
+      return Response.json({ error: error.message || "AI analysis request failed. Please retry or use the Sprint 4 fallback analysis." }, { status: error.errorClass === "rate_limited" ? 429 : 502 });
+    }
     return Response.json({ error: "Unable to run AI analysis right now. Please retry shortly." }, { status: 502 });
   }
 }

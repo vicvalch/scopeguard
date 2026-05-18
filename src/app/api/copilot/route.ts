@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { getAuthUser, type UserRole } from "@/lib/auth";
 import { getCompanySubscription, type SubscriptionPlan } from "@/lib/billing";
 import { canUseAdvancedAi, requireFeatureAccess } from "@/lib/feature-gates";
@@ -15,7 +14,30 @@ import { evaluateAgentAccess } from "@/lib/security/agent-access";
 import { denyResponse } from "@/lib/security/deny-response";
 import { verifyAiResponse } from "@/lib/ai/response-verifier";
 import { CopilotRequestContract, CopilotResponseContract } from "@/lib/contracts";
-import { resilientFetch } from "@/lib/ai/resilient-fetch";
+import { runInference } from "@/lib/ai/providers/router";
+import { InferenceError } from "@/lib/ai/inference/types";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+// Resolves the caller's workspace from their project (if given) or first membership.
+// Used only on the human-user path where no workspace header is supplied.
+async function resolveWorkspaceIdForUser(userId: string, projectId: string | undefined): Promise<string | null> {
+  const supabase = await createSupabaseServerClient();
+  if (projectId) {
+    const { data } = await supabase
+      .from("projects")
+      .select("workspace_id")
+      .eq("id", projectId)
+      .maybeSingle();
+    if (data?.workspace_id) return data.workspace_id as string;
+  }
+  const { data } = await supabase
+    .from("workspace_memberships")
+    .select("workspace_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  return (data?.workspace_id as string | undefined) ?? null;
+}
 
 type CopilotRequest = {
   message?: string;
@@ -106,37 +128,64 @@ export async function POST(request: Request) {
   if (payload.companyId && payload.companyId !== user.companyId) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Tenant mismatch.", reason: "tenant_mismatch", actorUserId: user.id, eventType: "suspicious_cross_scope_attempt" });
   const agentToken = request.headers.get("x-pmf-agent-token");
   const agentId = request.headers.get("x-pmf-agent-id");
-  const workspaceId = request.headers.get("x-pmf-workspace-id");
-  if (!agentToken || !agentId || !workspaceId) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Agent attestation required.", reason: "missing_attestation_headers", actorUserId: user.id, eventType: "malformed_attestation" });
+  const workspaceIdHeader = request.headers.get("x-pmf-workspace-id");
 
-  const agentAuth = await evaluateAgentAccess({ workspaceId, agentId, resourceType: "copilot", resourceId: payload.projectId?.trim() || workspaceId, permission: "execute_ai_action" });
-  if (agentAuth.decision !== "allow") return denyResponse({ status: 403, routeId: "/api/copilot", message: "Agent scope denied.", reason: `agent_${agentAuth.decision}`, actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "revoked_agent_access" });
+  // Partial agent headers are malformed — an attacker supplying only some
+  // headers must not accidentally fall through to the human-user path.
+  const agentHeaderCount = [agentToken, agentId, workspaceIdHeader].filter(Boolean).length;
+  if (agentHeaderCount > 0 && agentHeaderCount < 3) {
+    return denyResponse({ status: 403, routeId: "/api/copilot", message: "Agent attestation required.", reason: "malformed_attestation", actorUserId: user.id, eventType: "malformed_attestation" });
+  }
 
-  const delegatedCapabilityToken = request.headers.get("x-pmf-delegation-token");
-  if (delegatedCapabilityToken) {
-    const delegated = await consumeDelegatedCapability({ delegationToken: delegatedCapabilityToken, action: "ai.execute", workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", resourceType: "copilot", actorUserId: user.id, actorAgentId: agentId });
-    if (!delegated.ok) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Invalid delegated capability.", reason: String(delegated.reason ?? "delegation_denied"), actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "delegated_capability_invalid" });
-    console.info("[delegation]", explainDelegationChain(buildAuthorityLineage({ parentGrantId: delegated.delegation.parent_grant_id, parentDecisionId: delegated.delegation.parent_decision_id, delegatorUserId: delegated.delegation.delegator_user_id, delegatorAgentId: delegated.delegation.delegator_agent_id, delegateeUserId: delegated.delegation.delegatee_user_id, delegateeAgentId: delegated.delegation.delegatee_agent_id, action: delegated.delegation.action, requestedPermission: delegated.delegation.requested_permission, workspaceId: delegated.delegation.workspace_id, projectId: delegated.delegation.project_id, constraints: delegated.delegation.constraints, expiresAt: delegated.delegation.expires_at, depth: delegated.delegation.constraints?.delegationDepth ?? 0 })));
+  const isAgentCall = agentHeaderCount === 3;
+
+  if (isAgentCall) {
+    // Agent path: all three headers present — enforce strict attestation and scope.
+    const workspaceId = workspaceIdHeader!;
+    const agentAuth = await evaluateAgentAccess({ workspaceId, agentId: agentId!, resourceType: "copilot", resourceId: payload.projectId?.trim() || workspaceId, permission: "execute_ai_action" });
+    if (agentAuth.decision !== "allow") return denyResponse({ status: 403, routeId: "/api/copilot", message: "Agent scope denied.", reason: `agent_${agentAuth.decision}`, actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "revoked_agent_access" });
+
+    const delegatedCapabilityToken = request.headers.get("x-pmf-delegation-token");
+    if (delegatedCapabilityToken) {
+      const delegated = await consumeDelegatedCapability({ delegationToken: delegatedCapabilityToken, action: "ai.execute", workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", resourceType: "copilot", actorUserId: user.id, actorAgentId: agentId });
+      if (!delegated.ok) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Invalid delegated capability.", reason: String(delegated.reason ?? "delegation_denied"), actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "delegated_capability_invalid" });
+      console.info("[delegation]", explainDelegationChain(buildAuthorityLineage({ parentGrantId: delegated.delegation.parent_grant_id, parentDecisionId: delegated.delegation.parent_decision_id, delegatorUserId: delegated.delegation.delegator_user_id, delegatorAgentId: delegated.delegation.delegator_agent_id, delegateeUserId: delegated.delegation.delegatee_user_id, delegateeAgentId: delegated.delegation.delegatee_agent_id, action: delegated.delegation.action, requestedPermission: delegated.delegation.requested_permission, workspaceId: delegated.delegation.workspace_id, projectId: delegated.delegation.project_id, constraints: delegated.delegation.constraints, expiresAt: delegated.delegation.expires_at, depth: delegated.delegation.constraints?.delegationDepth ?? 0 })));
+    } else {
+      const executionGrantToken = request.headers.get("x-pmf-execution-grant");
+      if (executionGrantToken) {
+        const granted = await consumeExecutionGrant({ grantToken: executionGrantToken, action: "ai.execute", workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", resourceType: "copilot", actorUserId: user.id, actorAgentId: agentId });
+        if (!granted.ok) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Invalid execution grant.", reason: granted.reason, actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "execution_grant_invalid" });
+      } else {
+        const governance = await enforceRuntimeAuthorization({
+          actorType: "ai_agent",
+          actorUserId: user.id,
+          actorAgentId: agentId,
+          workspaceId,
+          projectId: payload.projectId?.trim() || undefined,
+          action: "ai.execute",
+          routeId: "/api/copilot",
+          requestedPermission: "execute_ai_action",
+          agentToken: agentToken!,
+          resourceType: "copilot",
+        });
+        if (governance.response) return governance.response;
+      }
+    }
   } else {
-  const executionGrantToken = request.headers.get("x-pmf-execution-grant");
-  if (executionGrantToken) {
-    const granted = await consumeExecutionGrant({ grantToken: executionGrantToken, action: "ai.execute", workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", resourceType: "copilot", actorUserId: user.id, actorAgentId: agentId });
-    if (!granted.ok) return denyResponse({ status: 403, routeId: "/api/copilot", message: "Invalid execution grant.", reason: granted.reason, actorUserId: user.id, actorAgentId: agentId, workspaceId, projectId: payload.projectId?.trim() || null, requestedPermission: "execute_ai_action", deniedPermission: "execute_ai_action", eventType: "execution_grant_invalid" });
-  } else {
+    // Human user path: no agent headers present. Resolve workspace and enforce governance as user.
+    const resolvedWorkspaceId = await resolveWorkspaceIdForUser(user.id, payload.projectId?.trim());
     const governance = await enforceRuntimeAuthorization({
-      actorType: "ai_agent",
+      actorType: "user",
       actorUserId: user.id,
-      actorAgentId: agentId,
-      workspaceId,
+      workspaceId: resolvedWorkspaceId ?? undefined,
       projectId: payload.projectId?.trim() || undefined,
       action: "ai.execute",
       routeId: "/api/copilot",
       requestedPermission: "execute_ai_action",
-      agentToken,
       resourceType: "copilot",
     });
     if (governance.response) return governance.response;
-  }}
+  }
 
   const methodology = payload.methodology ?? "Hybrid";
   const subscription = await getCompanySubscription(user.companyId);
@@ -148,9 +197,6 @@ export async function POST(request: Request) {
   const analysisAccess = await requireFeatureAccess(user.companyId, "ai_analysis");
   if (!analysisAccess.ok) {
   }
-
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return Response.json({ error: "Missing OPENAI_API_KEY on the server." }, { status: 500 });
 
   const runtimeContext = await getRuntimeAuthorityView({
     companyId: user.companyId,
@@ -216,52 +262,47 @@ Output contract:
 
 Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
 
-  const fetchResult = await resilientFetch<{
-    choices?: Array<{ message?: { content?: string } }>;
-    error?: { message?: string };
-  }>(
-    "https://api.openai.com/v1/chat/completions",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        temperature: 0.2,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: system },
-          {
-            role: "user",
-            content: `User role: ${payload.role ?? user.role}\nProject selected: ${payload.projectName ?? selectedProject?.projectName ?? "Not specified"}\nKnown project memory:\n${contextSummary || "No memory available."}\n\nOperational continuity signals:\n${continuitySignals.length ? continuitySignals.map((s) => `- ${s}`).join("\n") : "- No reliable continuity signal extracted."}\n\nPersisted unresolved operational memory:\n${continuity.unresolved.map((item) => `- [${item.memoryType}] ${item.memoryText} (source: ${item.sourceType}:${item.sourceReference})`).join("\n") || "- No unresolved memory yet."}\n\nAOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser message: ${payload.message}`,
-          },
-        ],
-      }),
-    },
-    {
+  let content: string;
+  try {
+    const inferenceResult = await runInference({
+      moduleId: "copilot",
+      workspaceId: isAgentCall ? workspaceIdHeader! : undefined,
+      projectId: payload.projectId?.trim() || selectedProject?.id,
+      actorId: user.id,
+      actorType: isAgentCall ? "ai_agent" : "user",
+      messages: [
+        { role: "system", content: system },
+        {
+          role: "user",
+          content: `User role: ${payload.role ?? user.role}\nProject selected: ${payload.projectName ?? selectedProject?.projectName ?? "Not specified"}\nKnown project memory:\n${contextSummary || "No memory available."}\n\nOperational continuity signals:\n${continuitySignals.length ? continuitySignals.map((s) => `- ${s}`).join("\n") : "- No reliable continuity signal extracted."}\n\nPersisted unresolved operational memory:\n${continuity.unresolved.map((item) => `- [${item.memoryType}] ${item.memoryText} (source: ${item.sourceType}:${item.sourceReference})`).join("\n") || "- No unresolved memory yet."}\n\nAOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser message: ${payload.message}`,
+        },
+      ],
+      responseFormat: { type: "json_object" },
+      temperature: 0.2,
       timeoutMs: 25000,
       maxAttempts: 2,
       retryDelayMs: 1000,
       operationName: "copilot",
       idempotencyKey: randomUUID(),
-    }
-  );
-
-  if (!fetchResult.ok) {
-    console.error("[copilot] openai_fetch_failed", {
-      errorClass: fetchResult.errorClass,
-      attempts: fetchResult.attempts,
-      durationMs: fetchResult.durationMs,
-      companyId: user.companyId,
+      metadata: { companyId: user.companyId },
     });
-    return Response.json(
-      { error: "Copilot temporarily unavailable.", code: fetchResult.errorClass },
-      { status: fetchResult.errorClass === "rate_limited" ? 429 : 502 }
-    );
+    content = inferenceResult.content;
+  } catch (error) {
+    if (error instanceof InferenceError) {
+      console.error("[copilot] inference_failed", {
+        errorClass: error.errorClass,
+        attempts: error.attempts,
+        companyId: user.companyId,
+      });
+      return Response.json(
+        { error: "Copilot temporarily unavailable.", code: error.errorClass },
+        { status: error.errorClass === "rate_limited" ? 429 : 502 },
+      );
+    }
+    return Response.json({ error: "Copilot temporarily unavailable." }, { status: 502 });
   }
 
-  const body = fetchResult.data;
-  const content = body.choices?.[0]?.message?.content;
-  if (!content) return Response.json({ error: "OpenAI returned empty response." }, { status: 502 });
+  if (!content) return Response.json({ error: "AI returned empty response." }, { status: 502 });
 
   let parsed: Partial<CopilotResponse> = {};
   try {
@@ -361,5 +402,4 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
   }
 
   return Response.json({ ...result, verificationScore: verification.confidenceScore });
-  return Response.json({ ...result, runtimeContext });
 }

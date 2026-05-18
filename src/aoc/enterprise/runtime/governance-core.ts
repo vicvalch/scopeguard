@@ -1,28 +1,21 @@
-/**
- * GOVERNANCE CORE — inlined from legacy runtime during AOC migration.
- * This module owns the canonical governance evaluation pipeline.
- * The legacy file src/lib/security/governance-runtime.ts is now a
- * re-export shim pointing here. Do not import governance-runtime.ts
- * directly — use @aoc-enterprise/runtime instead.
- */
-import { AccessDeniedError, requireAgentScope, requireGovernancePermission, requireProjectPermission, requireWorkspaceMembership } from "@/lib/security/access-guards";
-import { verifyAgentAttestation } from "@/lib/security/agent-attestation";
-import { denyResponse } from "@/lib/security/deny-response";
-import { createPrivilegedSupabaseClient } from "@/lib/security/privileged-access";
-import type { Permission, WorkspaceRole } from "@/lib/security/rbac";
-import { logSecurityEvent, type SecurityEventType } from "@/lib/security/telemetry";
+// AOC Enterprise Runtime: canonical governance evaluation pipeline.
+// Future extraction boundary: this module must NOT import from host application modules.
+// All host services are provided via adapter ports registered in src/aoc/runtime/adapters.
+// The legacy shim src/lib/security/governance-runtime.ts re-exports from here.
+import type { AocPermission, AocGovernanceAction, AocGovernanceDecisionState, AocTrustLevel, AocActorRole } from "../../protocol/actor-model";
+import type { AocGovernanceEventType } from "../../protocol/ports/security-audit";
+import { AocAccessDeniedError } from "../../protocol/ports/access-verification";
+import { getAocAdapter } from "../../runtime/adapters";
 
 export type GovernanceActorType = "user" | "ai_agent" | "system";
-export type GovernanceDecisionState = "allow" | "deny" | "require_human_approval" | "require_admin_approval" | "require_additional_scope";
+export type GovernanceDecisionState = AocGovernanceDecisionState;
 export type GovernanceDecisionStatus = "evaluated" | "pending_approval" | "approved" | "rejected" | "expired" | "cancelled" | "executed_after_approval";
-export type GovernanceAction =
-  | "project.read" | "project.write" | "memory.read" | "memory.write" | "document.upload"
-  | "billing.manage" | "members.manage" | "ai.execute" | "ai.manage" | "workspace.manage" | "executive.view" | "privileged.use";
+export type GovernanceAction = AocGovernanceAction;
 
 type ApprovalType = "human" | "admin";
 
-export type GovernanceEvaluationInput = { actorType: GovernanceActorType; actorUserId?: string | null; actorAgentId?: string | null; workspaceId?: string | null; projectId?: string | null; actorRole?: WorkspaceRole | null; requestedPermission?: Permission | null; resourceType?: string | null; resourceId?: string | null; action: GovernanceAction; routeId: string; metadata?: Record<string, unknown>; agentToken?: string | null; systemActor?: string | null; };
-type GovernancePolicy = { requiredPermission: Permission; minimumRole?: WorkspaceRole; allowedActorTypes: GovernanceActorType[]; agentCompatible: boolean; denyEventType: SecurityEventType; riskLevel: "low"|"medium"|"high"|"critical"; projectScoped?: boolean; workspaceScoped?: boolean; requiresSystemContext?: boolean };
+export type GovernanceEvaluationInput = { actorType: GovernanceActorType; actorUserId?: string | null; actorAgentId?: string | null; workspaceId?: string | null; projectId?: string | null; actorRole?: AocActorRole | null; requestedPermission?: AocPermission | null; resourceType?: string | null; resourceId?: string | null; action: GovernanceAction; routeId: string; metadata?: Record<string, unknown>; agentToken?: string | null; systemActor?: string | null; };
+type GovernancePolicy = { requiredPermission: AocPermission; minimumRole?: AocActorRole; allowedActorTypes: GovernanceActorType[]; agentCompatible: boolean; denyEventType: AocGovernanceEventType; riskLevel: AocTrustLevel; projectScoped?: boolean; workspaceScoped?: boolean; requiresSystemContext?: boolean };
 export const GOVERNANCE_POLICY_REGISTRY: Record<GovernanceAction, GovernancePolicy> = {
   "project.read": { requiredPermission: "read", allowedActorTypes: ["user", "ai_agent"], agentCompatible: true, denyEventType: "project_scope_violation", riskLevel: "low", projectScoped: true },
   "project.write": { requiredPermission: "write", allowedActorTypes: ["user", "ai_agent"], agentCompatible: true, denyEventType: "denied_permission", riskLevel: "medium", projectScoped: true },
@@ -38,7 +31,7 @@ export const GOVERNANCE_POLICY_REGISTRY: Record<GovernanceAction, GovernancePoli
   "privileged.use": { requiredPermission: "manage_workspace", allowedActorTypes: ["system"], agentCompatible: false, denyEventType: "suspicious_permission_escalation", riskLevel: "critical", workspaceScoped: true, requiresSystemContext: true },
 };
 
-const decisionNeedsApproval = (input: GovernanceEvaluationInput, riskLevel: string): { decision: GovernanceDecisionState; approvalType: ApprovalType; reviewerRoleRequired: WorkspaceRole } | null => {
+const decisionNeedsApproval = (input: GovernanceEvaluationInput, riskLevel: string): { decision: GovernanceDecisionState; approvalType: ApprovalType; reviewerRoleRequired: AocActorRole } | null => {
   if (input.action === "ai.execute" && riskLevel === "high") return { decision: "require_human_approval", approvalType: "human", reviewerRoleRequired: "admin" };
   if (input.action === "document.upload" && input.actorRole === "external_stakeholder") return { decision: "require_human_approval", approvalType: "human", reviewerRoleRequired: "admin" };
   if (input.action === "billing.manage" && input.actorRole === "admin") return { decision: "require_admin_approval", approvalType: "admin", reviewerRoleRequired: "owner" };
@@ -46,7 +39,11 @@ const decisionNeedsApproval = (input: GovernanceEvaluationInput, riskLevel: stri
   return null;
 };
 
-export async function evaluateGovernanceAction(input: GovernanceEvaluationInput) { /* trimmed: retains existing checks */
+export async function evaluateGovernanceAction(input: GovernanceEvaluationInput) {
+  const audit = getAocAdapter("securityAudit");
+  const access = getAocAdapter("accessVerification");
+  const attestation = getAocAdapter("agentAttestation");
+
   const policy = GOVERNANCE_POLICY_REGISTRY[input.action]; const decisionId = crypto.randomUUID(); const trace: Array<Record<string, unknown>> = [];
   const deny = (reason: string) => ({ allowed: false as const, decision: "deny" as GovernanceDecisionState, reason });
   trace.push({ rule: "policy_registry", result: "checked", reason: `matched ${input.action}` });
@@ -55,17 +52,17 @@ export async function evaluateGovernanceAction(input: GovernanceEvaluationInput)
   if (policy.workspaceScoped && !input.workspaceId) return finalize(deny("Denied because workspace scope is missing."));
   if (policy.projectScoped && !input.projectId) return finalize(deny("Denied because project scope is missing for project-scoped action."));
   if (input.actorType === "system" && policy.requiresSystemContext && !input.systemActor) return finalize(deny("Denied because systemActor context is required."));
-  try { if (input.actorType === "user") { if (policy.projectScoped && input.projectId) { const ctx = await requireProjectPermission(input.projectId, policy.requiredPermission); trace.push({ rule: "project_binding_checked", roleChecked: ctx.role, scopeChecked: "project", result: "passed", reason: "project permission granted" }); } else if (policy.workspaceScoped && input.workspaceId) { const ctx = await requireGovernancePermission(input.workspaceId, policy.requiredPermission); trace.push({ rule: "workspace_membership_checked", roleChecked: ctx.role, scopeChecked: "workspace", result: "passed", reason: "workspace governance permission granted" }); } }
-    if (input.actorType === "ai_agent") { if (!input.actorAgentId) return finalize(deny("Denied because AI agent actor id is missing.")); if (!input.workspaceId) return finalize(deny("Denied because AI agent workspace scope is missing.")); if (input.agentToken) { await verifyAgentAttestation({ token: input.agentToken, expectedAgentId: input.actorAgentId, workspaceId: input.workspaceId, permission: policy.requiredPermission, projectId: input.projectId ?? undefined }); trace.push({ rule: "agent_attestation_checked", agentScopeChecked: true, result: "passed", reason: "attestation verified" }); } await requireAgentScope({ workspaceId: input.workspaceId, agentId: input.actorAgentId, permission: policy.requiredPermission, projectId: input.projectId ?? undefined }); trace.push({ rule: "agent_scope_checked", projectBindingChecked: input.projectId ?? null, result: "passed", reason: "agent scope granted" }); }
-    if (input.actorType === "system" && input.workspaceId) { await requireWorkspaceMembership(input.workspaceId); trace.push({ rule: "system_workspace_binding", privilegedContextChecked: Boolean(input.systemActor), result: "passed", reason: "system actor has explicit context" }); }
-  } catch (error) { const reason = error instanceof AccessDeniedError ? String(error.metadata.reason ?? error.message) : "governance_denied"; trace.push({ rule: "composed_guard", result: "denied", reason }); return finalize(deny(`Denied because ${reason}.`)); }
+  try { if (input.actorType === "user") { if (policy.projectScoped && input.projectId) { const ctx = await access.requireProjectPermission(input.projectId, policy.requiredPermission); trace.push({ rule: "project_binding_checked", roleChecked: ctx.role, scopeChecked: "project", result: "passed", reason: "project permission granted" }); } else if (policy.workspaceScoped && input.workspaceId) { const ctx = await access.requireGovernancePermission(input.workspaceId, policy.requiredPermission); trace.push({ rule: "workspace_membership_checked", roleChecked: ctx.role, scopeChecked: "workspace", result: "passed", reason: "workspace governance permission granted" }); } }
+    if (input.actorType === "ai_agent") { if (!input.actorAgentId) return finalize(deny("Denied because AI agent actor id is missing.")); if (!input.workspaceId) return finalize(deny("Denied because AI agent workspace scope is missing.")); if (input.agentToken) { await attestation.verifyAttestation({ token: input.agentToken, expectedAgentId: input.actorAgentId, workspaceId: input.workspaceId, permission: policy.requiredPermission, projectId: input.projectId ?? undefined }); trace.push({ rule: "agent_attestation_checked", agentScopeChecked: true, result: "passed", reason: "attestation verified" }); } await access.requireAgentScope({ workspaceId: input.workspaceId, agentId: input.actorAgentId, permission: policy.requiredPermission, projectId: input.projectId ?? undefined }); trace.push({ rule: "agent_scope_checked", projectBindingChecked: input.projectId ?? null, result: "passed", reason: "agent scope granted" }); }
+    if (input.actorType === "system" && input.workspaceId) { await access.requireWorkspaceMembership(input.workspaceId); trace.push({ rule: "system_workspace_binding", privilegedContextChecked: Boolean(input.systemActor), result: "passed", reason: "system actor has explicit context" }); }
+  } catch (error) { const reason = error instanceof AocAccessDeniedError ? String(error.context.reason ?? error.message) : "governance_denied"; trace.push({ rule: "composed_guard", result: "denied", reason }); return finalize(deny(`Denied because ${reason}.`)); }
   const approvalRule = decisionNeedsApproval(input, policy.riskLevel);
   if (approvalRule) return finalize({ allowed: false, decision: approvalRule.decision, reason: `Action requires ${approvalRule.approvalType} approval.`, requiredApprovalType: approvalRule.approvalType, reviewerRoleRequired: approvalRule.reviewerRoleRequired });
   return finalize({ allowed: true as const, decision: "allow" as GovernanceDecisionState, reason: "Allowed by governance policy and composed guard checks." });
 
-  function finalize(result: { allowed: boolean; decision: GovernanceDecisionState; reason: string; requiredApprovalType?: ApprovalType; reviewerRoleRequired?: WorkspaceRole }) {
+  function finalize(result: { allowed: boolean; decision: GovernanceDecisionState; reason: string; requiredApprovalType?: ApprovalType; reviewerRoleRequired?: AocActorRole }) {
     const output = { allowed: result.allowed, decision: result.decision, decisionId, reason: result.reason, requiredPermission: policy.requiredPermission, matchedPolicy: input.action, evaluatedAt: new Date().toISOString(), actor: { type: input.actorType, userId: input.actorUserId ?? null, agentId: input.actorAgentId ?? null, role: input.actorRole ?? null, systemActor: input.systemActor ?? null }, scope: { workspaceId: input.workspaceId ?? null, projectId: input.projectId ?? null, resourceType: input.resourceType ?? null, resourceId: input.resourceId ?? null }, riskLevel: policy.riskLevel, status: result.decision.includes("approval") ? "pending_approval" : "evaluated", requiredApprovalType: result.requiredApprovalType ?? null, reviewerRoleRequired: result.reviewerRoleRequired ?? null, auditEventType: result.allowed ? "governance_violation" : policy.denyEventType, trace };
-    void logSecurityEvent(result.decision.includes("approval") ? "approval_requested" : (result.allowed ? "governance_violation" : policy.denyEventType), { routeId: input.routeId, actorUserId: input.actorUserId ?? null, actorAgentId: input.actorAgentId ?? null, workspaceId: input.workspaceId ?? null, projectId: input.projectId ?? null, actorRole: input.actorRole ?? null, requested_permission: policy.requiredPermission, denied_permission: result.allowed ? null : policy.requiredPermission, resourceType: input.resourceType ?? null, resourceId: input.resourceId ?? null, metadata: { governanceDecision: output } });
+    void audit.logEvent(result.decision.includes("approval") ? "approval_requested" : (result.allowed ? "governance_violation" : policy.denyEventType), { routeId: input.routeId, actorUserId: input.actorUserId ?? null, actorAgentId: input.actorAgentId ?? null, workspaceId: input.workspaceId ?? null, projectId: input.projectId ?? null, actorRole: input.actorRole ?? null, requested_permission: policy.requiredPermission, denied_permission: result.allowed ? null : policy.requiredPermission, resourceType: input.resourceType ?? null, resourceId: input.resourceId ?? null, metadata: { governanceDecision: output } });
     return output;
   }
 }
@@ -74,7 +71,7 @@ export async function createApprovalRequestFromDecision(decision: Awaited<Return
   if (!decision.requiredApprovalType || !decision.scope.workspaceId) return null;
   // PRIVILEGED_ACCESS: Approval records are written by the system on behalf of the requesting actor; the actor cannot write their own approval record under RLS.
   // AUDIT_REF: service-role-risk-register.md
-  const supabase = createPrivilegedSupabaseClient({ routeId: "governance.approvals", operation: "create_approval", reason: "persist_approval_request", systemActor: "system", workspaceId: decision.scope.workspaceId });
+  const supabase = getAocAdapter("privilegedDb").createClient({ routeId: "governance.approvals", operation: "create_approval", reason: "persist_approval_request", systemActor: "system", workspaceId: decision.scope.workspaceId });
   const payload = { decision_id: decision.decisionId, workspace_id: decision.scope.workspaceId, project_id: decision.scope.projectId, actor_user_id: decision.actor.userId, actor_agent_id: decision.actor.agentId, action: decision.matchedPolicy, requested_permission: decision.requiredPermission, required_approval_type: decision.requiredApprovalType, reviewer_role_required: decision.reviewerRoleRequired, status: "pending_approval", reason: decision.reason, risk_level: decision.riskLevel, trace: decision.trace, metadata: {}, expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() };
   const { data, error } = await supabase.from("governance_approval_requests").upsert(payload, { onConflict: "decision_id" }).select("id").single();
   if (error) throw new Error(`create approval failed: ${error.message}`);
@@ -82,4 +79,8 @@ export async function createApprovalRequestFromDecision(decision: Awaited<Return
 }
 
 export function explainGovernanceDecision(decision: Awaited<ReturnType<typeof evaluateGovernanceAction>>) { return `${decision.allowed ? "Allowed" : "Denied"}: ${decision.reason} (policy=${decision.matchedPolicy}, permission=${decision.requiredPermission}, decisionId=${decision.decisionId})`; }
-export async function enforceGovernanceAction(input: GovernanceEvaluationInput) { const decision = await evaluateGovernanceAction(input); if (decision.decision.includes("approval")) await createApprovalRequestFromDecision(decision); if (!decision.allowed) { return { decision, response: denyResponse({ status: 403, routeId: input.routeId, message: "Governance policy denied.", reason: decision.reason, actorUserId: input.actorUserId ?? null, actorAgentId: input.actorAgentId ?? null, workspaceId: input.workspaceId ?? null, projectId: input.projectId ?? null, requestedPermission: decision.requiredPermission, deniedPermission: decision.requiredPermission, actorRole: input.actorRole ?? null, eventType: decision.auditEventType as SecurityEventType, metadata: { decisionId: decision.decisionId, matchedPolicy: decision.matchedPolicy, riskLevel: decision.riskLevel } }) }; } return { decision, response: null }; }
+
+// Returns governance decision only — HTTP response construction is the host application's responsibility.
+// Callers must check decision.allowed to gate behavior; the response field previously returned
+// a NextResponse, which was a PMFreak/Next.js concern that has been removed from this layer.
+export async function enforceGovernanceAction(input: GovernanceEvaluationInput) { const decision = await evaluateGovernanceAction(input); if (decision.decision.includes("approval")) await createApprovalRequestFromDecision(decision); return { decision }; }

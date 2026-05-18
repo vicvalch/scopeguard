@@ -33,10 +33,19 @@ export type MemoryEvent = {
   module: "stakeholder-intel" | "meetings" | "political-risk" | "escalation-guide" | "message-nudges" | "project-memory";
 };
 
+export type InferenceMode = "live" | "mock" | "fallback";
+
 export type AIResponseEnvelope<T> = {
   module: string;
   generatedAt: string;
   confidence: ConfidenceLevel;
   summary: string;
   data: T;
+  // Inference transparency: callers can distinguish real model output from
+  // simulated data. "live" = real model call succeeded. "mock" = module is
+  // pre-production and returns static fixture data. "fallback" = real model
+  // path failed or is unimplemented; static data was substituted.
+  inferenceMode?: InferenceMode;
+  isSimulated?: boolean;
+  productionReady?: boolean;
 };

@@ -25,8 +25,13 @@ test('security taxonomy includes required phase 4.3 events', () => {
 });
 
 test('copilot requires full agent attestation and execute_ai_action scope', () => {
+  // Partial agent headers must be rejected with the attestation error message.
   assert.match(copilotRoute, /Agent attestation required/);
   assert.match(copilotRoute, /permission: "execute_ai_action"/);
+  // Agent and human paths must be separated — partial headers never fall through.
+  assert.match(copilotRoute, /isAgentCall/);
+  assert.match(copilotRoute, /actorType: "ai_agent"/);
+  assert.match(copilotRoute, /actorType: "user"/);
 });
 
 test('billing checkout enforces governance permission manage_billing', () => {

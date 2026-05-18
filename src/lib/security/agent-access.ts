@@ -2,10 +2,13 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireWorkspaceRole } from "@/lib/security/access-guards";
 import { type Permission } from "@/lib/security/rbac";
 import { evaluatePolicyDecision, type PolicyDecision } from "@/lib/security/policy-engine";
+import { resolveAgentAocActorContext } from "@/lib/aoc/actor-context";
+import { ensurePmfreakAocAdaptersRegistered } from "@/lib/aoc/bootstrap";
 
 export type AgentAccessDecision = "allow" | "deny" | "require_approval" | "expired" | "revoked" | "no_scope";
 
 export async function evaluateAgentAccess(input: { workspaceId: string; agentId: string; resourceType: "workspace" | "project" | "operational_memory" | "governance_object" | "ai_coprocess" | "copilot"; resourceId: string; permission: Permission; }) {
+  ensurePmfreakAocAdaptersRegistered();
   const supabase = await createSupabaseServerClient();
   const { data: agent } = await supabase.from("ai_agents").select("id,workspace_id,name,status,risk_level").eq("id", input.agentId).eq("workspace_id", input.workspaceId).maybeSingle();
   if (!agent) return { decision: "deny" as AgentAccessDecision, reason: "agent_not_found" };
@@ -21,7 +24,8 @@ export async function evaluateAgentAccess(input: { workspaceId: string; agentId:
     return { decision: "expired" as AgentAccessDecision, reason: "scope_expired", agent, scope: matched };
   }
 
-  const policy = await evaluatePolicyDecision({ workspaceId: input.workspaceId, resourceType: input.resourceType === "copilot" ? "ai_coprocess" : input.resourceType, resourceId: input.resourceId, permission: input.permission, rbacAllowed: false, justification: `agent:${input.agentId}`, });
+  const agentActor = resolveAgentAocActorContext(input.agentId, { workspaceId: input.workspaceId });
+  const policy = await evaluatePolicyDecision({ actor: agentActor, workspaceId: input.workspaceId, resourceType: input.resourceType === "copilot" ? "ai_coprocess" : input.resourceType, resourceId: input.resourceId, permission: input.permission, rbacAllowed: false, justification: `agent:${input.agentId}`, });
   const decision: AgentAccessDecision = policy.decision === "allow" ? "allow" : policy.decision === "require_approval" ? "require_approval" : policy.decision === "expired" ? "expired" : "deny";
 
   await supabase.from("capability_audit_events").insert({ workspace_id: input.workspaceId, actor_agent_id: input.agentId, grant_id: matched.capability_grant_id ?? null, event_type: decision === "allow" ? "agent_access_allowed" : "agent_access_denied", event_detail: { decision, reason: policy.reason, resourceType: input.resourceType, resourceId: input.resourceId, permission: input.permission, scopeId: matched.id, grantedByUserId: matched.granted_by_user_id, policyDecision: policy.decision } });

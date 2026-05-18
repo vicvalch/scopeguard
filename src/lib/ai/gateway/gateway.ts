@@ -3,7 +3,8 @@ import type { AIResponseEnvelope } from "@/lib/ai/types";
 import { aiModuleRegistry } from "@/lib/ai/gateway/registry";
 import type { AIModuleId, MemoryContext, RunAIModuleInput } from "@/lib/ai/gateway/types";
 import { traceGatewayCall, traceGatewayError, measureAsync } from "@/lib/ai/gateway/tracer";
-import { resilientFetch } from "@/lib/ai/resilient-fetch";
+import { runInference } from "@/lib/ai/providers/router";
+import { InferenceError } from "@/lib/ai/inference/types";
 import { escalationGuidePromptPackV1 } from "@/lib/ai/prompts/escalation-guide.v1";
 import { meetingsPromptPackV1 } from "@/lib/ai/prompts/meetings.v1";
 import { messageNudgesPromptPackV1 } from "@/lib/ai/prompts/message-nudges.v1";
@@ -297,12 +298,7 @@ export async function runAIModule({
         memoryEventCount: memoryContext.recentEvents.length,
         memoryProjectCount: memoryContext.projectMemory.length,
       });
-      return result;
-    }
-
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error("Missing OPENAI_API_KEY on the server.");
+      return { ...result, inferenceMode: "fallback" as const, isSimulated: true, productionReady: false };
     }
 
     const payload = input as Partial<MessageNudgesInputSchema & { projectId?: string }>;
@@ -313,80 +309,64 @@ export async function runAIModule({
       throw new Error("message-nudges requires rawMessage and audience.");
     }
 
-    const fetchResult = await resilientFetch<{
-      choices?: Array<{ message?: { content?: string } }>;
-      error?: { message?: string };
-    }>(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: process.env.OPENAI_MESSAGE_NUDGES_MODEL ?? "gpt-4.1-mini",
-          temperature: 0.2,
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "message_nudges_v1",
-              strict: true,
-              schema: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  toneRisk: { type: "string", enum: ["low", "medium", "high"] },
-                  rewriteSuggestion: { type: "string" },
-                  improvedVersion: { type: "string" },
-                  confidence: { type: "string", enum: ["low", "medium", "high", "very-high"] },
-                  rationale: { type: "string" },
-                },
-                required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
+    const userContent = [
+      `Audience: ${audience}`,
+      `Raw message: ${rawMessage}`,
+      "Context for better organizational fit:",
+      ...messageNudgesContext.projectMemory.slice(0, 3).map((item) => `- Past message: ${item}`),
+      ...messageNudgesContext.recentEvents.slice(0, 3).map((item) => `- Past decision: ${item}`),
+      ...messageNudgesContext.stakeholderSignals.map((item) => `- Risk pattern: ${item}`),
+      "- Derived trend signals:",
+      `  toneTrend=${messageNudgesContext.derivedSignals.toneTrend}`,
+      `  blamePattern=${messageNudgesContext.derivedSignals.blamePattern}`,
+      `  riskTrend=${messageNudgesContext.derivedSignals.riskTrend}`,
+      `  escalationSignal=${messageNudgesContext.derivedSignals.escalationSignal}`,
+    ].join("\n");
+
+    let inferenceResult: Awaited<ReturnType<typeof runInference>>;
+    try {
+      inferenceResult = await runInference({
+        moduleId: "message-nudges",
+        projectId,
+        messages: [
+          { role: "system", content: messageNudgesPromptPackV1.systemPrompt },
+          { role: "user", content: userContent },
+        ],
+        responseFormat: {
+          type: "json_schema",
+          jsonSchema: {
+            name: "message_nudges_v1",
+            strict: true,
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                toneRisk: { type: "string", enum: ["low", "medium", "high"] },
+                rewriteSuggestion: { type: "string" },
+                improvedVersion: { type: "string" },
+                confidence: { type: "string", enum: ["low", "medium", "high", "very-high"] },
+                rationale: { type: "string" },
               },
+              required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
             },
+            required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
           },
-          messages: [
-            { role: "system", content: messageNudgesPromptPackV1.systemPrompt },
-            {
-              role: "user",
-              content: [
-                `Audience: ${audience}`,
-                `Raw message: ${rawMessage}`,
-                "Context for better organizational fit:",
-                ...messageNudgesContext.projectMemory.slice(0, 3).map((item) => `- Past message: ${item}`),
-                ...messageNudgesContext.recentEvents.slice(0, 3).map((item) => `- Past decision: ${item}`),
-                ...messageNudgesContext.stakeholderSignals.map((item) => `- Risk pattern: ${item}`),
-                "- Derived trend signals:",
-                `  toneTrend=${messageNudgesContext.derivedSignals.toneTrend}`,
-                `  blamePattern=${messageNudgesContext.derivedSignals.blamePattern}`,
-                `  riskTrend=${messageNudgesContext.derivedSignals.riskTrend}`,
-                `  escalationSignal=${messageNudgesContext.derivedSignals.escalationSignal}`,
-              ].join("\n"),
-            },
-          ],
-        }),
-      },
-      {
+        },
+        temperature: 0.2,
         timeoutMs: 20000,
         maxAttempts: 3,
         retryDelayMs: 500,
         operationName: "message-nudges",
         idempotencyKey: randomUUID(),
+      });
+    } catch (error) {
+      if (error instanceof InferenceError) {
+        throw new Error(`Inference request failed: ${error.errorClass}`);
       }
-    );
-
-    if (!fetchResult.ok) {
-      throw new Error(`OpenAI request failed: ${fetchResult.errorClass}`);
+      throw error;
     }
 
-    const body = fetchResult.data;
-    const content = body.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("OpenAI returned empty response for message-nudges.");
-    }
-
-    const output = JSON.parse(content) as MessageNudgesOutputSchema;
+    const output = (inferenceResult.parsedJson ?? JSON.parse(inferenceResult.content)) as MessageNudgesOutputSchema;
     const toneScore = scoreToneRisk(rawMessage);
     const blameScore = scoreBlame(rawMessage);
     const ambiguityScore = scoreAmbiguity(rawMessage);
@@ -453,6 +433,7 @@ export async function runAIModule({
     traceGatewayCall({
       moduleId,
       mode: "openai",
+      provider: "openai",
       projectId: context?.projectId ?? null,
       durationMs: 0,
       outcome: "success",
@@ -465,6 +446,9 @@ export async function runAIModule({
       confidence: enrichedOutput.confidence,
       summary: enrichedOutput.rewriteSuggestion,
       data: enrichedOutput,
+      inferenceMode: "live" as const,
+      isSimulated: false,
+      productionReady: true,
     };
   }
 
@@ -486,9 +470,10 @@ export async function runAIModule({
       memoryEventCount: memoryContext.recentEvents.length,
       memoryProjectCount: memoryContext.projectMemory.length,
     });
-    return result;
+    return { ...result, inferenceMode: "fallback" as const, isSimulated: true, productionReady: false };
   }
 
+  // mock mode — module is pre-production and returns static fixture data.
   const { result, durationMs } = await measureAsync(() =>
     moduleConfig.handler({ input, context, memory: memoryContext })
   );
@@ -501,7 +486,7 @@ export async function runAIModule({
     memoryEventCount: memoryContext.recentEvents.length,
     memoryProjectCount: memoryContext.projectMemory.length,
   });
-  return result;
+  return { ...result, inferenceMode: "mock" as const, isSimulated: true, productionReady: moduleConfig.productionReady ?? false };
   } catch (error) {
     traceGatewayError(moduleId, moduleConfig?.mode ?? "unknown", error);
     throw error;
