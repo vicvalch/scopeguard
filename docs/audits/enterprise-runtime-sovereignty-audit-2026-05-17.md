@@ -50,3 +50,26 @@ PMFreak is **not** cleanly consuming an external enterprise runtime. It still em
 ### Runtime sovereignty status
 - Progress estimate: **~38%** complete for authorization ownership migration.
 - Main remaining violations: route-level local guard orchestration, mixed policy/RBAC decisioning in app-layer security helpers, and partial bypass of a singular runtime authorization choke point.
+
+## Access Guards Authority Migration (2026-05-18, prompt 1.6)
+- Converted `src/lib/security/access-guards.ts` from local RBAC authority into a compatibility adapter that now builds enterprise runtime requests (`buildEnterpriseRuntimeRequest`) and delegates final decisions to `authorizeRuntimeAction`.
+- Removed local policy/RBAC sovereignty from access guards (no local `defaultGovernancePolicyEvaluator` or `evaluatePolicyDecision` authority in this layer).
+- Updated `src/lib/security/server-authorization.ts` capability path to remain a thin runtime-consumer wrapper (runtime decision only; no hybrid local policy fallback).
+
+### What remains compatibility-only
+- Legacy function names and return shapes (`requireProjectPermission`, `requireProjectAccess`, `requireWorkspaceMembership`, `requireWorkspaceRole`) remain in place to avoid mass route churn.
+- Minimal DB reads remain for context enrichment/normalization (for example: project -> workspace resolution and role value shaping), not final allow/deny.
+
+### Authority moved to Enterprise Runtime
+- Final project/workspace permission allow/deny now comes from enterprise runtime authorization pipeline via `authorizeRuntimeAction` in access guard and server-authorization paths.
+- Denials are translated into existing `AccessDeniedError` envelope for backward-compatible route behavior.
+
+### Remaining bypass risks
+- `requireAgentScope` in `access-guards.ts` still uses local DB grant checks for agent permissions and has not yet been converted to enterprise-runtime authority.
+- Several routes/actions still call legacy guards directly; they are now runtime-backed for user/workspace/project authorization but still represent broad compatibility surface area.
+- Additional local policy usage outside the migrated paths (e.g., policy playground/evaluation routes) remains and should be addressed in subsequent prompts.
+
+### Updated migration estimate
+- Authorization ownership migration progress: **~56%** complete.
+- Runtime sovereignty estimate: **~58%**.
+- Enterprise readiness estimate: **~62%**.

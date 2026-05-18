@@ -1,7 +1,10 @@
 import { getAuthUser, type AuthUserContext } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logSecurityEvent } from "@/lib/security/telemetry";
-import { defaultGovernancePolicyEvaluator, type Permission, type WorkspaceRole } from "@/lib/security/rbac";
+import { type Permission, type WorkspaceRole } from "@/lib/security/rbac";
+import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
+import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
+import type { GovernanceAction } from "@aoc-enterprise/runtime";
 
 export class AccessDeniedError extends Error {
   constructor(message: string, public readonly metadata: Record<string, unknown> = {}) {
@@ -10,67 +13,118 @@ export class AccessDeniedError extends Error {
   }
 }
 
-export async function requireWorkspaceMembership(workspaceId: string): Promise<{ user: AuthUserContext; workspaceId: string; role: WorkspaceRole }> {
+const GOVERNANCE_ACTION_BY_PERMISSION: Record<Permission, GovernanceAction> = {
+  read: "project.read",
+  write: "project.write",
+  delete: "project.write",
+  write_memory: "memory.write",
+  delete_memory: "memory.write",
+  manage_members: "members.manage",
+  manage_projects: "workspace.manage",
+  manage_workspace: "workspace.manage",
+  manage_ai: "workspace.manage",
+  manage_billing: "billing.manage",
+  execute_ai_action: "ai.execute",
+  view_executive: "executive.view",
+  upload_documents: "document.upload",
+};
+
+async function requireAuthenticatedGuardUser(scope: { routeId: string; workspaceId?: string; projectId?: string; permission?: Permission }) {
   const user = await getAuthUser();
   if (!user) {
-    void logSecurityEvent("auth_denied", { workspaceId, routeId: "requireWorkspaceMembership", metadata: { reason: "unauthorized" } });
-    throw new AccessDeniedError("Unauthorized workspace access.", { workspaceId, reason: "unauthorized" });
+    void logSecurityEvent("auth_denied", { ...scope, metadata: { reason: "unauthorized" } });
+    throw new AccessDeniedError("Unauthorized.", { ...scope, reason: "unauthorized" });
   }
+  return user;
+}
+
+async function authorizeGuard(input: {
+  user: AuthUserContext;
+  routeId: string;
+  permission: Permission;
+  workspaceId?: string | null;
+  projectId?: string | null;
+  resourceType: "workspace" | "project";
+  resourceId: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const action = GOVERNANCE_ACTION_BY_PERMISSION[input.permission];
+  const decision = await authorizeRuntimeAction(
+    buildEnterpriseRuntimeRequest({
+      user: input.user,
+      action,
+      routeId: input.routeId,
+      workspaceId: input.workspaceId ?? null,
+      projectId: input.projectId ?? null,
+      resourceType: input.resourceType,
+      resourceId: input.resourceId,
+      metadata: { requestedPermission: input.permission, ...(input.metadata ?? {}) },
+    }),
+  );
+
+  if (!decision.allowed) {
+    void logSecurityEvent("denied_permission", {
+      actorUserId: input.user.id,
+      workspaceId: input.workspaceId,
+      projectId: input.projectId,
+      requested_permission: input.permission,
+      denied_permission: input.permission,
+      routeId: input.routeId,
+      metadata: { runtimeReason: decision.reason },
+    });
+    throw new AccessDeniedError("Authorization denied by enterprise runtime.", {
+      reason: decision.reason,
+      workspaceId: input.workspaceId,
+      projectId: input.projectId,
+      permission: input.permission,
+      evaluation: decision,
+    });
+  }
+
+  return decision;
+}
+
+export async function requireWorkspaceMembership(workspaceId: string): Promise<{ user: AuthUserContext; workspaceId: string; role: WorkspaceRole }> {
+  const user = await requireAuthenticatedGuardUser({ routeId: "requireWorkspaceMembership", workspaceId });
+  await authorizeGuard({ user, routeId: "requireWorkspaceMembership", permission: "read", workspaceId, resourceType: "workspace", resourceId: workspaceId });
+
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.from("workspace_memberships").select("workspace_id, role").eq("workspace_id", workspaceId).eq("user_id", user.id).maybeSingle();
-  if (!data) {
-    void logSecurityEvent("revoked_membership_attempt", { actorUserId: user.id, workspaceId, routeId: "requireWorkspaceMembership" });
-    throw new AccessDeniedError("Workspace membership required.", { userId: user.id, workspaceId, reason: "membership_missing" });
-  }
-  return { user, workspaceId, role: data.role as WorkspaceRole };
+  const { data } = await supabase.from("workspace_memberships").select("role").eq("workspace_id", workspaceId).eq("user_id", user.id).maybeSingle();
+  const role = (data?.role as WorkspaceRole | undefined) ?? "external_stakeholder";
+
+  return { user, workspaceId, role };
 }
 
 export async function requireProjectPermission(projectId: string, permission: Permission): Promise<{ user: AuthUserContext; projectId: string; workspaceId: string; role: WorkspaceRole }> {
-  const user = await getAuthUser();
-  if (!user) {
-    void logSecurityEvent("auth_denied", { projectId, routeId: "requireProjectPermission", requested_permission: permission, metadata: { reason: "unauthorized" } });
-    throw new AccessDeniedError("Unauthorized project access.", { projectId, reason: "unauthorized" });
-  }
+  const user = await requireAuthenticatedGuardUser({ routeId: "requireProjectPermission", projectId, permission });
+
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
-    .from("projects")
-    .select("id, workspace_id, workspace_memberships!inner(user_id, role)")
-    .eq("id", projectId)
-    .eq("workspace_memberships.user_id", user.id)
-    .maybeSingle();
-
-  if (!data) {
-    void logSecurityEvent("project_scope_violation", { actorUserId: user.id, projectId, routeId: "requireProjectPermission", requested_permission: permission });
-    throw new AccessDeniedError("Project access denied.", { userId: user.id, projectId, reason: "membership_chain_denied" });
+  const { data } = await supabase.from("projects").select("workspace_id").eq("id", projectId).maybeSingle();
+  if (!data?.workspace_id) {
+    throw new AccessDeniedError("Project access denied.", { userId: user.id, projectId, reason: "project_not_found" });
   }
 
-  const role = (data.workspace_memberships as unknown as { role: WorkspaceRole }[])[0]?.role;
-  const policy = defaultGovernancePolicyEvaluator({ workspaceRole: role, requestedPermission: permission, projectId, actorType: "user" });
-  if (!policy.allowed) {
-    void logSecurityEvent("denied_permission", { actorUserId: user.id, projectId, actorRole: role, requested_permission: permission, denied_permission: permission, routeId: "requireProjectPermission" });
-    throw new AccessDeniedError("Project permission denied.", { reason: policy.reason, permission, projectId });
-  }
+  const workspaceId = data.workspace_id as string;
+  await authorizeGuard({ user, routeId: "requireProjectPermission", permission, workspaceId, projectId, resourceType: "project", resourceId: projectId });
 
-  return { user, projectId, workspaceId: data.workspace_id, role };
+  const { data: membership } = await supabase.from("workspace_memberships").select("role").eq("workspace_id", workspaceId).eq("user_id", user.id).maybeSingle();
+  const role = (membership?.role as WorkspaceRole | undefined) ?? "external_stakeholder";
+
+  return { user, projectId, workspaceId, role };
 }
 
 export async function requireWorkspaceRole(workspaceId: string, allowedRoles: WorkspaceRole[]) {
   const ctx = await requireWorkspaceMembership(workspaceId);
   if (!allowedRoles.includes(ctx.role)) {
-    void logSecurityEvent("workspace_scope_violation", { actorUserId: ctx.user.id, workspaceId, actorRole: ctx.role, routeId: "requireWorkspaceRole", metadata: { allowedRoles } });
-    throw new AccessDeniedError("Workspace role denied.", { userId: ctx.user.id, workspaceId, role: ctx.role });
+    throw new AccessDeniedError("Workspace role denied.", { userId: ctx.user.id, workspaceId, role: ctx.role, reason: "role_compatibility_mismatch" });
   }
   return ctx;
 }
 
 export async function requireGovernancePermission(workspaceId: string, permission: Permission) {
-  const ctx = await requireWorkspaceMembership(workspaceId);
-  const policy = defaultGovernancePolicyEvaluator({ workspaceRole: ctx.role, requestedPermission: permission, actorType: "user" });
-  if (!policy.allowed) {
-    void logSecurityEvent("governance_violation", { actorUserId: ctx.user.id, workspaceId, actorRole: ctx.role, requested_permission: permission, denied_permission: permission, routeId: "requireGovernancePermission" });
-    throw new AccessDeniedError("Governance policy denied.", { workspaceId, permission, reason: policy.reason });
-  }
-  return ctx;
+  const user = await requireAuthenticatedGuardUser({ routeId: "requireGovernancePermission", workspaceId, permission });
+  await authorizeGuard({ user, routeId: "requireGovernancePermission", permission, workspaceId, resourceType: "workspace", resourceId: workspaceId });
+  return requireWorkspaceMembership(workspaceId);
 }
 
 export async function requireAgentScope(input: { workspaceId: string; agentId: string; permission: Permission; projectId?: string }) {
