@@ -24,3 +24,9 @@ PMFreak is **not** cleanly consuming an external enterprise runtime. It still em
 ## Remediation note (2026-05-17)
 - Resolved key break #1 by isolating `src/aoc/protocol/contracts/capability-claims.ts` to pure contract artifacts only (types/constants/canonicalization/hash helpers), and moving PMFreak runtime trust/signing/verification integrations into `src/lib/security/capability-claims.ts`.
 - Added `tests/protocol-import-boundaries.test.mjs` to assert protocol contracts do not import forbidden PMFreak layers.
+
+
+## Remediation update (2026-05-18)
+- Resolved key break #2 by enforcing enterprise-owned authorization boundaries across `src/aoc/enterprise/**`: enterprise runtime modules now remain free of PMFreak app/lib imports (`@/lib/*`, `@/app/*`, auth/security helpers).
+- Added `tests/enterprise-runtime-sovereignty-imports.test.mjs` to statically fail if enterprise runtime layers import PMFreak auth/security or app/lib modules, preventing regression of dependency direction.
+- Confirmed portability boundary: PMFreak-specific deny response shaping remains in `src/lib/aoc/enterprise/runtime.ts` (application adapter), while enterprise runtime evaluation/enforcement contracts remain in `src/aoc/enterprise/runtime/**`.

@@ -1,9 +1,8 @@
-import type { ProviderMetadata } from "@/lib/ai/providers/provider-registry";
-import type { AIEgressDecision, AIEgressRequest, DataSensitivity } from "@/aoc/enterprise/runtime/ai-egress/types";
+import type { AIEgressDecision, AIEgressRequest, AIEgressProviderMetadata, DataSensitivity } from "./types";
 
 const SENSITIVITY_ORDER: DataSensitivity[] = ["public", "internal", "confidential", "restricted"];
 
-export function evaluateAIEgressPolicy(request: AIEgressRequest, providerMetadata: ProviderMetadata): AIEgressDecision {
+export function evaluateAIEgressPolicy(request: AIEgressRequest, providerMetadata: AIEgressProviderMetadata): AIEgressDecision {
   const sensitivity = request.estimatedSensitivity;
 
   if (!request.actor?.actorType) {

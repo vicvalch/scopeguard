@@ -1,11 +1,20 @@
-import type { InferenceRequest } from "@/lib/ai/inference/types";
-
 export type DataSensitivity = "public" | "internal" | "confidential" | "restricted";
 export type ProviderTrustTier = "trusted" | "conditional" | "restricted";
 export type EgressDecision = "allow" | "deny" | "conditional";
 
+export interface AIEgressActor {
+  actorId: string;
+  actorType: "user" | "agent" | "system";
+}
+
+export interface AIEgressProviderMetadata {
+  id: string;
+  trustTier: ProviderTrustTier;
+  allowedSensitivityLevels: DataSensitivity[];
+}
+
 export interface AIEgressRequest {
-  actor: NonNullable<InferenceRequest["actor"]>;
+  actor: AIEgressActor;
   provider: string;
   model?: string;
   workspaceId?: string;
