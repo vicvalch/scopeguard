@@ -3,11 +3,11 @@ import Link from "next/link";
 type AgentCardProps = {
   name: string;
   purpose: string;
-  signals: string[];
+  signals: readonly string[];
   status: string;
   confidence: number;
   metrics: Array<{ label: string; value: string }>;
-  activity: string[];
+  activity: readonly string[];
   tone: {
     border: string;
     glow: string;
