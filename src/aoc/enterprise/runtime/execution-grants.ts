@@ -4,6 +4,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getAocAdapter } from "../../runtime/adapters";
 import { createCapabilityClaim, claimToAuditMetadata, hashCapabilityClaim } from "../../protocol/contracts/capability-claims";
+import { composeCapabilityClaimPorts } from "./composition";
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 export const generateExecutionGrantToken = () => randomBytes(32).toString("base64url");
@@ -26,7 +27,7 @@ export async function issueExecutionGrant(input: ExecutionGrantInput) {
     authority: { action: data.action, requestedPermission: data.requested_permission, resourceType: data.resource_type ?? undefined, resourceId: data.resource_id ?? undefined, workspaceId: data.workspace_id, projectId: data.project_id ?? undefined },
     constraints: { allowedUntil: data.expires_at, canDelegate: false },
     lineage: { parentDecisionId: data.decision_id ?? undefined, rootApprovalRequestId: data.approval_request_id ?? undefined, issuedAt: data.issued_at },
-  });
+  }, composeCapabilityClaimPorts());
   await audit.logEvent("capability_claim_issued", { workspaceId: data.workspace_id, projectId: data.project_id, actorUserId: data.actor_user_id, actorAgentId: data.actor_agent_id, requested_permission: data.requested_permission, metadata: { ...claimToAuditMetadata(claim, "execution_grant") } });
   return { grant: data, grantToken, capabilityClaim: claim };
 }

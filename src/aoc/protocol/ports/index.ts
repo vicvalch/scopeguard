@@ -11,3 +11,5 @@ export type { AgentAttestationPort } from "./agent-attestation";
 export type { PolicyEvaluatorPort, PolicyDecision, PolicyEvaluationInput, PolicyEvaluationResult } from "./policy-evaluation";
 export type { TrustDomainPort, TrustKeyRecord, TrustDomainRecord, TrustVerificationResult } from "./trust-domain";
 export type { TrustCoordinationPort } from "./trust-coordination";
+
+export type { CapabilityClaimPorts, CapabilitySignerPort } from "./capability-verification";

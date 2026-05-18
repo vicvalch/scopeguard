@@ -1,9 +1,9 @@
 // AOC Protocol: cryptographic capability claims.
 // Future extraction boundary: this module must NOT import from host application modules.
-// Trust domain resolution, revocation lookup, and HMAC secrets are provided via adapter ports
-// registered in src/aoc/runtime/adapters.
+// Trust domain resolution, revocation lookup, signing material, and audit emission
+// are provided through explicit protocol-owned injection ports.
 import { createHmac, createHash, createPrivateKey, sign, timingSafeEqual, verify } from "node:crypto";
-import { getAocAdapter } from "../../runtime/adapters";
+import type { CapabilityClaimPorts } from "../ports/capability-verification";
 import type { TrustKeyRecord } from "../ports/trust-domain";
 
 // aoc-capability-claim-v1.2 is the canonical version going forward.
@@ -40,23 +40,23 @@ const sortValue = (value: unknown): unknown => Array.isArray(value) ? value.map(
 const signHmac = (payload: Omit<CapabilityClaim, "proof">, keyId: string, hmacSecret: string) =>
   createHmac("sha256", hmacSecret).update(`${keyId}.${canonicalize(payload)}`).digest("base64url");
 
-const signEd25519 = (payload: Omit<CapabilityClaim, "proof">, keyId: string, secretRef: string) =>
-  sign(null, Buffer.from(`${keyId}.${canonicalize(payload)}`), createPrivateKey(process.env[secretRef] ?? "")).toString("base64url");
+const signEd25519 = (payload: Omit<CapabilityClaim, "proof">, keyId: string, privateKeyMaterial: unknown) =>
+  sign(null, Buffer.from(`${keyId}.${canonicalize(payload)}`), typeof privateKeyMaterial === "string" || Buffer.isBuffer(privateKeyMaterial) ? createPrivateKey(privateKeyMaterial) : privateKeyMaterial as import("node:crypto").KeyObject).toString("base64url");
 
 // Default trust domain for new claims. Protocol-neutral identifier.
 // Existing claims with trustDomain "pmfreak-local" remain verifiable via the revocation/trust lookup.
 const DEFAULT_TRUST_DOMAIN = "aoc-local";
 
-export async function createCapabilityClaim(input: Omit<CapabilityClaim, "version" | "proof"> & { keyId?: string; trustDomain?: string }) {
+export async function createCapabilityClaim(input: Omit<CapabilityClaim, "version" | "proof"> & { keyId?: string; trustDomain?: string }, ports: CapabilityClaimPorts) {
   if (JSON.stringify(input).includes("grantToken") || JSON.stringify(input).includes("delegationToken")) throw new Error("claim_contains_raw_token");
   const trustDomain = input.trustDomain ?? input.issuer.trustDomain ?? DEFAULT_TRUST_DOMAIN;
   const issuedAt = new Date().toISOString();
   const payload = { ...input, version: CAPABILITY_CLAIM_VERSION_V12, issuer: { ...input.issuer, trustDomain, issuerId: input.issuer.issuerId ?? `${input.issuer.app}:${input.issuer.workspaceId}` }, lineage: { ...input.lineage, issuedAt } } as Omit<CapabilityClaim, "proof">;
-  const trustDomainPort = getAocAdapter("trustDomain");
+  const trustDomainPort = ports.trustDomain;
   const key: TrustKeyRecord | null = input.keyId ? { key_id: input.keyId, algorithm: "HMAC-SHA256", status: "active", secret_ref: null } : await trustDomainPort.getActiveAsymmetricSigningKey(trustDomain) ?? await trustDomainPort.getActiveSigningKey(trustDomain);
   if (!key?.key_id) throw new Error("missing_active_signing_key");
-  const signature = key.algorithm === "Ed25519" ? (() => { if (!key.secret_ref || !process.env[key.secret_ref]) throw new Error("asymmetric_private_key_unavailable"); return signEd25519(payload, key.key_id, key.secret_ref); })() : signHmac(payload, key.key_id, trustDomainPort.resolveHmacSecret(trustDomain));
-  if (key.algorithm === "Ed25519") await getAocAdapter("securityAudit").logEvent("asymmetric_claim_issued", { workspaceId: payload.authority.workspaceId, metadata: { trustDomain, keyId: key.key_id, algorithm: key.algorithm } });
+  const signature = key.algorithm === "Ed25519" ? (() => { const privateKeyMaterial = ports.signer.resolvePrivateSigningKey({ trustDomain, key }); if (!privateKeyMaterial) throw new Error("asymmetric_private_key_unavailable"); return signEd25519(payload, key.key_id, privateKeyMaterial); })() : signHmac(payload, key.key_id, trustDomainPort.resolveHmacSecret(trustDomain));
+  if (key.algorithm === "Ed25519") await ports.securityAudit.logEvent("asymmetric_claim_issued", { workspaceId: payload.authority.workspaceId, metadata: { trustDomain, keyId: key.key_id, algorithm: key.algorithm } });
   return { ...payload, proof: { algorithm: key.algorithm === "Ed25519" ? "Ed25519" : "HMAC-SHA256", keyId: key.key_id, trustDomain, issuedAt, signature } } as CapabilityClaim;
 }
 
@@ -67,11 +67,11 @@ const ALL_KNOWN_VERSIONS: CapabilityClaimVersion[] = [
   CAPABILITY_CLAIM_VERSION_LEGACY_V1, CAPABILITY_CLAIM_VERSION_LEGACY_V11, CAPABILITY_CLAIM_VERSION_LEGACY_V12,
 ];
 
-export async function verifyCapabilityClaim(claim: CapabilityClaim, expected: any = {}) {
+export async function verifyCapabilityClaim(claim: CapabilityClaim, expected: any = {}, ports: Pick<CapabilityClaimPorts, "trustDomain" | "trustCoordination">) {
   const claimHash = hashCapabilityClaim(claim);
   if (!ALL_KNOWN_VERSIONS.includes(claim.version)) return { valid: false, reason: "unsupported_version", claimHash };
-  const trustDomainPort = getAocAdapter("trustDomain");
-  const trustCoordPort = getAocAdapter("trustCoordination");
+  const trustDomainPort = ports.trustDomain;
+  const trustCoordPort = ports.trustCoordination;
   const trustDomain = claim.proof.trustDomain ?? claim.issuer.trustDomain ?? DEFAULT_TRUST_DOMAIN;
   const trust = await trustDomainPort.verifyIssuerTrust({ trustDomain, issuerApp: claim.issuer.app, expectedTrustDomain: expected.expectedTrustDomain }); if (!trust.ok) return { valid: false, reason: trust.reason, claimHash, trustDomain };
   const key = await trustDomainPort.resolveVerificationKey({ trustDomainId: trust.trustDomain.id, keyId: claim.proof.keyId }); if (!key) return { valid: false, reason: "unknown_key", claimHash, trustDomain };

@@ -26,3 +26,5 @@ export async function evaluateEnforcementPipeline(input: GovernanceEvaluationInp
 export async function enforceEnforcementPipeline(input: GovernanceEvaluationInput) {
   return enforceGovernanceAction(input);
 }
+
+export { composeCapabilityClaimPorts, composeCapabilityVerificationPorts } from "./composition";

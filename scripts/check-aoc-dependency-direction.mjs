@@ -16,19 +16,13 @@ const walk = (dir) => {
 walk(path.join(root, 'src/aoc/protocol'));
 walk(path.join(root, 'src/aoc/enterprise'));
 
-const allowedProtocolRuntimeBridge = new Set([
-  'src/aoc/protocol/contracts/capability-claims.ts',
-]);
-
 const violations = [];
-const warnings = [];
 for (const full of files) {
   const rel = path.relative(root, full).replaceAll(path.sep, '/');
   const content = fs.readFileSync(full, 'utf8');
 
   if (rel.startsWith('src/aoc/protocol/') && /\.\.\/\.\.\/runtime\//.test(content)) {
-    if (allowedProtocolRuntimeBridge.has(rel)) warnings.push(`${rel}: temporary protocol-runtime bridge import (tracked for Prompt 2.2)`);
-    else violations.push(`${rel}: protocol imports runtime internals`);
+    violations.push(`${rel}: protocol imports runtime internals`);
   }
   if (rel.startsWith('src/aoc/protocol/') && /@aoc-enterprise\//.test(content)) {
     violations.push(`${rel}: protocol imports enterprise package`);
@@ -45,7 +39,3 @@ if (violations.length) {
 }
 
 console.log('AOC dependency direction checks passed.');
-if (warnings.length) {
-  console.log('Known boundary warnings:');
-  for (const w of warnings) console.log(`- ${w}`);
-}
