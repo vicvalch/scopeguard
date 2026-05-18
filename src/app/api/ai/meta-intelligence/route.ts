@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { canUseAdvancedAi } from "@/lib/feature-gates";
