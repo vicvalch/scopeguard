@@ -1,4 +1,5 @@
 import { ensurePmfreakAocAdaptersRegistered } from "@/lib/aoc/bootstrap";
+import { composeRuntimeContext } from "@/aoc/enterprise/runtime";
 import {
   buildAuthorityLineage,
   explainDelegationChain,
@@ -8,37 +9,38 @@ import {
   validateDelegatedCapability as _validateDelegatedCapability,
   revokeDelegatedCapability as _revokeDelegatedCapability,
   consumeDelegatedCapability as _consumeDelegatedCapability,
+  type DelegationInput,
 } from "@/aoc/enterprise/runtime/delegated-capabilities";
 
 export { buildAuthorityLineage, explainDelegationChain };
-export type { DelegationConstraints, DelegationDecision } from "@/aoc/enterprise/runtime/delegated-capabilities";
+export type { DelegationConstraints, DelegationDecision, DelegationInput } from "@/aoc/enterprise/runtime/delegated-capabilities";
 
-export async function resolveAuthorityChain(...args: Parameters<typeof _resolveAuthorityChain>) {
+export async function resolveAuthorityChain(input: Parameters<typeof _resolveAuthorityChain>[1]) {
   ensurePmfreakAocAdaptersRegistered();
-  return _resolveAuthorityChain(...args);
+  return _resolveAuthorityChain(composeRuntimeContext(), input);
 }
 
-export async function evaluateDelegatedAccess(...args: Parameters<typeof _evaluateDelegatedAccess>) {
+export async function evaluateDelegatedAccess(input: DelegationInput) {
   ensurePmfreakAocAdaptersRegistered();
-  return _evaluateDelegatedAccess(...args);
+  return _evaluateDelegatedAccess(composeRuntimeContext(), input);
 }
 
-export async function issueDelegatedCapability(...args: Parameters<typeof _issueDelegatedCapability>) {
+export async function issueDelegatedCapability(input: DelegationInput) {
   ensurePmfreakAocAdaptersRegistered();
-  return _issueDelegatedCapability(...args);
+  return _issueDelegatedCapability(composeRuntimeContext(), input);
 }
 
-export async function validateDelegatedCapability(...args: Parameters<typeof _validateDelegatedCapability>) {
+export async function validateDelegatedCapability(input: DelegationInput) {
   ensurePmfreakAocAdaptersRegistered();
-  return _validateDelegatedCapability(...args);
+  return _validateDelegatedCapability(composeRuntimeContext(), input);
 }
 
-export async function revokeDelegatedCapability(...args: Parameters<typeof _revokeDelegatedCapability>) {
+export async function revokeDelegatedCapability(input: DelegationInput) {
   ensurePmfreakAocAdaptersRegistered();
-  return _revokeDelegatedCapability(...args);
+  return _revokeDelegatedCapability(composeRuntimeContext(), input);
 }
 
-export async function consumeDelegatedCapability(...args: Parameters<typeof _consumeDelegatedCapability>) {
+export async function consumeDelegatedCapability(input: DelegationInput) {
   ensurePmfreakAocAdaptersRegistered();
-  return _consumeDelegatedCapability(...args);
+  return _consumeDelegatedCapability(composeRuntimeContext(), input);
 }

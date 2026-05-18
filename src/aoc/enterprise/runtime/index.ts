@@ -1,8 +1,9 @@
 import {
-  evaluateGovernanceAction,
-  enforceGovernanceAction,
+  evaluateGovernanceAction as evaluateGovernanceActionWithContext,
+  enforceGovernanceAction as enforceGovernanceActionWithContext,
   type GovernanceEvaluationInput,
 } from "./governance-core";
+import { composeRuntimeContext } from "./composition";
 
 export type { GovernanceEvaluationInput };
 export type {
@@ -10,6 +11,7 @@ export type {
   GovernanceDecisionState,
   GovernanceDecisionStatus,
   GovernanceAction,
+  GovernanceDecisionResult,
 } from "./governance-core";
 export {
   GOVERNANCE_POLICY_REGISTRY,
@@ -18,13 +20,28 @@ export {
   createApprovalRequestFromDecision,
   explainGovernanceDecision,
 } from "./governance-core";
+export type {
+  RuntimeContext,
+  RuntimeSecurityContext,
+  RuntimeGovernanceContext,
+  RuntimeCapabilityContext,
+  RuntimeAuditContext,
+  RuntimeMetadata,
+} from "./context";
+export {
+  runtimeContextToCapabilityClaimPorts,
+  runtimeContextToCapabilityVerificationPorts,
+} from "./context";
+export {
+  composeRuntimeContext,
+  composeCapabilityClaimPorts,
+  composeCapabilityVerificationPorts,
+} from "./composition";
 
 export async function evaluateEnforcementPipeline(input: GovernanceEvaluationInput) {
-  return evaluateGovernanceAction(input);
+  return evaluateGovernanceActionWithContext(composeRuntimeContext(), input);
 }
 
 export async function enforceEnforcementPipeline(input: GovernanceEvaluationInput) {
-  return enforceGovernanceAction(input);
+  return enforceGovernanceActionWithContext(composeRuntimeContext(), input);
 }
-
-export { composeCapabilityClaimPorts, composeCapabilityVerificationPorts } from "./composition";

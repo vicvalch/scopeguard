@@ -1,11 +1,11 @@
 // AOC Enterprise Runtime: canonical governance evaluation pipeline.
 // Future extraction boundary: this module must NOT import from host application modules.
-// All host services are provided via adapter ports registered in src/aoc/runtime/adapters.
+// All host services are provided through explicit RuntimeContext injection.
 // The legacy shim src/lib/security/governance-runtime.ts re-exports from here.
 import type { AocPermission, AocGovernanceAction, AocGovernanceDecisionState, AocTrustLevel, AocActorRole } from "../../protocol/actor-model";
 import type { AocGovernanceEventType } from "../../protocol/ports/security-audit";
 import { AocAccessDeniedError } from "../../protocol/ports/access-verification";
-import { getAocAdapter } from "../../runtime/adapters";
+import type { RuntimeContext } from "./context";
 
 export type GovernanceActorType = "user" | "ai_agent" | "system";
 export type GovernanceDecisionState = AocGovernanceDecisionState;
@@ -39,10 +39,10 @@ const decisionNeedsApproval = (input: GovernanceEvaluationInput, riskLevel: stri
   return null;
 };
 
-export async function evaluateGovernanceAction(input: GovernanceEvaluationInput) {
-  const audit = getAocAdapter("securityAudit");
-  const access = getAocAdapter("accessVerification");
-  const attestation = getAocAdapter("agentAttestation");
+export async function evaluateGovernanceAction(runtime: RuntimeContext, input: GovernanceEvaluationInput) {
+  const audit = runtime.securityAudit;
+  const access = runtime.accessVerification;
+  const attestation = runtime.agentAttestation;
 
   const policy = GOVERNANCE_POLICY_REGISTRY[input.action]; const decisionId = crypto.randomUUID(); const trace: Array<Record<string, unknown>> = [];
   const deny = (reason: string) => ({ allowed: false as const, decision: "deny" as GovernanceDecisionState, reason });
@@ -67,20 +67,22 @@ export async function evaluateGovernanceAction(input: GovernanceEvaluationInput)
   }
 }
 
-export async function createApprovalRequestFromDecision(decision: Awaited<ReturnType<typeof evaluateGovernanceAction>>) {
+export type GovernanceDecisionResult = Awaited<ReturnType<typeof evaluateGovernanceAction>>;
+
+export async function createApprovalRequestFromDecision(runtime: RuntimeContext, decision: GovernanceDecisionResult) {
   if (!decision.requiredApprovalType || !decision.scope.workspaceId) return null;
   // PRIVILEGED_ACCESS: Approval records are written by the system on behalf of the requesting actor; the actor cannot write their own approval record under RLS.
   // AUDIT_REF: service-role-risk-register.md
-  const supabase = getAocAdapter("privilegedDb").createClient({ routeId: "governance.approvals", operation: "create_approval", reason: "persist_approval_request", systemActor: "system", workspaceId: decision.scope.workspaceId });
+  const supabase = runtime.privilegedDb.createClient({ routeId: "governance.approvals", operation: "create_approval", reason: "persist_approval_request", systemActor: "system", workspaceId: decision.scope.workspaceId });
   const payload = { decision_id: decision.decisionId, workspace_id: decision.scope.workspaceId, project_id: decision.scope.projectId, actor_user_id: decision.actor.userId, actor_agent_id: decision.actor.agentId, action: decision.matchedPolicy, requested_permission: decision.requiredPermission, required_approval_type: decision.requiredApprovalType, reviewer_role_required: decision.reviewerRoleRequired, status: "pending_approval", reason: decision.reason, risk_level: decision.riskLevel, trace: decision.trace, metadata: {}, expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() };
   const { data, error } = await supabase.from("governance_approval_requests").upsert(payload, { onConflict: "decision_id" }).select("id").single();
   if (error) throw new Error(`create approval failed: ${error.message}`);
   return data;
 }
 
-export function explainGovernanceDecision(decision: Awaited<ReturnType<typeof evaluateGovernanceAction>>) { return `${decision.allowed ? "Allowed" : "Denied"}: ${decision.reason} (policy=${decision.matchedPolicy}, permission=${decision.requiredPermission}, decisionId=${decision.decisionId})`; }
+export function explainGovernanceDecision(decision: GovernanceDecisionResult) { return `${decision.allowed ? "Allowed" : "Denied"}: ${decision.reason} (policy=${decision.matchedPolicy}, permission=${decision.requiredPermission}, decisionId=${decision.decisionId})`; }
 
 // Returns governance decision only — HTTP response construction is the host application's responsibility.
 // Callers must check decision.allowed to gate behavior; the response field previously returned
 // a NextResponse, which was a PMFreak/Next.js concern that has been removed from this layer.
-export async function enforceGovernanceAction(input: GovernanceEvaluationInput) { const decision = await evaluateGovernanceAction(input); if (decision.decision.includes("approval")) await createApprovalRequestFromDecision(decision); return { decision }; }
+export async function enforceGovernanceAction(runtime: RuntimeContext, input: GovernanceEvaluationInput) { const decision = await evaluateGovernanceAction(runtime, input); if (decision.decision.includes("approval")) await createApprovalRequestFromDecision(runtime, decision); return { decision }; }

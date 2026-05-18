@@ -30,6 +30,12 @@ for (const full of files) {
   if (rel.startsWith('src/aoc/enterprise/') && /['\"]@\//.test(content)) {
     violations.push(`${rel}: enterprise imports app alias (@/)`);
   }
+  if (rel.startsWith('src/aoc/enterprise/') && content.includes('getAocAdapter(') && rel !== 'src/aoc/enterprise/runtime/composition.ts') {
+    violations.push(`${rel}: enterprise registry access is only allowed in runtime/composition.ts`);
+  }
+  if (rel.startsWith('src/aoc/enterprise/') && /\.\.\/\.\.\/runtime\/adapters/.test(content) && rel !== 'src/aoc/enterprise/runtime/composition.ts') {
+    violations.push(`${rel}: enterprise runtime adapter registry import is only allowed in runtime/composition.ts`);
+  }
 }
 
 if (violations.length) {
