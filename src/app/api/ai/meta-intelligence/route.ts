@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { canUseAdvancedAi } from "@/lib/feature-gates";

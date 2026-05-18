@@ -30,6 +30,12 @@ export type RunAIModuleInput = {
   input: unknown;
   context?: {
     projectId?: string;
+    workspaceId?: string;
+    actor?: {
+      actorType?: string;
+      actorUserId?: string | null;
+      actorAgentId?: string | null;
+    };
     [key: string]: unknown;
   };
   traceId?: string;

@@ -1,38 +1,93 @@
-import { MarketingNavbar } from "@/components/marketing-navbar";
+import type { Metadata } from "next";
 import Link from "next/link";
 
-const painSignals = [
-  "You hear about risks when they are already urgent",
-  "Stakeholder tension shows up right before key meetings",
-  "Important decisions get lost across chats and docs",
-  "Updates are scattered and hard to turn into action",
-  "Teams drift out of sync without anyone noticing early",
-  "You spend more time chasing status than moving delivery",
-];
+import { HeroSection } from "@/components/landing/hero-section";
+import { MarketingNavbar } from "@/components/marketing-navbar";
 
-const failureMetrics = [
-  { label: "Escalation delay", value: "48-96 hrs", detail: "How long critical issues can sit before the right decision maker sees them." },
-  { label: "False green status", value: "37%", detail: "Programs that look healthy on paper while recovery work is already overdue." },
-  { label: "PM burnout risk", value: "2.4x", detail: "Higher burnout exposure when project context lives in too many places." },
-  { label: "Manual update chasing", value: "26%", detail: "Weekly PM time lost gathering and translating updates by hand." },
-];
+type FooterLink =
+  | { label: string; href: string }
+  | { label: string; disabled: true };
 
-const capabilities = [
-  ["Know what is about to go wrong", "PMFreak spots early warning signs in project updates, meetings, and delivery patterns before they become fire drills."],
-  ["Know who needs attention", "See which stakeholders are getting tense, misaligned, or likely to escalate so you can step in early."],
-  ["Get clearer next steps", "PMFreak turns messy project signals into practical actions with owner, timing, and expected impact."],
-  ["Keep everyone working from the same reality", "Bring scattered notes, chats, and status updates into one view your team can trust."],
-  ["Prepare better status updates", "Walk into weekly and executive reviews with the risks, decisions, and talking points already organized."],
-  ["Never lose the thread", "PMFreak remembers decisions, blockers, risks, and commitments across your projects."],
+type FooterColumn = {
+  heading: string;
+  links: readonly FooterLink[];
+};
+
+export const metadata: Metadata = {
+  description: "Operational cognition infrastructure for modern project delivery.",
+};
+
+const operationalRealities = [
+  {
+    title: "Escalations surface too late",
+    description:
+      "Critical issues often sit across chats, docs, and meetings before reaching decision makers.",
+  },
+  {
+    title: "Status can look green while recovery work is already overdue",
+    description:
+      "Teams often discover delivery problems only after momentum has already been lost.",
+  },
+  {
+    title: "Context fragmentation burns PM time",
+    description:
+      "Project managers spend hours reconstructing what changed, who owns what, and what needs action.",
+  },
+  {
+    title: "Leadership gets decision-ready context too late",
+    description:
+      "Scattered updates make it difficult to walk into meetings with clear operational awareness.",
+  },
 ] as const;
 
-const howItWorks = [
-  "Collect updates from your usual tools",
-  "Connect decisions, risks, and owners automatically",
-  "Highlight what needs attention first",
-  "Generate talking points and next steps",
-  "Keep a clean memory of what changed and why",
-];
+const operationalFlowSteps = [
+  {
+    step: "01",
+    title: "Define operational conditions",
+    text: "Set your PMO, project, governance, escalation, stakeholder, and delivery conditions before AI starts interpreting work.",
+  },
+  {
+    step: "02",
+    title: "Capture operational signal",
+    text: "Collect fragmented signals from meetings, updates, chats, blockers, risks, decisions, and delivery activity.",
+  },
+  {
+    step: "03",
+    title: "Synthesize",
+    text: "Specialized AI agents classify, correlate, and transform scattered updates into operational awareness.",
+  },
+  {
+    step: "04",
+    title: "Remember",
+    text: "Build persistent organizational memory across projects and teams while keeping better control over data leakage.",
+  },
+  {
+    step: "05",
+    title: "Act",
+    text: "Walk into meetings with clear priorities, stakeholder awareness, escalation context, and next actions.",
+  },
+] as const;
+
+const governanceCards = [
+  {
+    title: "Controlled AI workspace",
+    description: "Keep operational reasoning inside structured project boundaries.",
+  },
+  {
+    title: "Audit-ready operational history",
+    description: "Track risks, decisions, blockers, and actions with persistent context.",
+  },
+  {
+    title: "Enterprise isolation",
+    description:
+      "Separate organizational intelligence from public AI conversations and fragmented tooling.",
+  },
+  {
+    title: "Operational memory",
+    description:
+      "Build a reusable institutional memory instead of losing delivery knowledge over time.",
+  },
+] as const;
 
 const comparisonRows = [
   ["Passive dashboards", "Clear next actions"],
@@ -42,28 +97,425 @@ const comparisonRows = [
   ["Last-minute surprises", "Prepared meetings"],
 ] as const;
 
-const trustPoints = [
-  "Clear reasoning behind each suggestion",
-  "Secure setup options for every team size",
-  "Audit-ready history of risks, decisions, and actions",
-  "Human review before important decisions",
-  "Consistent support across projects and portfolios",
-  "Evidence trail from update to action",
-];
+const footerColumns = [
+  {
+    heading: "Product",
+    links: [
+      { label: "How it Works", href: "#how-it-works" },
+      { label: "Security", href: "#security" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Demo", href: "/demo" },
+    ],
+  },
+  {
+    heading: "Use Cases",
+    links: [
+      { label: "PMOs", disabled: true },
+      { label: "Delivery Teams", disabled: true },
+      { label: "Technical PMs", disabled: true },
+      { label: "Consulting Teams", disabled: true },
+    ],
+  },
+  {
+    heading: "Company",
+    links: [
+      { label: "About", disabled: true },
+      { label: "Contact", disabled: true },
+      { label: "Roadmap", disabled: true },
+    ],
+  },
+  {
+    heading: "Legal",
+    links: [
+      { label: "Privacy Policy", disabled: true },
+      { label: "Terms of Service", disabled: true },
+      { label: "Security", href: "#security" },
+    ],
+  },
+] as const satisfies readonly FooterColumn[];
 
-const buyers = ["Junior PM", "Senior PM", "Technical PM", "Non-Technical PM", "PMO Leader", "Delivery Manager", "Founder"];
+const primaryCtaClass =
+  "rounded-full bg-[#ff008c] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#db0078]";
 
-const nextStepBenefits = [
-  "Stop chasing updates manually",
-  "Avoid surprises before meetings",
-  "Get clearer next steps each week",
-  "Keep stakeholders aligned as pressure rises",
-  "Prepare status updates in less time",
-  "Lead like a more senior PM",
-];
+const secondaryCtaClass =
+  "rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/15";
 
-const primaryCtaClass = "rounded-full bg-[#ff008c] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#db0078]";
-const secondaryCtaClass = "rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/15";
+const lightSectionClass = "rounded-3xl border border-zinc-200 bg-white shadow-sm";
+
+function OperationalRealitySection() {
+  return (
+    <section className={`${lightSectionClass} p-7 md:p-9`}>
+      <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">
+        <span id="intelligence" className="block scroll-mt-[140px]"></span>Operational reality
+      </p>
+
+      <h2 className="mt-3 text-3xl font-black text-zinc-950 md:text-4xl">
+        The hidden cost of scattered project intelligence
+      </h2>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        {operationalRealities.map((item) => (
+          <article
+            key={item.title}
+            className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5"
+          >
+            <h3 className="text-base font-black text-zinc-950 md:text-lg">
+              {item.title}
+            </h3>
+
+            <p className="mt-2 text-sm leading-relaxed text-zinc-700">
+              {item.description}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function OperationalFlowSection() {
+  return (
+    <section id="how-it-works" className={`${lightSectionClass} scroll-mt-[140px] p-7 md:p-9`}>
+      <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">
+        HOW IT WORKS
+      </p>
+
+      <h2 className="mt-3 text-3xl font-black text-zinc-950 md:text-4xl">
+        From scattered updates to operational clarity.
+      </h2>
+
+      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-600 md:text-base">
+        PMFreak turns everyday project signals into governed intelligence, persistent memory, and decision-ready action.
+      </p>
+
+      <div className="relative mt-7 overflow-hidden rounded-3xl border border-zinc-200 bg-gradient-to-b from-white via-zinc-50 to-white p-4 shadow-[0_25px_70px_rgba(10,10,10,0.08)] md:p-7">
+        <div className="pointer-events-none absolute -left-16 top-8 h-40 w-40 rounded-full bg-fuchsia-200/50 blur-3xl" />
+        <div className="pointer-events-none absolute -right-12 bottom-10 h-36 w-36 rounded-full bg-cyan-200/60 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(236,72,153,0.10),transparent_40%),radial-gradient(circle_at_75%_65%,rgba(34,211,238,0.10),transparent_38%)]" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-200/70 opacity-70" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[22rem] w-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-200/60 opacity-60" />
+
+        <div className="relative">
+          <svg viewBox="0 0 1200 560" className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block" fill="none" aria-hidden>
+            <path d="M40 170 C260 170 300 105 510 130 C660 148 680 214 780 228 C910 246 980 220 1160 220" className="signal-path-a" />
+            <path d="M44 280 C250 280 300 315 500 300 C640 290 700 238 800 255 C940 280 1000 330 1160 326" className="signal-path-b" />
+            <path d="M600 334 C620 390 690 430 820 438 C930 445 1040 420 1154 378" className="signal-path-c" />
+            <path d="M594 334 C560 386 488 420 344 434 C228 446 128 428 48 396" className="signal-path-d" />
+            <path d="M80 232 C220 236 320 228 490 244 C590 252 665 260 740 286 C858 326 1040 368 1140 364" className="signal-path-e" />
+            <path d="M78 196 C228 188 298 140 468 164 C582 182 650 226 734 226 C908 228 1032 206 1138 188" className="signal-path-f" />
+            <circle cx="190" cy="220" r="5" className="route-dot dot-a" />
+            <circle cx="350" cy="206" r="4.5" className="route-dot dot-b" />
+            <circle cx="558" cy="254" r="4.5" className="route-dot dot-c" />
+            <circle cx="738" cy="230" r="4.5" className="route-dot dot-d" />
+            <circle cx="960" cy="234" r="5" className="route-dot dot-e" />
+            <circle cx="600" cy="272" r="12" className="fill-zinc-950/90" />
+          </svg>
+
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_1.45fr_1.1fr]">
+            <article className="rounded-2xl border border-fuchsia-200 bg-white/85 p-4 backdrop-blur">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-600">01 • Conditions</p>
+              <h3 className="mt-2 text-base font-black text-zinc-950">{operationalFlowSteps[0].title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[0].text}</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold text-zinc-600">
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">PMO rules</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Governance</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Escalation logic</span>
+              </div>
+            </article>
+
+            <article className="relative row-span-2 rounded-3xl border border-zinc-200 bg-white p-5 shadow-[0_20px_45px_rgba(0,0,0,0.10)]">
+              <div className="pointer-events-none absolute inset-0 rounded-3xl border border-fuchsia-300/30" />
+              <div className="pointer-events-none absolute inset-5 rounded-[1.25rem] border border-cyan-300/25" />
+              <div className="core-orbit pointer-events-none absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-fuchsia-300/35" />
+              <div className="core-orbit core-orbit-slow pointer-events-none absolute left-1/2 top-1/2 h-60 w-60 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/25" />
+              <div className="absolute left-1/2 top-0 h-16 w-px -translate-x-1/2 bg-gradient-to-b from-fuchsia-300/60 to-transparent" />
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">03 • Synthesis</p>
+              <h3 className="mt-2 text-lg font-black text-zinc-950">{operationalFlowSteps[2].title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[2].text}</p>
+              <div className="relative mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <div className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-fuchsia-200/40 blur-2xl" />
+                <div className="core-blink pointer-events-none absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-950/80" />
+                <p className="relative text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">PMFreak AI Agents · Operational Intelligence Core</p>
+                <div className="relative mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-zinc-700">
+                  <span className="rounded-xl border border-zinc-200 bg-white px-3 py-2">Classify</span>
+                  <span className="rounded-xl border border-zinc-200 bg-white px-3 py-2">Correlate</span>
+                  <span className="rounded-xl border border-zinc-200 bg-white px-3 py-2">Prioritize</span>
+                  <span className="rounded-xl border border-zinc-200 bg-white px-3 py-2">Escalate</span>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/60 px-3 py-2 text-xs font-medium text-zinc-700">Risk heat shifts</div>
+                <div className="rounded-xl border border-cyan-100 bg-cyan-50/60 px-3 py-2 text-xs font-medium text-zinc-700">Stakeholder tension</div>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-xs text-zinc-600">
+                <span className="inline-block h-2.5 w-2.5 animate-ping rounded-full bg-fuchsia-500" />
+                Continuously synthesizing operational awareness
+              </div>
+            </article>
+
+            <article className="rounded-2xl border border-cyan-200 bg-white/90 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">05 • Action</p>
+              <h3 className="mt-2 text-base font-black text-zinc-950">{operationalFlowSteps[4].title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[4].text}</p>
+              <div className="mt-4 space-y-2 text-xs font-medium text-zinc-700">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Meeting priorities</div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Stakeholder context</div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Next best actions</div>
+              </div>
+            </article>
+          </div>
+
+          <div className="relative mt-4 grid gap-4 lg:grid-cols-[1.1fr_1.45fr_1.1fr]">
+            <article className="rounded-2xl border border-zinc-200 bg-white p-4">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">02 • Signals</p>
+              <h3 className="mt-2 text-base font-black text-zinc-950">{operationalFlowSteps[1].title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[1].text}</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold text-zinc-600">
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Meetings</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Risks</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Blockers</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Decisions</span>
+              </div>
+            </article>
+            <div className="hidden items-center justify-center lg:flex">
+              <div className="h-[1px] w-full max-w-[420px] bg-gradient-to-r from-transparent via-zinc-300 to-transparent" />
+            </div>
+            <article className="relative rounded-2xl border border-zinc-200 bg-white p-4 lg:row-span-2">
+              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[linear-gradient(130deg,rgba(236,72,153,0.05),rgba(34,211,238,0.06))]" />
+              <p className="relative text-xs font-black uppercase tracking-[0.18em] text-fuchsia-600">04 • Memory</p>
+              <h3 className="relative mt-2 text-base font-black text-zinc-950">{operationalFlowSteps[3].title}</h3>
+              <p className="relative mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[3].text}</p>
+              <div className="relative mt-4 space-y-2 text-xs text-zinc-700">
+                <div className="rounded-xl border border-zinc-200 bg-white/80 px-3 py-2">Q2 Steering committee escalation context retained</div>
+                <div className="rounded-xl border border-zinc-200 bg-white/80 px-3 py-2">Delivery dependency history linked across teams</div>
+                <div className="rounded-xl border border-zinc-200 bg-white/80 px-3 py-2">Stakeholder decision patterns available for reuse</div>
+              </div>
+              <svg viewBox="0 0 320 86" className="mt-3 hidden w-full lg:block" fill="none" aria-hidden>
+                <path d="M8 65 C58 28 110 70 160 38 C210 8 252 42 310 20" className="memory-mesh" />
+                <circle cx="58" cy="44" r="3.5" className="memory-node" />
+                <circle cx="112" cy="58" r="3.5" className="memory-node" />
+                <circle cx="168" cy="35" r="3.5" className="memory-node" />
+                <circle cx="226" cy="24" r="3.5" className="memory-node" />
+                <circle cx="288" cy="22" r="3.5" className="memory-node" />
+              </svg>
+            </article>
+          </div>
+        </div>
+        <style>{`
+          .signal-path-a, .signal-path-b, .signal-path-c, .signal-path-d {
+            stroke-width: 2.3;
+            stroke-dasharray: 8 10;
+            animation: flowDash 18s linear infinite;
+            fill: none;
+          }
+          .signal-path-a { stroke: rgba(236, 72, 153, 0.55); }
+          .signal-path-b { stroke: rgba(34, 211, 238, 0.55); animation-duration: 16s; }
+          .signal-path-c { stroke: rgba(236, 72, 153, 0.4); animation-duration: 20s; }
+          .signal-path-d { stroke: rgba(34, 211, 238, 0.4); animation-duration: 22s; }
+          .signal-path-e { stroke: rgba(244, 114, 182, 0.34); animation-duration: 26s; }
+          .signal-path-f { stroke: rgba(103, 232, 249, 0.35); animation-duration: 24s; }
+          .route-dot {
+            fill: rgba(24,24,27,0.7);
+            filter: drop-shadow(0 0 8px rgba(236,72,153,0.22));
+            animation: routeGlow 4.2s ease-in-out infinite;
+          }
+          .dot-b { animation-delay: .6s; }
+          .dot-c { animation-delay: 1.2s; }
+          .dot-d { animation-delay: 1.8s; }
+          .dot-e { animation-delay: 2.4s; }
+          .core-orbit {
+            animation: spinOrbit 18s linear infinite;
+            transform-origin: center;
+          }
+          .core-orbit-slow { animation-duration: 28s; animation-direction: reverse; }
+          .core-blink { animation: coreBlink 2.6s ease-in-out infinite; }
+          .memory-mesh {
+            stroke: rgba(82,82,91,0.45);
+            stroke-width: 1.4;
+            stroke-dasharray: 6 8;
+            animation: flowDash 26s linear infinite;
+          }
+          .memory-node {
+            fill: rgba(24,24,27,0.65);
+            animation: memoryPulse 3.8s ease-in-out infinite;
+          }
+          .memory-node:nth-of-type(2) { animation-delay: .5s; }
+          .memory-node:nth-of-type(3) { animation-delay: 1s; }
+          .memory-node:nth-of-type(4) { animation-delay: 1.5s; }
+          .memory-node:nth-of-type(5) { animation-delay: 2s; }
+          @keyframes flowDash {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: -360; }
+          }
+          @keyframes routeGlow {
+            0%, 100% { opacity: .45; transform: scale(1); }
+            50% { opacity: .95; transform: scale(1.18); }
+          }
+          @keyframes spinOrbit {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+          }
+          @keyframes coreBlink {
+            0%, 100% { opacity: .55; box-shadow: 0 0 0 rgba(236,72,153,0); }
+            50% { opacity: 1; box-shadow: 0 0 16px rgba(236,72,153,.42); }
+          }
+          @keyframes memoryPulse {
+            0%, 100% { opacity: .5; }
+            50% { opacity: .95; }
+          }
+        `}</style>
+      </div>
+    </section>
+  );
+}
+
+function GovernanceSection() {
+  return (
+    <section
+      id="security"
+      className="rounded-3xl border border-zinc-800 bg-zinc-950 p-7 shadow-[0_24px_90px_rgba(15,23,42,0.24)] md:p-9"
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">
+        Governance and control
+      </p>
+
+      <h2 className="mt-3 text-3xl font-black text-white md:text-4xl">
+        Built for controlled operational intelligence.
+      </h2>
+
+      <p className="mt-3 max-w-4xl text-sm leading-relaxed text-zinc-300 md:text-base">
+        PMFreak helps teams operationalize AI safely instead of scattering
+        sensitive project intelligence across disconnected tools.
+      </p>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        {governanceCards.map((item) => (
+          <article
+            key={item.title}
+            className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+          >
+            <h3 className="text-lg font-black text-white">{item.title}</h3>
+
+            <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+              {item.description}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ComparisonSection() {
+  return (
+    <section className={`${lightSectionClass} p-6 md:p-8`}>
+      <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">
+        PMFreak vs Traditional PM Tools
+      </p>
+
+      <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-200">
+        <div className="grid grid-cols-2 bg-zinc-950 text-xs font-black uppercase tracking-[0.12em] text-white md:text-sm">
+          <div className="border-r border-white/10 p-3 md:p-4">
+            Traditional PM Tools
+          </div>
+
+          <div className="p-3 md:p-4">PMFreak</div>
+        </div>
+
+        {comparisonRows.map(([legacy, modern]) => (
+          <div
+            key={legacy}
+            className="grid grid-cols-2 border-t border-zinc-200 text-sm"
+          >
+            <div className="border-r border-zinc-200 bg-zinc-50 p-3 text-zinc-600 md:p-4">
+              {legacy}
+            </div>
+
+            <div className="bg-white p-3 font-semibold text-zinc-950 md:p-4">
+              {modern}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FinalCtaSection() {
+  return (
+    <section className="rounded-3xl border border-zinc-200 bg-zinc-950 p-7 shadow-[0_20px_80px_rgba(15,23,42,0.18)] md:p-10">
+      <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">
+        Get started
+      </p>
+
+      <h2 className="mt-3 text-3xl font-black text-white md:text-4xl">
+        Build operational memory before problems become escalations.
+      </h2>
+
+      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-300 md:text-base">
+        PMFreak helps teams turn scattered operational activity into structured
+        awareness, clearer action, and reusable organizational intelligence.
+      </p>
+
+      <div className="mt-7 flex flex-wrap gap-3">
+        <Link href="/signup" className={primaryCtaClass}>
+          Start Free
+        </Link>
+
+        <Link href="/demo" className={secondaryCtaClass}>
+          Try Demo
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function LandingFooter() {
+  return (
+    <footer className="rounded-3xl border border-zinc-800 bg-zinc-950 px-7 py-8 text-zinc-300 md:px-9">
+      <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+        {footerColumns.map((column) => (
+          <div key={column.heading}>
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">
+              {column.heading}
+            </h3>
+
+            <ul className="mt-4 space-y-2.5 text-sm">
+              {column.links.map((link) => (
+                <li key={link.label}>
+                  {"disabled" in link ? (
+                    <span className="cursor-default text-zinc-500">
+                      {link.label}
+                    </span>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="transition hover:text-cyan-200"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-10 border-t border-white/10 pt-6">
+        <p className="text-sm font-semibold text-white">PMFreak</p>
+
+        <p className="mt-1 text-xs text-zinc-400">
+          Operational cognition infrastructure for modern project delivery.
+        </p>
+
+        <p className="mt-3 text-xs text-zinc-500">
+          © {new Date().getFullYear()} PMFreak. All rights reserved.
+        </p>
+      </div>
+    </footer>
+  );
+}
 
 export default function Home() {
   return (
@@ -71,155 +523,20 @@ export default function Home() {
       <MarketingNavbar />
 
       <main className="min-h-screen bg-white px-5 py-8 text-zinc-950 md:px-8 md:py-12">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-7">
-          <section className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-950 p-7 shadow-[0_30px_100px_rgba(15,23,42,0.18)] md:p-12">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">Built for real-world project delivery</p>
-            <h1 className="mt-4 max-w-4xl text-4xl font-black leading-tight text-white md:text-6xl">See project problems before they blow up.</h1>
-            <p className="mt-6 max-w-3xl text-base font-medium leading-relaxed text-zinc-200 md:text-lg">
-              PMFreak helps you track risks, decisions, stakeholders, and next steps so you can lead with confidence instead of reacting late.
-            </p>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+          <HeroSection />
 
-            <div className="mt-8 grid gap-3 md:grid-cols-2">
-              {painSignals.map((pain) => (
-                <div key={pain} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-zinc-100">
-                  {pain}
-                </div>
-              ))}
-            </div>
+          <OperationalRealitySection />
 
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/signup" className={primaryCtaClass}>
-                Start Free
-              </Link>
-              <Link href="/demo" className={secondaryCtaClass}>
-                Try Demo
-              </Link>
-              <Link href="/interactive-demo" className={secondaryCtaClass}>
-                See Example
-              </Link>
-            </div>
-          </section>
+          <OperationalFlowSection />
 
-          <section id="why-pmfreak" className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm md:p-10">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">Why PMFreak Exists</p>
-            <h2 className="mt-3 text-3xl font-black text-zinc-950 md:text-4xl">Stop chasing updates. Start driving outcomes.</h2>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <article className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
-                <h3 className="text-lg font-black text-zinc-950">What most PM teams deal with</h3>
-                <ul className="mt-3 space-y-2 text-sm text-zinc-700">
-                  <li>• Reports that describe the past, not what to do now</li>
-                  <li>• Risks discovered late in the week</li>
-                  <li>• Stakeholder shifts that are easy to miss</li>
-                  <li>• Important decisions buried in messages and notes</li>
-                </ul>
-              </article>
-              <article className="rounded-2xl border border-zinc-200 bg-zinc-950 p-5">
-                <h3 className="text-lg font-black text-white">What PMFreak changes</h3>
-                <ul className="mt-3 space-y-2 text-sm text-zinc-200">
-                  <li>• Know what might go wrong before it becomes urgent</li>
-                  <li>• Spot stakeholder tension early</li>
-                  <li>• Remember every decision, risk, blocker, and commitment</li>
-                  <li>• Walk into meetings with clear talking points and actions</li>
-                </ul>
-              </article>
-            </div>
-          </section>
+          <GovernanceSection />
 
-          <section className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm md:p-10">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">The Cost of Finding Out Too Late</p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {failureMetrics.map((metric) => (
-                <article key={metric.label} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">{metric.label}</p>
-                  <p className="mt-2 text-3xl font-black text-zinc-950">{metric.value}</p>
-                  <p className="mt-2 text-xs leading-relaxed text-zinc-700">{metric.detail}</p>
-                </article>
-              ))}
-            </div>
-          </section>
+          <ComparisonSection />
 
-          <section id="intelligence" className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm md:p-10">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">How PMFreak helps day to day</p>
-            <h2 className="mt-3 text-3xl font-black text-zinc-950 md:text-4xl">Practical support for every kind of PM.</h2>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {capabilities.map(([title, text]) => (
-                <article key={title} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
-                  <h3 className="text-lg font-black text-zinc-950">{title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-700">{text}</p>
-                </article>
-              ))}
-            </div>
-          </section>
+          <FinalCtaSection />
 
-          <section className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm md:p-10">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">How it works</p>
-            <h2 className="mt-3 text-3xl font-black text-zinc-950 md:text-4xl">From scattered updates to confident action.</h2>
-            <div className="mt-5 grid gap-4 md:grid-cols-5">
-              {howItWorks.map((item) => (
-                <div key={item} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm font-semibold text-zinc-800">
-                  {item}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm md:p-10">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">PMFreak vs Traditional PM Tools</p>
-            <div className="mt-5 overflow-hidden rounded-2xl border border-zinc-200">
-              <div className="grid grid-cols-2 bg-zinc-950 text-sm font-black uppercase tracking-[0.12em] text-white">
-                <div className="border-r border-white/10 p-4">Traditional PM Tools</div>
-                <div className="p-4">PMFreak</div>
-              </div>
-              {comparisonRows.map(([legacy, modern]) => (
-                <div key={legacy} className="grid grid-cols-2 border-t border-zinc-200 text-sm">
-                  <div className="border-r border-zinc-200 bg-zinc-50 p-4 text-zinc-600">{legacy}</div>
-                  <div className="bg-white p-4 font-semibold text-zinc-950">{modern}</div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section id="trust" className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm md:p-10">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">Trust for teams and leadership</p>
-            <div className="mt-5 grid gap-4 md:grid-cols-3">
-              {trustPoints.map((item) => (
-                <div key={item} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm font-semibold text-zinc-800">
-                  {item}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section id="who-buys" className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm md:p-10">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">Built for every PM role</p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {buyers.map((buyer) => (
-                <div key={buyer} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-base font-bold text-zinc-950">
-                  {buyer}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-zinc-200 bg-zinc-950 p-7 shadow-[0_20px_80px_rgba(15,23,42,0.18)] md:p-10">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-cyan-200">What you can do next</p>
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              {nextStepBenefits.map((item) => (
-                <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-semibold text-zinc-100">
-                  {item}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/signup" className={primaryCtaClass}>
-                Start Free
-              </Link>
-              <Link href="/demo" className={secondaryCtaClass}>
-                Try Demo
-              </Link>
-            </div>
-          </section>
+          <LandingFooter />
         </div>
       </main>
     </>

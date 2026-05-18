@@ -12,6 +12,7 @@ import { politicalRiskPromptPackV1 } from "@/lib/ai/prompts/political-risk.v1";
 import { stakeholderIntelPromptPackV1 } from "@/lib/ai/prompts/stakeholder-intel.v1";
 import type { MessageNudgesInputSchema, MessageNudgesOutputSchema } from "@/lib/ai/prompts/message-nudges.v1";
 import { createSupabaseServerClient } from "@/lib/db/supabase-server";
+import { runProviderInference } from "@/lib/ai/providers/router";
 
 type MessageNudgesContext = {
   projectMemory: string[];
@@ -349,6 +350,7 @@ export async function runAIModule({
               },
               required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
             },
+            required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
           },
         },
         temperature: 0.2,
@@ -432,6 +434,7 @@ export async function runAIModule({
     traceGatewayCall({
       moduleId,
       mode: "openai",
+      provider: "openai",
       projectId: context?.projectId ?? null,
       durationMs: 0,
       outcome: "success",
