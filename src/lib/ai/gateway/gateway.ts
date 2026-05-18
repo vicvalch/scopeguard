@@ -3,6 +3,8 @@ import type { AIResponseEnvelope } from "@/lib/ai/types";
 import { aiModuleRegistry } from "@/lib/ai/gateway/registry";
 import type { AIModuleId, MemoryContext, RunAIModuleInput } from "@/lib/ai/gateway/types";
 import { traceGatewayCall, traceGatewayError, measureAsync } from "@/lib/ai/gateway/tracer";
+import { runInference } from "@/lib/ai/providers/router";
+import { InferenceError } from "@/lib/ai/inference/types";
 import { escalationGuidePromptPackV1 } from "@/lib/ai/prompts/escalation-guide.v1";
 import { meetingsPromptPackV1 } from "@/lib/ai/prompts/meetings.v1";
 import { messageNudgesPromptPackV1 } from "@/lib/ai/prompts/message-nudges.v1";
@@ -300,55 +302,72 @@ export async function runAIModule({
       return { ...result, inferenceMode: "fallback" as const, isSimulated: true, productionReady: false };
     }
 
-    const inference = await runProviderInference({
-      moduleId,
-      projectId,
-      messages: [
-        { role: "system", content: messageNudgesPromptPackV1.systemPrompt },
-        {
-          role: "user",
-          content: [
-            `Audience: ${audience}`,
-            `Raw message: ${rawMessage}`,
-            "Context for better organizational fit:",
-            ...messageNudgesContext.projectMemory.slice(0, 3).map((item) => `- Past message: ${item}`),
-            ...messageNudgesContext.recentEvents.slice(0, 3).map((item) => `- Past decision: ${item}`),
-            ...messageNudgesContext.stakeholderSignals.map((item) => `- Risk pattern: ${item}`),
-            "- Derived trend signals:",
-            `  toneTrend=${messageNudgesContext.derivedSignals.toneTrend}`,
-            `  blamePattern=${messageNudgesContext.derivedSignals.blamePattern}`,
-            `  riskTrend=${messageNudgesContext.derivedSignals.riskTrend}`,
-            `  escalationSignal=${messageNudgesContext.derivedSignals.escalationSignal}`,
-          ].join("\n"),
-        },
-      ],
-      responseFormat: {
-        type: "json_schema",
-        jsonSchema: {
-          name: "message_nudges_v1",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              toneRisk: { type: "string", enum: ["low", "medium", "high"] },
-              rewriteSuggestion: { type: "string" },
-              improvedVersion: { type: "string" },
-              confidence: { type: "string", enum: ["low", "medium", "high", "very-high"] },
-              rationale: { type: "string" },
+    const payload = input as Partial<MessageNudgesInputSchema & { projectId?: string }>;
+    const projectId = context?.projectId?.toString().trim() || payload.projectId?.trim() || "demo-project";
+    const rawMessage = payload.rawMessage?.trim() ?? "";
+    const audience = payload.audience?.trim() ?? "";
+    if (!rawMessage || !audience) {
+      throw new Error("message-nudges requires rawMessage and audience.");
+    }
+
+    const userContent = [
+      `Audience: ${audience}`,
+      `Raw message: ${rawMessage}`,
+      "Context for better organizational fit:",
+      ...messageNudgesContext.projectMemory.slice(0, 3).map((item) => `- Past message: ${item}`),
+      ...messageNudgesContext.recentEvents.slice(0, 3).map((item) => `- Past decision: ${item}`),
+      ...messageNudgesContext.stakeholderSignals.map((item) => `- Risk pattern: ${item}`),
+      "- Derived trend signals:",
+      `  toneTrend=${messageNudgesContext.derivedSignals.toneTrend}`,
+      `  blamePattern=${messageNudgesContext.derivedSignals.blamePattern}`,
+      `  riskTrend=${messageNudgesContext.derivedSignals.riskTrend}`,
+      `  escalationSignal=${messageNudgesContext.derivedSignals.escalationSignal}`,
+    ].join("\n");
+
+    let inferenceResult: Awaited<ReturnType<typeof runInference>>;
+    try {
+      inferenceResult = await runInference({
+        moduleId: "message-nudges",
+        projectId,
+        messages: [
+          { role: "system", content: messageNudgesPromptPackV1.systemPrompt },
+          { role: "user", content: userContent },
+        ],
+        responseFormat: {
+          type: "json_schema",
+          jsonSchema: {
+            name: "message_nudges_v1",
+            strict: true,
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                toneRisk: { type: "string", enum: ["low", "medium", "high"] },
+                rewriteSuggestion: { type: "string" },
+                improvedVersion: { type: "string" },
+                confidence: { type: "string", enum: ["low", "medium", "high", "very-high"] },
+                rationale: { type: "string" },
+              },
+              required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
             },
             required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
           },
         },
-      },
-      temperature: 0.2,
-      timeoutMs: 20000,
-      modelPreference: process.env.OPENAI_MESSAGE_NUDGES_MODEL,
-      metadata: { actor: context?.actor, workspaceId: context?.workspaceId, moduleId, dataClasses: ["message_content"] },
-    });
+        temperature: 0.2,
+        timeoutMs: 20000,
+        maxAttempts: 3,
+        retryDelayMs: 500,
+        operationName: "message-nudges",
+        idempotencyKey: randomUUID(),
+      });
+    } catch (error) {
+      if (error instanceof InferenceError) {
+        throw new Error(`Inference request failed: ${error.errorClass}`);
+      }
+      throw error;
+    }
 
-    const content = inference.content;
-    const output = JSON.parse(content) as MessageNudgesOutputSchema;
+    const output = (inferenceResult.parsedJson ?? JSON.parse(inferenceResult.content)) as MessageNudgesOutputSchema;
     const toneScore = scoreToneRisk(rawMessage);
     const blameScore = scoreBlame(rawMessage);
     const ambiguityScore = scoreAmbiguity(rawMessage);

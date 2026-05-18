@@ -67,24 +67,34 @@ test('Idempotency-Key header is added when idempotencyKey option is provided', (
   assert.match(source, /idempotencyKey/);
 });
 
-// Test 9 — copilot route uses unified inference gateway
-test('copilot route calls runInferenceGateway', () => {
-  assert.match(copilotRoute, /runInferenceGateway/);
-  assert.match(copilotRoute, /moduleId:\s*"copilot"/);
-  assert.match(copilotRoute, /responseFormat:\s*\{\s*type:\s*"json_object"/s);
+// Test 9 — copilot route uses provider router, not direct resilientFetch
+test('copilot route delegates to runInference via provider router, not direct resilientFetch', () => {
+  assert.doesNotMatch(copilotRoute, /resilientFetch/, 'copilot must not call resilientFetch directly');
+  assert.doesNotMatch(copilotRoute, /resilient-fetch/, 'copilot must not import resilient-fetch directly');
+  assert.match(copilotRoute, /runInference/, 'copilot must call runInference');
+  assert.match(copilotRoute, /providers\/router/, 'copilot must import from providers/router');
+  assert.match(copilotRoute, /operationName.*copilot|copilot.*operationName/s, 'copilot must pass operationName');
+  assert.match(copilotRoute, /maxAttempts.*2|2.*maxAttempts/s, 'copilot must pass maxAttempts');
 });
 
-// Test 10 — gateway.ts routes real inference through provider router
-test('gateway.ts routes inference through provider router', () => {
-  assert.match(gatewaySource, /runProviderInference/);
-  assert.match(gatewaySource, /moduleId:\s*moduleId,[\s\S]*projectId,/);
+// Test 10 — gateway.ts uses provider router, not direct resilientFetch
+test('gateway.ts delegates inference to runInference via provider router, not direct resilientFetch', () => {
+  assert.doesNotMatch(gatewaySource, /resilientFetch/, 'gateway must not call resilientFetch directly');
+  assert.doesNotMatch(gatewaySource, /resilient-fetch/, 'gateway must not import resilient-fetch directly');
+  assert.match(gatewaySource, /runInference/, 'gateway must call runInference');
+  assert.match(gatewaySource, /providers\/router/, 'gateway must import from providers/router');
+  assert.match(gatewaySource, /operationName.*message-nudges|message-nudges.*operationName/s, 'gateway must pass operationName');
+  assert.match(gatewaySource, /maxAttempts.*3|3.*maxAttempts/s, 'gateway must pass maxAttempts');
 });
 
-// Test 11 — meta-intelligence route uses gateway
-test('meta-intelligence route calls runInferenceGateway', () => {
-  assert.match(metaIntelSource, /runInferenceGateway/);
-  assert.match(metaIntelSource, /moduleId:\s*"meta-intelligence"/);
-  assert.match(metaIntelSource, /timeoutMs:\s*15000/);
+// Test 11 — meta-intelligence route uses provider router, not direct resilientFetch
+test('meta-intelligence route delegates to runInference via provider router, not direct resilientFetch', () => {
+  assert.doesNotMatch(metaIntelSource, /resilientFetch/, 'meta-intelligence must not call resilientFetch directly');
+  assert.doesNotMatch(metaIntelSource, /resilient-fetch/, 'meta-intelligence must not import resilient-fetch directly');
+  assert.match(metaIntelSource, /runInference/, 'meta-intelligence must call runInference');
+  assert.match(metaIntelSource, /providers\/router/, 'meta-intelligence must import from providers/router');
+  assert.match(metaIntelSource, /operationName.*meta-intelligence|meta-intelligence.*operationName/s, 'meta-intelligence must pass operationName');
+  assert.match(metaIntelSource, /timeoutMs.*15000|15000.*timeoutMs/s, 'meta-intelligence must pass timeoutMs');
 });
 
 // Test 12 — no full URL logged (console calls use domain only, not raw url parameter)

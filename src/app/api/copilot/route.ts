@@ -14,11 +14,9 @@ import { evaluateAgentAccess } from "@/lib/security/agent-access";
 import { denyResponse } from "@/lib/security/deny-response";
 import { verifyAiResponse } from "@/lib/ai/response-verifier";
 import { CopilotRequestContract, CopilotResponseContract } from "@/lib/contracts";
-import { runInferenceGateway } from "@/lib/ai/gateway/inference-gateway";
+import { runInference } from "@/lib/ai/providers/router";
+import { InferenceError } from "@/lib/ai/inference/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-// TODO(aoc-gateway): The OpenAI call below bypasses the AI gateway and must be
-// migrated behind the gateway once it supports copilot as a registered module.
 
 // Resolves the caller's workspace from their project (if given) or first membership.
 // Used only on the human-user path where no workspace header is supplied.
@@ -264,44 +262,47 @@ Output contract:
 
 Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
 
-  let actorType: "user" | "ai_agent" = "user";
-  if (isAgentCall) actorType = "ai_agent";
+  let content: string;
+  try {
+    const inferenceResult = await runInference({
+      moduleId: "copilot",
+      workspaceId: isAgentCall ? workspaceIdHeader! : undefined,
+      projectId: payload.projectId?.trim() || selectedProject?.id,
+      actorId: user.id,
+      actorType: isAgentCall ? "ai_agent" : "user",
+      messages: [
+        { role: "system", content: system },
+        {
+          role: "user",
+          content: `User role: ${payload.role ?? user.role}\nProject selected: ${payload.projectName ?? selectedProject?.projectName ?? "Not specified"}\nKnown project memory:\n${contextSummary || "No memory available."}\n\nOperational continuity signals:\n${continuitySignals.length ? continuitySignals.map((s) => `- ${s}`).join("\n") : "- No reliable continuity signal extracted."}\n\nPersisted unresolved operational memory:\n${continuity.unresolved.map((item) => `- [${item.memoryType}] ${item.memoryText} (source: ${item.sourceType}:${item.sourceReference})`).join("\n") || "- No unresolved memory yet."}\n\nAOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser message: ${payload.message}`,
+        },
+      ],
+      responseFormat: { type: "json_object" },
+      temperature: 0.2,
+      timeoutMs: 25000,
+      maxAttempts: 2,
+      retryDelayMs: 1000,
+      operationName: "copilot",
+      idempotencyKey: randomUUID(),
+      metadata: { companyId: user.companyId },
+    });
+    content = inferenceResult.content;
+  } catch (error) {
+    if (error instanceof InferenceError) {
+      console.error("[copilot] inference_failed", {
+        errorClass: error.errorClass,
+        attempts: error.attempts,
+        companyId: user.companyId,
+      });
+      return Response.json(
+        { error: "Copilot temporarily unavailable.", code: error.errorClass },
+        { status: error.errorClass === "rate_limited" ? 429 : 502 },
+      );
+    }
+    return Response.json({ error: "Copilot temporarily unavailable." }, { status: 502 });
+  }
 
-  const inference = await runInferenceGateway({
-    moduleId: "copilot",
-    actor: { actorType, actorUserId: user.id, actorAgentId: agentId },
-    workspaceId: workspaceIdHeader ?? undefined,
-    projectId: selectedProject?.id ?? payload.projectId,
-    modelPreference: process.env.OPENAI_COPILOT_MODEL,
-    timeoutMs: 25000,
-    temperature: 0.2,
-    responseFormat: { type: "json_object" },
-    messages: [
-      { role: "system", content: system },
-      {
-        role: "user",
-        content: `User role: ${payload.role ?? user.role}
-Project selected: ${payload.projectName ?? selectedProject?.projectName ?? "Not specified"}
-Known project memory:
-${contextSummary || "No memory available."}
-
-Operational continuity signals:
-${continuitySignals.length ? continuitySignals.map((s) => `- ${s}`).join("\n") : "- No reliable continuity signal extracted."}
-
-Persisted unresolved operational memory:
-${continuity.unresolved.map((item) => `- [${item.memoryType}] ${item.memoryText} (source: ${item.sourceType}:${item.sourceReference})`).join("\n") || "- No unresolved memory yet."}
-
-AOC runtime authority context:
-${JSON.stringify(runtimeContext)}
-
-User message: ${payload.message}`,
-      },
-    ],
-    metadata: { estimatedSensitivity: "internal", dataClasses: ["project_memory", "user_prompt"], moduleId: "copilot" },
-  });
-
-  const content = inference.content;
-  if (!content) return Response.json({ error: "Copilot temporarily unavailable." }, { status: 502 });
+  if (!content) return Response.json({ error: "AI returned empty response." }, { status: 502 });
 
   let parsed: Partial<CopilotResponse> = {};
   try {

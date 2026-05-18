@@ -13,13 +13,10 @@ export interface InferenceJsonSchema {
 
 export interface InferenceRequest {
   moduleId?: string;
-  actor?: {
-    actorType?: string;
-    actorUserId?: string | null;
-    actorAgentId?: string | null;
-  };
   workspaceId?: string;
   projectId?: string;
+  actorId?: string;
+  actorType?: string;
   messages: InferenceMessage[];
   responseFormat?: {
     type: "json_schema" | "json_object" | "text";
@@ -29,7 +26,17 @@ export interface InferenceRequest {
   temperature?: number;
   maxTokens?: number;
   timeoutMs?: number;
+  maxAttempts?: number;
+  retryDelayMs?: number;
+  operationName?: string;
+  idempotencyKey?: string;
   metadata?: Record<string, unknown>;
+}
+
+export interface InferenceUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
 }
 
 export interface InferenceResponse {
@@ -37,17 +44,31 @@ export interface InferenceResponse {
   model: string;
   content: string;
   parsedJson?: unknown;
-  usage?: {
-    inputTokens?: number;
-    outputTokens?: number;
-    totalTokens?: number;
-  };
+  usage?: InferenceUsage;
   finishReason?: string;
   latencyMs?: number;
-  raw?: unknown;
 }
 
 export interface InferenceProvider {
-  id: string;
+  readonly id: string;
   complete(request: InferenceRequest): Promise<InferenceResponse>;
+}
+
+export class InferenceError extends Error {
+  constructor(
+    message: string,
+    public readonly errorClass:
+      | "rate_limited"
+      | "server_error"
+      | "network_error"
+      | "timeout"
+      | "auth_error"
+      | "bad_request"
+      | "unknown",
+    public readonly provider: string,
+    public readonly attempts?: number,
+  ) {
+    super(message);
+    this.name = "InferenceError";
+  }
 }
