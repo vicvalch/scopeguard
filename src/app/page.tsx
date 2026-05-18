@@ -40,26 +40,31 @@ const operationalRealities = [
   },
 ] as const;
 
-const operationalFlow = [
+const operationalFlowSteps = [
   {
-    step: "Capture",
-    text: "Collect operational signals from meetings, updates, chats, and delivery activity.",
+    step: "01",
+    title: "Define operational conditions",
+    text: "Set your PMO, project, governance, escalation, stakeholder, and delivery conditions before AI starts interpreting work.",
   },
   {
-    step: "Classify",
-    text: "Connect risks, decisions, blockers, stakeholders, and ownership automatically.",
+    step: "02",
+    title: "Capture operational signal",
+    text: "Collect fragmented signals from meetings, updates, chats, blockers, risks, decisions, and delivery activity.",
   },
   {
-    step: "Synthesize",
-    text: "Transform fragmented updates into operational awareness.",
+    step: "03",
+    title: "Synthesize",
+    text: "Specialized AI agents classify, correlate, and transform scattered updates into operational awareness.",
   },
   {
-    step: "Remember",
-    text: "Build a persistent organizational memory across projects and teams.",
+    step: "04",
+    title: "Remember",
+    text: "Build persistent organizational memory across projects and teams while keeping better control over data leakage.",
   },
   {
-    step: "Act",
-    text: "Walk into meetings with clearer priorities, actions, and escalation awareness.",
+    step: "05",
+    title: "Act",
+    text: "Walk into meetings with clear priorities, stakeholder awareness, escalation context, and next actions.",
   },
 ] as const;
 
@@ -170,34 +175,195 @@ function OperationalRealitySection() {
 
 function OperationalFlowSection() {
   return (
-    <section id="how-it-works" className={`${lightSectionClass} p-7 md:p-9`}>
+    <section id="how-it-works" className={`${lightSectionClass} scroll-mt-[140px] p-7 md:p-9`}>
       <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">
-        How it works
+        HOW IT WORKS
       </p>
 
       <h2 className="mt-3 text-3xl font-black text-zinc-950 md:text-4xl">
         From scattered updates to operational clarity.
       </h2>
 
-      <div className="mt-6 grid gap-3 md:grid-cols-5">
-        {operationalFlow.map((item, index) => (
-          <article
-            key={item.step}
-            className="rounded-2xl border border-zinc-200 bg-white p-4"
-          >
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-700">
-              {String(index + 1).padStart(2, "0")}
-            </p>
+      <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-600 md:text-base">
+        PMFreak turns everyday project signals into governed intelligence, persistent memory, and decision-ready action.
+      </p>
 
-            <h3 className="mt-2 text-base font-black text-zinc-950">
-              {item.step}
-            </h3>
+      <div className="relative mt-7 overflow-hidden rounded-3xl border border-zinc-200 bg-gradient-to-b from-white via-zinc-50 to-white p-4 shadow-[0_25px_70px_rgba(10,10,10,0.08)] md:p-7">
+        <div className="pointer-events-none absolute -left-16 top-8 h-40 w-40 rounded-full bg-fuchsia-200/50 blur-3xl" />
+        <div className="pointer-events-none absolute -right-12 bottom-10 h-36 w-36 rounded-full bg-cyan-200/60 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(236,72,153,0.10),transparent_40%),radial-gradient(circle_at_75%_65%,rgba(34,211,238,0.10),transparent_38%)]" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-200/70 opacity-70" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[22rem] w-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-zinc-200/60 opacity-60" />
 
-            <p className="mt-2 text-sm leading-relaxed text-zinc-700">
-              {item.text}
-            </p>
-          </article>
-        ))}
+        <div className="relative">
+          <svg viewBox="0 0 1200 560" className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block" fill="none" aria-hidden>
+            <path d="M40 170 C260 170 300 105 510 130 C660 148 680 214 780 228 C910 246 980 220 1160 220" className="signal-path-a" />
+            <path d="M44 280 C250 280 300 315 500 300 C640 290 700 238 800 255 C940 280 1000 330 1160 326" className="signal-path-b" />
+            <path d="M600 334 C620 390 690 430 820 438 C930 445 1040 420 1154 378" className="signal-path-c" />
+            <path d="M594 334 C560 386 488 420 344 434 C228 446 128 428 48 396" className="signal-path-d" />
+            <path d="M80 232 C220 236 320 228 490 244 C590 252 665 260 740 286 C858 326 1040 368 1140 364" className="signal-path-e" />
+            <path d="M78 196 C228 188 298 140 468 164 C582 182 650 226 734 226 C908 228 1032 206 1138 188" className="signal-path-f" />
+            <circle cx="190" cy="220" r="5" className="route-dot dot-a" />
+            <circle cx="350" cy="206" r="4.5" className="route-dot dot-b" />
+            <circle cx="558" cy="254" r="4.5" className="route-dot dot-c" />
+            <circle cx="738" cy="230" r="4.5" className="route-dot dot-d" />
+            <circle cx="960" cy="234" r="5" className="route-dot dot-e" />
+            <circle cx="600" cy="272" r="12" className="fill-zinc-950/90" />
+          </svg>
+
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_1.45fr_1.1fr]">
+            <article className="rounded-2xl border border-fuchsia-200 bg-white/85 p-4 backdrop-blur">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-600">01 • Conditions</p>
+              <h3 className="mt-2 text-base font-black text-zinc-950">{operationalFlowSteps[0].title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[0].text}</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold text-zinc-600">
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">PMO rules</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Governance</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Escalation logic</span>
+              </div>
+            </article>
+
+            <article className="relative row-span-2 rounded-3xl border border-zinc-200 bg-white p-5 shadow-[0_20px_45px_rgba(0,0,0,0.10)]">
+              <div className="pointer-events-none absolute inset-0 rounded-3xl border border-fuchsia-300/30" />
+              <div className="pointer-events-none absolute inset-5 rounded-[1.25rem] border border-cyan-300/25" />
+              <div className="core-orbit pointer-events-none absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full border border-fuchsia-300/35" />
+              <div className="core-orbit core-orbit-slow pointer-events-none absolute left-1/2 top-1/2 h-60 w-60 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/25" />
+              <div className="absolute left-1/2 top-0 h-16 w-px -translate-x-1/2 bg-gradient-to-b from-fuchsia-300/60 to-transparent" />
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">03 • Synthesis</p>
+              <h3 className="mt-2 text-lg font-black text-zinc-950">{operationalFlowSteps[2].title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[2].text}</p>
+              <div className="relative mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <div className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-fuchsia-200/40 blur-2xl" />
+                <div className="core-blink pointer-events-none absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-950/80" />
+                <p className="relative text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">PMFreak AI Agents · Operational Intelligence Core</p>
+                <div className="relative mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-zinc-700">
+                  <span className="rounded-xl border border-zinc-200 bg-white px-3 py-2">Classify</span>
+                  <span className="rounded-xl border border-zinc-200 bg-white px-3 py-2">Correlate</span>
+                  <span className="rounded-xl border border-zinc-200 bg-white px-3 py-2">Prioritize</span>
+                  <span className="rounded-xl border border-zinc-200 bg-white px-3 py-2">Escalate</span>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/60 px-3 py-2 text-xs font-medium text-zinc-700">Risk heat shifts</div>
+                <div className="rounded-xl border border-cyan-100 bg-cyan-50/60 px-3 py-2 text-xs font-medium text-zinc-700">Stakeholder tension</div>
+              </div>
+              <div className="mt-4 flex items-center gap-2 text-xs text-zinc-600">
+                <span className="inline-block h-2.5 w-2.5 animate-ping rounded-full bg-fuchsia-500" />
+                Continuously synthesizing operational awareness
+              </div>
+            </article>
+
+            <article className="rounded-2xl border border-cyan-200 bg-white/90 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">05 • Action</p>
+              <h3 className="mt-2 text-base font-black text-zinc-950">{operationalFlowSteps[4].title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[4].text}</p>
+              <div className="mt-4 space-y-2 text-xs font-medium text-zinc-700">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Meeting priorities</div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Stakeholder context</div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">Next best actions</div>
+              </div>
+            </article>
+          </div>
+
+          <div className="relative mt-4 grid gap-4 lg:grid-cols-[1.1fr_1.45fr_1.1fr]">
+            <article className="rounded-2xl border border-zinc-200 bg-white p-4">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">02 • Signals</p>
+              <h3 className="mt-2 text-base font-black text-zinc-950">{operationalFlowSteps[1].title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[1].text}</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold text-zinc-600">
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Meetings</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Risks</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Blockers</span>
+                <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1">Decisions</span>
+              </div>
+            </article>
+            <div className="hidden items-center justify-center lg:flex">
+              <div className="h-[1px] w-full max-w-[420px] bg-gradient-to-r from-transparent via-zinc-300 to-transparent" />
+            </div>
+            <article className="relative rounded-2xl border border-zinc-200 bg-white p-4 lg:row-span-2">
+              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[linear-gradient(130deg,rgba(236,72,153,0.05),rgba(34,211,238,0.06))]" />
+              <p className="relative text-xs font-black uppercase tracking-[0.18em] text-fuchsia-600">04 • Memory</p>
+              <h3 className="relative mt-2 text-base font-black text-zinc-950">{operationalFlowSteps[3].title}</h3>
+              <p className="relative mt-2 text-sm leading-relaxed text-zinc-700">{operationalFlowSteps[3].text}</p>
+              <div className="relative mt-4 space-y-2 text-xs text-zinc-700">
+                <div className="rounded-xl border border-zinc-200 bg-white/80 px-3 py-2">Q2 Steering committee escalation context retained</div>
+                <div className="rounded-xl border border-zinc-200 bg-white/80 px-3 py-2">Delivery dependency history linked across teams</div>
+                <div className="rounded-xl border border-zinc-200 bg-white/80 px-3 py-2">Stakeholder decision patterns available for reuse</div>
+              </div>
+              <svg viewBox="0 0 320 86" className="mt-3 hidden w-full lg:block" fill="none" aria-hidden>
+                <path d="M8 65 C58 28 110 70 160 38 C210 8 252 42 310 20" className="memory-mesh" />
+                <circle cx="58" cy="44" r="3.5" className="memory-node" />
+                <circle cx="112" cy="58" r="3.5" className="memory-node" />
+                <circle cx="168" cy="35" r="3.5" className="memory-node" />
+                <circle cx="226" cy="24" r="3.5" className="memory-node" />
+                <circle cx="288" cy="22" r="3.5" className="memory-node" />
+              </svg>
+            </article>
+          </div>
+        </div>
+        <style>{`
+          .signal-path-a, .signal-path-b, .signal-path-c, .signal-path-d {
+            stroke-width: 2.3;
+            stroke-dasharray: 8 10;
+            animation: flowDash 18s linear infinite;
+            fill: none;
+          }
+          .signal-path-a { stroke: rgba(236, 72, 153, 0.55); }
+          .signal-path-b { stroke: rgba(34, 211, 238, 0.55); animation-duration: 16s; }
+          .signal-path-c { stroke: rgba(236, 72, 153, 0.4); animation-duration: 20s; }
+          .signal-path-d { stroke: rgba(34, 211, 238, 0.4); animation-duration: 22s; }
+          .signal-path-e { stroke: rgba(244, 114, 182, 0.34); animation-duration: 26s; }
+          .signal-path-f { stroke: rgba(103, 232, 249, 0.35); animation-duration: 24s; }
+          .route-dot {
+            fill: rgba(24,24,27,0.7);
+            filter: drop-shadow(0 0 8px rgba(236,72,153,0.22));
+            animation: routeGlow 4.2s ease-in-out infinite;
+          }
+          .dot-b { animation-delay: .6s; }
+          .dot-c { animation-delay: 1.2s; }
+          .dot-d { animation-delay: 1.8s; }
+          .dot-e { animation-delay: 2.4s; }
+          .core-orbit {
+            animation: spinOrbit 18s linear infinite;
+            transform-origin: center;
+          }
+          .core-orbit-slow { animation-duration: 28s; animation-direction: reverse; }
+          .core-blink { animation: coreBlink 2.6s ease-in-out infinite; }
+          .memory-mesh {
+            stroke: rgba(82,82,91,0.45);
+            stroke-width: 1.4;
+            stroke-dasharray: 6 8;
+            animation: flowDash 26s linear infinite;
+          }
+          .memory-node {
+            fill: rgba(24,24,27,0.65);
+            animation: memoryPulse 3.8s ease-in-out infinite;
+          }
+          .memory-node:nth-of-type(2) { animation-delay: .5s; }
+          .memory-node:nth-of-type(3) { animation-delay: 1s; }
+          .memory-node:nth-of-type(4) { animation-delay: 1.5s; }
+          .memory-node:nth-of-type(5) { animation-delay: 2s; }
+          @keyframes flowDash {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: -360; }
+          }
+          @keyframes routeGlow {
+            0%, 100% { opacity: .45; transform: scale(1); }
+            50% { opacity: .95; transform: scale(1.18); }
+          }
+          @keyframes spinOrbit {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+          }
+          @keyframes coreBlink {
+            0%, 100% { opacity: .55; box-shadow: 0 0 0 rgba(236,72,153,0); }
+            50% { opacity: 1; box-shadow: 0 0 16px rgba(236,72,153,.42); }
+          }
+          @keyframes memoryPulse {
+            0%, 100% { opacity: .5; }
+            50% { opacity: .95; }
+          }
+        `}</style>
       </div>
     </section>
   );
