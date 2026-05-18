@@ -1,19 +1,3 @@
-import { createHash } from "node:crypto";
-
-export const CAPABILITY_CLAIM_VERSION = "pmfreak-capability-claim-v1" as const;
-export const CAPABILITY_CLAIM_VERSION_V11 = "pmfreak-capability-claim-v1.1" as const;
-export const CAPABILITY_CLAIM_VERSION_V12 = "pmfreak-capability-claim-v1.2" as const;
-export type CapabilityClaimVersion = typeof CAPABILITY_CLAIM_VERSION | typeof CAPABILITY_CLAIM_VERSION_V11 | typeof CAPABILITY_CLAIM_VERSION_V12;
-export type ClaimIssuerType = "system" | "user" | "agent";
-export type ClaimSubjectType = "user" | "agent";
-
-export type CapabilityClaim = { version: CapabilityClaimVersion; issuer: { app: "pmfreak"; workspaceId: string; issuerType: ClaimIssuerType; issuerUserId?: string; issuerAgentId?: string; trustDomain?: string; issuerId?: string }; subject: { subjectType: ClaimSubjectType; userId?: string; agentId?: string }; authority: { action: string; requestedPermission: string; resourceType?: string; resourceId?: string; workspaceId: string; projectId?: string }; constraints: { maxUses?: number; allowedUntil: string; canDelegate?: boolean; delegationDepth?: number; allowedActions?: string[]; allowedProjectIds?: string[]; allowedResourceTypes?: string[] }; lineage: { parentDecisionId?: string; parentGrantId?: string; parentDelegationId?: string; rootApprovalRequestId?: string; issuedAt: string }; proof: { algorithm: "HMAC-SHA256" | "Ed25519"; keyId: string; signature: string; trustDomain?: string; issuedAt?: string } };
-
-export const canonicalize = (value: unknown): string => JSON.stringify(sortValue(value));
-export const sortValue = (value: unknown): unknown => Array.isArray(value) ? value.map(sortValue) : value && typeof value === "object" ? Object.keys(value as Record<string, unknown>).sort().reduce((acc, key) => ({ ...acc, [key]: sortValue((value as Record<string, unknown>)[key]) }), {}) : value;
-
-export function hashCapabilityClaim(claim: CapabilityClaim) { return createHash("sha256").update(canonicalize(claim)).digest("hex"); }
-
 // AOC Protocol: cryptographic capability claims.
 // Future extraction boundary: this module must NOT import from host application modules.
 // Trust domain resolution, revocation lookup, and HMAC secrets are provided via adapter ports
@@ -50,7 +34,7 @@ export type ClaimSubjectType = "user" | "agent";
 // PMFreak passes "pmfreak" as the app value via the adapter layer for backward compatibility.
 export type CapabilityClaim = { version: CapabilityClaimVersion; issuer: { app: string; workspaceId: string; issuerType: ClaimIssuerType; issuerUserId?: string; issuerAgentId?: string; trustDomain?: string; issuerId?: string }; subject: { subjectType: ClaimSubjectType; userId?: string; agentId?: string }; authority: { action: string; requestedPermission: string; resourceType?: string; resourceId?: string; workspaceId: string; projectId?: string }; constraints: { maxUses?: number; allowedUntil: string; canDelegate?: boolean; delegationDepth?: number; allowedActions?: string[]; allowedProjectIds?: string[]; allowedResourceTypes?: string[] }; lineage: { parentDecisionId?: string; parentGrantId?: string; parentDelegationId?: string; rootApprovalRequestId?: string; issuedAt: string }; proof: { algorithm: "HMAC-SHA256" | "Ed25519"; keyId: string; signature: string; trustDomain?: string; issuedAt?: string } };
 
-const canonicalize = (value: unknown): string => JSON.stringify(sortValue(value));
+export const canonicalize = (value: unknown): string => JSON.stringify(sortValue(value));
 const sortValue = (value: unknown): unknown => Array.isArray(value) ? value.map(sortValue) : value && typeof value === "object" ? Object.keys(value as Record<string, unknown>).sort().reduce((acc, key) => ({ ...acc, [key]: sortValue((value as Record<string, unknown>)[key]) }), {}) : value;
 
 const signHmac = (payload: Omit<CapabilityClaim, "proof">, keyId: string, hmacSecret: string) =>

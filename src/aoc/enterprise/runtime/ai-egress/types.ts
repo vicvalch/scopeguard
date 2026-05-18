@@ -1,5 +1,5 @@
 export type DataSensitivity = "public" | "internal" | "confidential" | "restricted";
-export type ProviderTrustTier = "trusted" | "conditional" | "restricted";
+export type ProviderTrustTier = "sovereign" | "trusted" | "conditional" | "local" | "restricted";
 export type EgressDecision = "allow" | "deny" | "conditional";
 
 export interface AIEgressActor {

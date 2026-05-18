@@ -349,7 +349,6 @@ export async function runAIModule({
               },
               required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
             },
-            required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
           },
         },
         temperature: 0.2,
@@ -433,7 +432,6 @@ export async function runAIModule({
     traceGatewayCall({
       moduleId,
       mode: "openai",
-      provider: "openai",
       projectId: context?.projectId ?? null,
       durationMs: 0,
       outcome: "success",

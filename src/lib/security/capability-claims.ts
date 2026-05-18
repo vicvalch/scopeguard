@@ -22,7 +22,14 @@ export async function createCapabilityClaim(input: Omit<CapabilityClaim, "versio
 
 export async function verifyCapabilityClaim(claim: CapabilityClaim, expected: any = {}) {
   const claimHash = hashCapabilityClaim(claim);
-  if (![CAPABILITY_CLAIM_VERSION, CAPABILITY_CLAIM_VERSION_V11, CAPABILITY_CLAIM_VERSION_V12].includes(claim.version)) return { valid: false, reason: "unsupported_version", claimHash };
+  if (![
+    CAPABILITY_CLAIM_VERSION,
+    CAPABILITY_CLAIM_VERSION_V11,
+    CAPABILITY_CLAIM_VERSION_V12,
+    "pmfreak-capability-claim-v1",
+    "pmfreak-capability-claim-v1.1",
+    "pmfreak-capability-claim-v1.2",
+  ].includes(claim.version)) return { valid: false, reason: "unsupported_version", claimHash };
   const trustDomain = claim.proof.trustDomain ?? claim.issuer.trustDomain ?? "pmfreak-local";
   const trust = await verifyIssuerTrust({ trustDomain, issuerApp: claim.issuer.app, expectedTrustDomain: expected.expectedTrustDomain }); if (!trust.ok) return { valid: false, reason: trust.reason, claimHash, trustDomain };
   const key = await resolveVerificationKey({ trustDomainId: trust.trustDomain.id, keyId: claim.proof.keyId }); if (!key) return { valid: false, reason: "unknown_key", claimHash, trustDomain };
