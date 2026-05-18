@@ -9,16 +9,20 @@ import { appendOperationalMemory, extractOperationalMemoryCandidates } from "@/l
 import { enforceRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
 import { getUploadProvider, type StorageProvider } from "@/lib/storage/upload-provider";
 
+type ExtractionStatus = "completed" | "timeout" | "failed";
+
 type ExtractedFile = {
   fileName: string;
   contentType: string;
   size: number;
   extractedText: string;
   storageRef: string;
+  extractionStatus: ExtractionStatus;
 };
 
 type UploadSuccessResponse = {
   ok: true;
+  requestId: string;
   projectId: string;
   projectName: string;
   uploadedCount: number;
@@ -46,6 +50,8 @@ type UploadErrorResponse = {
     | "MISSING_FILES"
     | "INVALID_FILE_FIELD"
     | "INVALID_FILE_TYPE"
+    | "INVALID_EXTENSION"
+    | "DANGEROUS_FILENAME"
     | "FILE_TOO_LARGE"
     | "UPLOAD_LIMIT_REACHED"
     | "INGESTION_FAILED"
@@ -59,9 +65,30 @@ const ALLOWED_MIME_TYPES = new Set([
   "text/plain",
 ]);
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-const MAX_FILES_PER_REQUEST = 10;
-const MAX_TOTAL_SIZE_BYTES = 25 * 1024 * 1024;
+// Extension-to-MIME mapping for extension/MIME consistency enforcement
+const EXTENSION_TO_MIME: Record<string, string> = {
+  ".pdf": "application/pdf",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".txt": "text/plain",
+};
+
+// ENV-configurable limits; process.env values override defaults at startup
+const MAX_FILE_SIZE_BYTES = (() => {
+  const v = Number(process.env.UPLOAD_MAX_FILE_SIZE_BYTES);
+  return Number.isFinite(v) && v > 0 ? v : 10 * 1024 * 1024;
+})();
+const MAX_FILES_PER_REQUEST = (() => {
+  const v = Number(process.env.UPLOAD_MAX_FILES_PER_REQUEST);
+  return Number.isFinite(v) && v > 0 ? v : 10;
+})();
+const MAX_TOTAL_SIZE_BYTES = (() => {
+  const v = Number(process.env.UPLOAD_MAX_TOTAL_SIZE_BYTES);
+  return Number.isFinite(v) && v > 0 ? v : 25 * 1024 * 1024;
+})();
+const EXTRACTION_TIMEOUT_MS = (() => {
+  const v = Number(process.env.UPLOAD_EXTRACTION_TIMEOUT_MS);
+  return Number.isFinite(v) && v > 0 ? v : 5000;
+})();
 
 const sanitizeFileName = (input: string) => input.replace(/[^a-zA-Z0-9._-]/g, "_");
 const riskTerms = /\b(risk|blocker|delay|dependency|escalation)\b/gi;
@@ -80,6 +107,29 @@ const verifyMagicBytes = (declared: string, header: Uint8Array): boolean => {
     if (header[i] !== expected[i]) return false;
   }
   return true;
+};
+
+// Reject dangerous filenames before any processing (not used as FS path, but defense-in-depth)
+const validateFileName = (name: string): { valid: true } | { valid: false; reason: string } => {
+  if (!name || name.trim().length === 0) return { valid: false, reason: "empty_filename" };
+  if (name.length > 255) return { valid: false, reason: "filename_too_long" };
+  // Control characters (including null bytes)
+  if (/[\x00-\x1f\x7f]/.test(name)) return { valid: false, reason: "control_characters" };
+  // Path traversal sequences
+  if (name.includes("../") || name.includes("..\\")) return { valid: false, reason: "path_traversal" };
+  // Path separators
+  if (name.includes("/") || name.includes("\\")) return { valid: false, reason: "path_separator" };
+  // Invisible / directional override / BOM Unicode
+  if (/[​-‏‪-‮⁠-⁯﻿]/.test(name)) return { valid: false, reason: "invisible_unicode" };
+  return { valid: true };
+};
+
+// Extension must agree with declared MIME type to prevent basic spoofing
+const validateExtensionMime = (fileName: string, mimeType: string): boolean => {
+  const dotIdx = fileName.lastIndexOf(".");
+  if (dotIdx === -1) return false;
+  const ext = fileName.slice(dotIdx).toLowerCase();
+  return EXTENSION_TO_MIME[ext] === mimeType;
 };
 
 const errorResponse = (status: number, error: UploadErrorResponse["error"], code: UploadErrorResponse["code"]) =>
@@ -105,36 +155,54 @@ const extractTextFromFile = async (file: File, buffer: Buffer): Promise<string> 
   return "";
 };
 
-const EXTRACTION_TIMEOUT_MS = 5000;
-
-const extractWithTimeout = async (file: File, buffer: Buffer): Promise<string> => {
+const extractWithTimeout = async (
+  file: File,
+  buffer: Buffer,
+): Promise<{ text: string; status: ExtractionStatus }> => {
+  let timedOut = false;
   const timeout = new Promise<string>((resolve) => {
     setTimeout(() => {
-      console.warn("[upload] ingestion_timeout", { fileName: file.name, mimeType: file.type });
-      resolve("");
+      timedOut = true;
+      console.warn("[upload] ingestion_timeout", { fileName: sanitizeFileName(file.name), mimeType: file.type });
+      resolve(""); // timeout resolves to empty string
     }, EXTRACTION_TIMEOUT_MS);
   });
-  return Promise.race([extractTextFromFile(file, buffer), timeout]);
+  try {
+    const text = await Promise.race([extractTextFromFile(file, buffer), timeout]);
+    return { text, status: timedOut ? "timeout" : "completed" };
+  } catch (err) {
+    console.warn("[upload] file_extraction_failed", {
+      safeFileName: sanitizeFileName(file.name),
+      error: err instanceof Error ? err.message : "unknown",
+    });
+    return { text: "", status: "failed" };
+  }
 };
 
-const rollbackUploads = async (provider: StorageProvider, refs: string[]): Promise<void> => {
+const rollbackUploads = async (provider: StorageProvider, refs: string[], requestId?: string): Promise<void> => {
+  if (refs.length === 0) return;
+  console.info("[upload] rollback_started", { requestId, count: refs.length });
   for (const ref of refs) {
     try {
-      console.info("[upload] storage_rollback_attempted", { storageRef: ref });
+      console.info("[upload] storage_rollback_attempted", { requestId, storageRef: ref });
       await provider.delete(ref);
     } catch (err) {
       console.error("[upload] storage_rollback_failed", {
+        requestId,
         storageRef: ref,
         error: err instanceof Error ? err.message : "unknown",
       });
     }
   }
+  console.info("[upload] rollback_completed", { requestId, count: refs.length });
 };
 
 export async function POST(request: Request) {
+  const requestId = randomUUID();
   const user = await getAuthUser();
 
   if (!user) {
+    console.warn("[upload] upload_failed", { requestId, reason: "auth_failed" });
     return errorResponse(401, "Unauthorized", "UNAUTHORIZED");
   }
 
@@ -142,12 +210,14 @@ export async function POST(request: Request) {
   try {
     formData = await request.formData();
   } catch {
+    console.warn("[upload] upload_failed", { requestId, reason: "malformed_multipart" });
     return errorResponse(400, "Malformed multipart/form-data payload.", "MALFORMED_MULTIPART");
   }
 
   // Validate projectId format
   const projectId = (formData.get("projectId") ?? "").toString().trim();
   if (!projectId) {
+    console.warn("[upload] upload_failed", { requestId, reason: "missing_project" });
     return errorResponse(400, "projectId is required.", "MISSING_PROJECT");
   }
 
@@ -155,6 +225,7 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient();
   const { data: project } = await supabase.from("projects").select("id, name").eq("id", projectId).maybeSingle();
   if (!project) {
+    console.warn("[upload] upload_failed", { requestId, reason: "invalid_project", projectId });
     return errorResponse(403, "Invalid project context.", "INVALID_PROJECT");
   }
 
@@ -167,38 +238,47 @@ export async function POST(request: Request) {
     resourceType: "document",
   });
   if (governance.response) {
-    console.warn("[security] upload_project_access_denied", governance.decision);
+    console.warn("[security] upload_project_access_denied", { requestId, ...governance.decision });
+    console.warn("[upload] upload_failed", { requestId, reason: "governance_denied", projectId });
     return errorResponse(403, "Invalid project context.", "INVALID_PROJECT");
   }
 
   const subscription = await getCompanySubscription(user.companyId);
+  // NOTE: canUploadDocuments + incrementUploadUsage is not atomic. Concurrent requests can both
+  // pass the quota check before either increments. Mitigation requires a DB-level atomic increment
+  // (e.g., RPC with row lock). This is a known residual risk; tracked in security/residual-risks.md.
   const usage = await getCompanyUsage(user.companyId);
 
   const incomingFiles = formData.getAll("documents");
 
   if (incomingFiles.length === 0) {
+    console.warn("[upload] upload_failed", { requestId, reason: "missing_files" });
     return errorResponse(400, "At least one file is required in `documents` field.", "MISSING_FILES");
   }
 
   const files = incomingFiles.filter((entry): entry is File => entry instanceof File);
 
   if (files.length === 0) {
+    console.warn("[upload] upload_failed", { requestId, reason: "invalid_file_field" });
     return errorResponse(400, "No valid files found in `documents` field.", "INVALID_FILE_FIELD");
   }
 
   // File count limit — checked before entering the loop
   if (files.length > MAX_FILES_PER_REQUEST) {
+    console.warn("[upload] upload_failed", { requestId, reason: "too_many_files", count: files.length });
     return errorResponse(400, `Too many files. Maximum ${MAX_FILES_PER_REQUEST} files per request.`, "TOO_MANY_FILES");
   }
 
   // Total size limit — checked before entering the loop
   const totalSize = files.reduce((sum, f) => sum + f.size, 0);
   if (totalSize > MAX_TOTAL_SIZE_BYTES) {
+    console.warn("[upload] upload_failed", { requestId, reason: "total_size_exceeded", totalSize });
     return errorResponse(400, "Total upload size exceeds 25MB limit.", "TOTAL_SIZE_EXCEEDED");
   }
 
   if (!canUploadDocuments(subscription.plan, usage.uploadCount, files.length)) {
     const limit = getUploadLimitForPlan(subscription.plan);
+    console.warn("[upload] upload_failed", { requestId, reason: "quota_exceeded" });
     return errorResponse(
       403,
       limit === null ? "Upload limit reached." : `Free plan limit reached (${limit} uploads/month). Upgrade to Pro for unlimited uploads.`,
@@ -210,33 +290,58 @@ export async function POST(request: Request) {
   const processedFiles: ExtractedFile[] = [];
   const uploadedRefs: string[] = [];
   const ingestionStartedAt = new Date().toISOString();
-  console.info("[upload] upload_started", { userId: user.id, companyId: user.companyId, projectId, fileCount: files.length, fileNames: files.map((f) => f.name) });
+  console.info("[upload] upload_started", {
+    requestId,
+    userId: user.id,
+    companyId: user.companyId,
+    projectId,
+    fileCount: files.length,
+    totalSize,
+  });
 
   for (const file of files) {
+    const fileId = randomUUID();
+    const safeFileName = sanitizeFileName(file.name);
+    const fileCtx = { requestId, fileId, safeFileName, mimeType: file.type, size: file.size };
+
+    // Reject dangerous filenames before any processing (defense-in-depth)
+    const nameCheck = validateFileName(file.name);
+    if (!nameCheck.valid) {
+      console.warn("[upload] file_validation_failed", { ...fileCtx, reason: "dangerous_filename", detail: nameCheck.reason });
+      await rollbackUploads(provider, uploadedRefs, requestId);
+      return errorResponse(400, `Dangerous filename rejected: ${safeFileName}`, "DANGEROUS_FILENAME");
+    }
+
+    // Extension must agree with declared MIME type
+    if (!validateExtensionMime(file.name, file.type)) {
+      console.warn("[upload] file_validation_failed", { ...fileCtx, reason: "invalid_extension" });
+      await rollbackUploads(provider, uploadedRefs, requestId);
+      return errorResponse(400, `File extension does not match declared type: ${safeFileName}`, "INVALID_EXTENSION");
+    }
+
     if (!ALLOWED_MIME_TYPES.has(file.type)) {
-      console.warn("[upload] upload_failed", { reason: "invalid_file_type", projectId, fileName: file.name, fileType: file.type });
-      await rollbackUploads(provider, uploadedRefs);
-      return errorResponse(400, `Unsupported file type: ${file.name}`, "INVALID_FILE_TYPE");
+      console.warn("[upload] file_validation_failed", { ...fileCtx, reason: "invalid_file_type" });
+      await rollbackUploads(provider, uploadedRefs, requestId);
+      return errorResponse(400, `Unsupported file type: ${safeFileName}`, "INVALID_FILE_TYPE");
     }
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      console.warn("[upload] upload_failed", { reason: "file_too_large", projectId, fileName: file.name, fileSize: file.size });
-      await rollbackUploads(provider, uploadedRefs);
-      return errorResponse(400, `File too large: ${file.name}`, "FILE_TOO_LARGE");
+      console.warn("[upload] file_validation_failed", { ...fileCtx, reason: "file_too_large" });
+      await rollbackUploads(provider, uploadedRefs, requestId);
+      return errorResponse(400, `File too large: ${safeFileName}`, "FILE_TOO_LARGE");
     }
 
     // MIME spoofing defense — verify magic bytes before allocating full buffer
     const firstChunk = await file.slice(0, 8).arrayBuffer();
     const header = new Uint8Array(firstChunk);
     if (!verifyMagicBytes(file.type, header)) {
-      console.warn("[upload] upload_failed", { reason: "magic_bytes_mismatch", projectId, fileName: file.name, declaredType: file.type });
-      await rollbackUploads(provider, uploadedRefs);
-      return errorResponse(400, `File content does not match declared type: ${file.name}`, "INVALID_FILE_TYPE");
+      console.warn("[upload] file_validation_failed", { ...fileCtx, reason: "magic_bytes_mismatch" });
+      await rollbackUploads(provider, uploadedRefs, requestId);
+      return errorResponse(400, `File content does not match declared type: ${safeFileName}`, "INVALID_FILE_TYPE");
     }
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const fileId = randomUUID();
 
     let storageRef: string;
     try {
@@ -250,17 +355,24 @@ export async function POST(request: Request) {
       });
       storageRef = result.storageRef;
       uploadedRefs.push(storageRef);
+      console.info("[upload] file_storage_uploaded", { ...fileCtx, storageRef });
     } catch (storageError) {
-      await rollbackUploads(provider, uploadedRefs);
+      await rollbackUploads(provider, uploadedRefs, requestId);
       console.error("[upload] storage_upload_failed", {
-        projectId,
-        fileName: file.name,
+        ...fileCtx,
         error: storageError instanceof Error ? storageError.message : "unknown",
       });
-      return errorResponse(500, `Storage failed for ${file.name}.`, "INGESTION_FAILED");
+      console.warn("[upload] upload_failed", { requestId, reason: "storage_upload_failed" });
+      return errorResponse(500, `Storage failed for ${safeFileName}.`, "INGESTION_FAILED");
     }
 
-    const extractedText = await extractWithTimeout(file, buffer);
+    const { text: extractedText, status: extractionStatus } = await extractWithTimeout(file, buffer);
+
+    if (extractionStatus === "completed") {
+      console.info("[upload] file_extraction_completed", { ...fileCtx, storageRef });
+    } else {
+      console.warn("[upload] file_extraction_failed", { ...fileCtx, storageRef, reason: extractionStatus });
+    }
 
     processedFiles.push({
       fileName: file.name,
@@ -268,6 +380,7 @@ export async function POST(request: Request) {
       size: file.size,
       extractedText,
       storageRef,
+      extractionStatus,
     });
   }
 
@@ -289,16 +402,18 @@ export async function POST(request: Request) {
     entries: extracted,
   });
   console.info("[upload] ingestion_completed", {
+    requestId,
     userId: user.id,
     companyId: user.companyId,
     projectId,
     uploadedCount: processedFiles.length,
-    uploadedFileNames: processedFiles.map((file) => file.fileName),
     extractedSignals: { risks: riskCount, stakeholders: stakeholderCount },
+    extractionStatuses: processedFiles.map((f) => f.extractionStatus),
   });
 
   return Response.json({
     ok: true,
+    requestId,
     projectId: project.id,
     projectName: project.name.trim(),
     uploadedCount: processedFiles.length,

@@ -36,12 +36,24 @@ class SupabaseStorageProvider implements StorageProvider {
       systemActor: "background_job",
     });
 
+    if (process.env.UPLOAD_VERIFY_BUCKET === "true") {
+      const { data: bucket, error: bucketErr } = await supabase.storage.getBucket(BUCKET);
+      if (bucketErr || !bucket) {
+        throw new Error(`Storage bucket "${BUCKET}" is not accessible: ${bucketErr?.message ?? "not found"}`);
+      }
+    }
+
     const safeName = sanitizeFileName(params.originalName);
+    // Path: companyId/projectId/fileId-safeName — UUID prevents enumeration; scoped for tenant isolation
     const storagePath = `${params.companyId}/${params.projectId}/${params.fileId}-${safeName}`;
 
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(storagePath, params.buffer, { contentType: params.mimeType, upsert: false });
+      .upload(storagePath, params.buffer, {
+        contentType: params.mimeType,
+        cacheControl: "no-store",
+        upsert: false,
+      });
 
     if (error) {
       throw new Error(`Storage upload failed for path "${storagePath}": ${error.message}`);
@@ -61,6 +73,7 @@ class SupabaseStorageProvider implements StorageProvider {
       systemActor: "background_job",
     });
 
+    // Supabase remove() is idempotent — it does not error when the object is already absent
     const { error } = await supabase.storage.from(BUCKET).remove([storageRef]);
     if (error) {
       throw new Error(`Storage delete failed for path "${storageRef}": ${error.message}`);
