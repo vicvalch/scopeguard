@@ -1,5 +1,7 @@
 export type InferenceRole = "system" | "user" | "assistant" | "tool";
 
+export type DataSensitivity = "restricted" | "confidential" | "internal" | "public";
+
 export interface InferenceMessage {
   role: InferenceRole;
   content: string;
@@ -17,6 +19,7 @@ export interface InferenceRequest {
   projectId?: string;
   actorId?: string;
   actorType?: string;
+  dataSensitivity?: DataSensitivity;
   messages: InferenceMessage[];
   responseFormat?: {
     type: "json_schema" | "json_object" | "text";
@@ -30,6 +33,8 @@ export interface InferenceRequest {
   retryDelayMs?: number;
   operationName?: string;
   idempotencyKey?: string;
+  // Routing metadata: routingMode, preferredProvider, allowFallback,
+  // requireLocalExecution, tenantRegion, dataResidency
   metadata?: Record<string, unknown>;
 }
 

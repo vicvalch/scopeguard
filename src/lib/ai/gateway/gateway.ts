@@ -12,7 +12,6 @@ import { politicalRiskPromptPackV1 } from "@/lib/ai/prompts/political-risk.v1";
 import { stakeholderIntelPromptPackV1 } from "@/lib/ai/prompts/stakeholder-intel.v1";
 import type { MessageNudgesInputSchema, MessageNudgesOutputSchema } from "@/lib/ai/prompts/message-nudges.v1";
 import { createSupabaseServerClient } from "@/lib/db/supabase-server";
-import { runProviderInference } from "@/lib/ai/providers/router";
 
 type MessageNudgesContext = {
   projectMemory: string[];

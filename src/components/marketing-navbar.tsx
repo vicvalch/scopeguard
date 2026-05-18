@@ -54,7 +54,7 @@ export function MarketingNavbar() {
                 {link.label}
               </Link>
             ))}
-            <Link href="/login" className="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-lg font-semibold text-slate-100" onClick={() => setIsOpen(false)}>
+            <Link href="/login" className="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-lg font-semibold text-zinc-900" onClick={() => setIsOpen(false)}>
               <span className="font-semibold text-zinc-900">Sign In</span>
             </Link>
             <Link href="/signup" className="rounded-full bg-gradient-to-r from-[#ff008c] to-white px-4 py-2.5 text-center text-lg font-semibold text-slate-950" onClick={() => setIsOpen(false)}>

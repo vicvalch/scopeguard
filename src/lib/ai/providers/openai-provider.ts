@@ -48,6 +48,10 @@ function tryParseJson(content: string): unknown {
   }
 }
 
+export function isOpenAIProviderConfigured(): boolean {
+  return Boolean(process.env.OPENAI_API_KEY);
+}
+
 export const openAIProvider: InferenceProvider = {
   id: "openai",
 
