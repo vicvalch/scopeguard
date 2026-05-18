@@ -17,7 +17,8 @@ test('central access guards enforce server-side project/workspace checks', () =>
 });
 
 test('operational memory route enforces scoped retrieval and rejects foreign projects', () => {
-  assert.match(operationalRoute, /requireProjectPermission/);
+  assert.match(operationalRoute, /authorizeRuntimeAction/);
+  assert.match(operationalRoute, /buildEnterpriseRuntimeRequest/);
   assert.match(operationalRoute, /project_scope_violation/);
   assert.match(operationalRoute, /unresolvedOnly/);
   assert.match(operationalRoute, /memoryType/);

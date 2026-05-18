@@ -1,6 +1,7 @@
 import { getAuthUser } from "@/lib/auth";
-import { AccessDeniedError, requireProjectPermission } from "@/lib/security/access-guards";
-import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
+import { denyResponse } from "@/lib/security/deny-response";
+import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
+import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
 import {
   appendOperationalMemory,
   extractOperationalMemoryCandidates,
@@ -17,14 +18,10 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get("projectId")?.trim() ?? null;
   if (projectId) {
-    try {
-      await requireProjectPermission(projectId, "read");
-    } catch (error) {
-      if (error instanceof AccessDeniedError) {
-        return denyFromAccessError(error, { status: 403, routeId: "/api/operational-memory", message: "Invalid project context.", actorUserId: user.id, projectId, requestedPermission: "read", deniedPermission: "read", eventType: "project_scope_violation" });
-      }
-      throw error;
-    }
+    const decision = await authorizeRuntimeAction(
+      buildEnterpriseRuntimeRequest({ user, action: "memory.read", routeId: "/api/operational-memory", workspaceId: user.companyId, projectId, resourceType: "project", resourceId: projectId }),
+    );
+    if (!decision.allowed) return denyResponse({ status: 403, routeId: "/api/operational-memory", message: "Invalid project context.", reason: decision.reason, actorUserId: user.id, projectId, requestedPermission: "read", deniedPermission: "read", eventType: "project_scope_violation" });
   }
   const unresolvedOnly = searchParams.get("unresolvedOnly") === "true";
   const type = searchParams.get("memoryType")?.trim() as MemoryType | undefined;
@@ -53,14 +50,11 @@ export async function POST(request: Request) {
 
   if (!body.text?.trim()) return Response.json({ error: "text required" }, { status: 400 });
   if (body.projectId?.trim()) {
-    try {
-      await requireProjectPermission(body.projectId.trim(), "write_memory");
-    } catch (error) {
-      if (error instanceof AccessDeniedError) {
-        return denyFromAccessError(error, { status: 403, routeId: "/api/operational-memory", message: "Invalid project context.", actorUserId: user.id, projectId: body.projectId.trim(), requestedPermission: "write_memory", deniedPermission: "write_memory", eventType: "project_scope_violation" });
-      }
-      throw error;
-    }
+    const projectId = body.projectId.trim();
+    const decision = await authorizeRuntimeAction(
+      buildEnterpriseRuntimeRequest({ user, action: "memory.write", routeId: "/api/operational-memory", workspaceId: user.companyId, projectId, resourceType: "project", resourceId: projectId }),
+    );
+    if (!decision.allowed) return denyResponse({ status: 403, routeId: "/api/operational-memory", message: "Invalid project context.", reason: decision.reason, actorUserId: user.id, projectId, requestedPermission: "write_memory", deniedPermission: "write_memory", eventType: "project_scope_violation" });
   }
 
   const candidates = extractOperationalMemoryCandidates({

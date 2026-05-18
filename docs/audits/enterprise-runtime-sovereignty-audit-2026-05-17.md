@@ -30,3 +30,23 @@ PMFreak is **not** cleanly consuming an external enterprise runtime. It still em
 - Resolved key break #2 by enforcing enterprise-owned authorization boundaries across `src/aoc/enterprise/**`: enterprise runtime modules now remain free of PMFreak app/lib imports (`@/lib/*`, `@/app/*`, auth/security helpers).
 - Added `tests/enterprise-runtime-sovereignty-imports.test.mjs` to statically fail if enterprise runtime layers import PMFreak auth/security or app/lib modules, preventing regression of dependency direction.
 - Confirmed portability boundary: PMFreak-specific deny response shaping remains in `src/lib/aoc/enterprise/runtime.ts` (application adapter), while enterprise runtime evaluation/enforcement contracts remain in `src/aoc/enterprise/runtime/**`.
+
+## Runtime consumption transition update (2026-05-18, phase-1 rollout)
+- Added a single PMFreak-consumed enterprise authorization entrypoint at `src/lib/aoc/enterprise/authorization.ts` via `authorizeRuntimeAction()`, which delegates orchestration to enterprise runtime and normalizes decision shape for application use.
+- Added PMFreak runtime consumer adapter `src/lib/aoc/pmfreak-runtime-consumer.ts` to isolate request shaping (session identity + scope + metadata) from authorization logic.
+- Migrated `src/app/api/operational-memory/route.ts` from local `requireProjectPermission()` enforcement to enterprise runtime consumption flow (`buildEnterpriseRuntimeRequest` -> `authorizeRuntimeAction` -> response shaping).
+- Began conversion of `src/lib/security/server-authorization.ts:evaluateCapability()` to enterprise runtime delegation, removing direct local policy orchestration from that path.
+- Added regression test `tests/runtime-consumer-boundary.test.mjs` to fail if migrated routes regress to local guard/policy ownership.
+
+### Migration map (current)
+- **Migrated to enterprise runtime consumer flow:**
+  - `src/app/api/operational-memory/route.ts` (GET/POST project-scoped memory reads/writes).
+  - `src/lib/security/server-authorization.ts` capability evaluation path.
+- **Still local ownership (remaining):**
+  - Multiple route handlers under `src/app/api/**` still import `@/lib/security/access-guards`.
+  - Several protected server actions under `src/app/(protected)/**/actions.ts` still use local role checks.
+  - Legacy `src/lib/security/access-guards.ts` still contains local RBAC + enforcement orchestration.
+
+### Runtime sovereignty status
+- Progress estimate: **~38%** complete for authorization ownership migration.
+- Main remaining violations: route-level local guard orchestration, mixed policy/RBAC decisioning in app-layer security helpers, and partial bypass of a singular runtime authorization choke point.
