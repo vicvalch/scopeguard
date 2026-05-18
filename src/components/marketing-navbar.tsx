@@ -31,7 +31,7 @@ export function MarketingNavbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Link href="/login" className="/5 px-4 py-2 text-lg font-semibold text-slate-100 hover:border-cyan-300/70 hover:text-cyan-100">
+          <Link href="/login" className="rounded-full border border-transparent px-4 py-2 text-lg font-semibold text-zinc-900 transition hover:border-cyan-300/50 hover:text-cyan-700">
             <span className="font-semibold text-zinc-900">Sign In</span>
           </Link>
           <Link href="/signup" className="rounded-full border border-fuchsia-300/70 bg-gradient-to-r from-[#ff008c] to-white px-5 py-2 text-lg font-semibold text-slate-950 shadow-[0_0_24px_rgba(236,72,153,0.22)] hover:brightness-110">
@@ -48,13 +48,13 @@ export function MarketingNavbar() {
 
       <div id="mobile-main-menu" className={`grid transition-all duration-300 md:hidden ${isOpen ? "grid-rows-[1fr] opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0"}`}>
         <div className="overflow-hidden border-t border-zinc-200 bg-white/95 px-4 pb-4">
-          <div className="mt-3 flex flex-col gap-2 /5 p-3 backdrop-blur-xl">
+          <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-zinc-200/80 bg-white/90 p-3 backdrop-blur-xl">
             {navLinks.map((link) => (
-              <Link key={link.label} href={link.href} className="/10" onClick={() => setIsOpen(false)}>
+              <Link key={link.label} href={link.href} className="rounded-lg px-3 py-2 text-lg font-medium text-zinc-900 transition hover:bg-zinc-100" onClick={() => setIsOpen(false)}>
                 {link.label}
               </Link>
             ))}
-            <Link href="/login" className="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-lg font-semibold text-slate-100" onClick={() => setIsOpen(false)}>
+            <Link href="/login" className="rounded-lg border border-zinc-200 px-3 py-2.5 text-center text-lg font-semibold text-zinc-900" onClick={() => setIsOpen(false)}>
               <span className="font-semibold text-zinc-900">Sign In</span>
             </Link>
             <Link href="/signup" className="rounded-full bg-gradient-to-r from-[#ff008c] to-white px-4 py-2.5 text-center text-lg font-semibold text-slate-950" onClick={() => setIsOpen(false)}>

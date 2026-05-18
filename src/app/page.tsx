@@ -550,7 +550,7 @@ export default function Home() {
       <MarketingNavbar />
 
       <main className="min-h-screen bg-white px-5 py-8 text-zinc-950 md:px-8 md:py-12">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 md:gap-10">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-9 md:gap-12">
           <HeroSection />
 
           <OperationalRealitySection />

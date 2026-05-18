@@ -88,8 +88,8 @@ export function HeroSection() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/signup" className="rounded-full bg-[#ff0b8a] px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(255,11,138,0.55)] transition hover:bg-[#e10079]">Get Started</Link>
-            <Link href="/demo" className="rounded-full border border-white/25 bg-black/30 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10">Watch Demo</Link>
+            <Link href="/signup" className="rounded-full bg-[#ff0b8a] px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(255,11,138,0.55)] transition hover:bg-[#e10079]">Start Free</Link>
+            <Link href="/command-center" className="rounded-full border border-white/25 bg-black/30 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10">Open Command Center</Link>
           </div>
 
           <div className="mt-7 flex flex-wrap gap-2.5">
