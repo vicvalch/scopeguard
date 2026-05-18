@@ -141,7 +141,7 @@ function OperationalRealitySection() {
   return (
     <section className={`${lightSectionClass} p-7 md:p-9`}>
       <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#ff008c]">
-        Operational reality
+        <span id="intelligence" className="block relative -top-24"></span>Operational reality
       </p>
 
       <h2 className="mt-3 text-3xl font-black text-zinc-950 md:text-4xl">
