@@ -9,7 +9,10 @@
     "lint": "npm run lint:aoc-boundaries && eslint",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
-    "lint:aoc-boundaries": "node scripts/lint-aoc-boundaries.mjs"
+    "lint:aoc-boundaries": "node scripts/lint-aoc-boundaries.mjs",
+    "check:aoc-packages": "node scripts/check-aoc-packages.mjs",
+    "check:aoc-deps": "node scripts/check-aoc-dependency-direction.mjs",
+    "check:aoc-boundaries": "npm run lint:aoc-boundaries && npm run check:aoc-packages && npm run check:aoc-deps"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",

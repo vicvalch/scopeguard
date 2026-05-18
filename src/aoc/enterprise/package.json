@@ -9,8 +9,14 @@
     "./runtime": "./runtime/index.ts",
     "./runtime/*": "./runtime/*.ts"
   },
-  "files": ["**/*.ts", "!**/*.test.ts", "!**/*.spec.ts"],
-  "engines": { "node": ">=20" },
+  "files": [
+    "**/*.ts",
+    "!**/*.test.ts",
+    "!**/*.spec.ts"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "publishConfig": {
     "access": "restricted",
     "registry": "https://npm.pkg.github.com"
@@ -19,5 +25,10 @@
     "type": "git",
     "url": "https://github.com/Architects-of-Change-Protocol/pmfreak.git",
     "directory": "src/aoc/enterprise"
-  }
+  },
+  "main": "./runtime/index.ts",
+  "module": "./runtime/index.ts",
+  "types": "./runtime/index.ts",
+  "sideEffects": false,
+  "peerDependencies": {}
 }
