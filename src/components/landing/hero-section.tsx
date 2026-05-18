@@ -62,7 +62,7 @@ const neuralConnections = [
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#050507] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)] md:p-10">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:38px_38px]" />
+      <div className="translate-x-28 md:translate-x-40 pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:38px_38px]" />
       <div className="pointer-events-none absolute -left-24 top-16 h-80 w-80 rounded-full bg-[#ff0b8a]/16 blur-[130px]" />
       <div className="pointer-events-none absolute right-[-4%] top-20 h-96 w-96 rounded-full bg-cyan-400/14 blur-[160px]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_35%,rgba(148,233,255,0.08),transparent_42%),radial-gradient(circle_at_35%_78%,rgba(255,95,198,0.08),transparent_44%)]" />
@@ -132,9 +132,9 @@ export function HeroSection() {
                 />
               ))}
 
-              <span className="ml-[120px] absolute right-2 top-[24%] rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-cyan-200">classify</span>
-              <span className="ml-[120px] absolute right-1 top-[52%] rounded-full border border-fuchsia-300/30 bg-fuchsia-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-fuchsia-200">synthesize</span>
-              <span className="ml-[120px] absolute right-3 top-[66%] rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-cyan-200">reinforce</span>
+              <span className="absolute right-2 top-[24%] rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-cyan-200">classify</span>
+              <span className="absolute right-1 top-[52%] rounded-full border border-fuchsia-300/30 bg-fuchsia-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-fuchsia-200">synthesize</span>
+              <span className="absolute right-3 top-[66%] rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-cyan-200">reinforce</span>
             </div>
 
             <div className="relative w-full rounded-3xl border border-cyan-200/30 bg-gradient-to-r from-cyan-400/10 via-black/60 to-fuchsia-400/10 p-4 md:w-[45%] motion-safe:animate-[breathe_8s_ease-in-out_infinite]">
