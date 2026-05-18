@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const claims = fs.readFileSync('src/aoc/protocol/contracts/capability-claims.ts','utf8');
+const claims = fs.readFileSync('src/lib/security/capability-claims.ts','utf8');
 const trust = fs.readFileSync('src/lib/security/trust-domains.ts','utf8');
 const keysRoute = fs.readFileSync('src/app/api/governance/trust/keys/route.ts','utf8');
 const verifyRoute = fs.readFileSync('src/app/api/governance/capabilities/verify/route.ts','utf8');
@@ -10,7 +10,7 @@ const indep = fs.readFileSync('src/lib/security/independent-verifier.ts','utf8')
 const telemetry = fs.readFileSync('src/lib/security/telemetry.ts','utf8');
 
 test('ed25519 claim + v1.2 supported and fails closed unsupported alg',()=>{
-  assert.match(claims,/pmfreak-capability-claim-v1\.2/);
+  assert.match(claims,/CAPABILITY_CLAIM_VERSION_V12/);
   assert.match(claims,/Ed25519/);
   assert.match(claims,/unsupported_algorithm/);
 });

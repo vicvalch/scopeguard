@@ -20,3 +20,7 @@ PMFreak is **not** cleanly consuming an external enterprise runtime. It still em
 - Block direct DB access for governance/capability domains from PMFreak app layer.
 - Replace local guard fan-out with single enterprise authorization gateway.
 - Enforce import rules in CI for dependency direction.
+
+## Remediation note (2026-05-17)
+- Resolved key break #1 by isolating `src/aoc/protocol/contracts/capability-claims.ts` to pure contract artifacts only (types/constants/canonicalization/hash helpers), and moving PMFreak runtime trust/signing/verification integrations into `src/lib/security/capability-claims.ts`.
+- Added `tests/protocol-import-boundaries.test.mjs` to assert protocol contracts do not import forbidden PMFreak layers.

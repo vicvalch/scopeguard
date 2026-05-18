@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const claims = fs.readFileSync('src/aoc/protocol/contracts/capability-claims.ts', 'utf8');
+const claims = fs.readFileSync('src/lib/security/capability-claims.ts', 'utf8');
 const trustDomains = fs.readFileSync('src/lib/security/trust-domains.ts', 'utf8');
 const telemetry = fs.readFileSync('src/lib/security/telemetry.ts', 'utf8');
 const verifyRoute = fs.readFileSync('src/app/api/governance/capabilities/verify/route.ts', 'utf8');
 const migration = fs.readFileSync('supabase/migrations/20260513010000_trust_domains_federated_verification.sql', 'utf8');
 
 test('claim version + trust domain fields exist', () => {
-  assert.match(claims, /pmfreak-capability-claim-v1\.1/);
+  assert.match(claims, /CAPABILITY_CLAIM_VERSION_V11/);
   assert.match(claims, /issuerId/);
   assert.match(claims, /trustDomain/);
   assert.match(claims, /issuedAt/);
