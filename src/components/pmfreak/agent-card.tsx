@@ -6,7 +6,7 @@ type AgentCardProps = {
   signals: readonly string[];
   status: string;
   confidence: number;
-  metrics: Array<{ label: string; value: string }>;
+  metrics: readonly { readonly label: string; readonly value: string }[];
   activity: readonly string[];
   tone: {
     border: string;
