@@ -20,9 +20,9 @@ export function recordAIEgressDecision(request: AIEgressRequest, decision: AIEgr
   const event: AIEgressAuditEvent = {
     eventType: "ai_egress_decision",
     timestamp: new Date().toISOString(),
-    actorType: request.actor?.actorType,
-    actorUserId: request.actor?.actorUserId,
-    actorAgentId: request.actor?.actorAgentId,
+    actorType: request.actorType,
+    actorUserId: request.actorId,
+    actorAgentId: request.actorType === "agent" ? request.actorId : undefined,
     provider: request.provider,
     moduleId: request.moduleId,
     workspaceId: request.workspaceId,
