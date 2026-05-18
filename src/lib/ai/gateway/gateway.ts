@@ -349,7 +349,6 @@ export async function runAIModule({
               },
               required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
             },
-            required: ["toneRisk", "rewriteSuggestion", "improvedVersion", "confidence", "rationale"],
           },
         },
         temperature: 0.2,
