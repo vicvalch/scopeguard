@@ -71,16 +71,23 @@ export function detectCommunicationVolatility(stakeholders: StakeholderMemory[])
 }
 
 export function detectEscalationPatterns(stakeholders: StakeholderMemory[]): EscalationBehavior {
-  const escalationTokens = ["escalat", "urgent", "deadline", "slip", "blocked"];
-  const hits = stakeholders.reduce((acc, stakeholder) => {
+  // Weighted by influence: high-influence escalation signals count more
+  let weightedScore = 0;
+  for (const stakeholder of stakeholders) {
     const joined = [...stakeholder.pressurePatterns, ...stakeholder.sentimentSignals].join(" ").toLowerCase();
-    const score = escalationTokens.filter((token) => joined.includes(token)).length;
-    return acc + score;
-  }, 0);
+    const influenceMultiplier = stakeholder.influence === "high" ? 2.5 : stakeholder.influence === "medium" ? 1.5 : 1;
 
-  if (hits >= 8) return "accelerating";
-  if (hits >= 4) return "patterned";
-  if (hits >= 1) return "reactive";
+    // Stronger escalation signals
+    const hardEscalation = (joined.match(/\b(escalat(?:ed|ing|es)|will escalate|must escalate)\b/g) ?? []).length;
+    // Urgency signals (softer)
+    const urgencySignals = (joined.match(/\b(urgent|deadline|slip|blocked|pressure|overdue)\b/g) ?? []).length;
+
+    weightedScore += (hardEscalation * 3 + urgencySignals) * influenceMultiplier;
+  }
+
+  if (weightedScore >= 18) return "accelerating";
+  if (weightedScore >= 8) return "patterned";
+  if (weightedScore >= 2) return "reactive";
   return "none";
 }
 
@@ -139,11 +146,28 @@ export function buildStakeholderRelationshipSnapshot(projectId: string | null, s
     communicationVolatility: s.sentimentSignals.length >= 4 ? "volatile" : s.sentimentSignals.length >= 2 ? "watching" : "stable",
   }));
 
+  const highPressureNames = stakeholders
+    .filter((s) => s.pressurePatterns.length >= 2)
+    .map((s) => s.name)
+    .slice(0, 2)
+    .join(", ");
+  const executiveStakeholderNames = executiveStakeholders.map((s) => s.name).slice(0, 2).join(", ");
+
   const commentary = [
-    alignment === "fragmented" ? "Stakeholder expectations are diverging." : "Stakeholder expectations remain materially aligned.",
-    escalation === "accelerating" ? "Escalation pressure increasing without scope stabilization." : "Escalation pressure appears manageable under current scope.",
-    communication === "volatile" ? "Communication volatility detected across active participants." : "Communication rhythm is currently stable across participants.",
-    executiveAlignment !== "aligned" ? "Project leadership alignment appears unstable." : "Project leadership alignment is holding steady.",
+    alignment === "fragmented"
+      ? `Stakeholder expectations are diverging${highPressureNames ? ` — elevated pressure from: ${highPressureNames}` : ""}.`
+      : "Stakeholder expectations remain materially aligned.",
+    escalation === "accelerating"
+      ? `Escalation pressure accelerating without scope stabilization${highPressureNames ? ` (${highPressureNames})` : ""}.`
+      : escalation === "patterned"
+        ? "Escalation pattern is recurring — not yet accelerating but requires monitoring."
+        : "Escalation pressure appears manageable under current scope.",
+    communication === "volatile"
+      ? `Communication volatility detected across ${stakeholders.length} active participant${stakeholders.length !== 1 ? "s" : ""}.`
+      : "Communication rhythm is currently stable across participants.",
+    executiveAlignment !== "aligned"
+      ? `Project leadership alignment appears unstable${executiveStakeholderNames ? ` (${executiveStakeholderNames})` : ""}.`
+      : "Project leadership alignment is holding steady.",
   ];
 
   // Foundation note: this deterministic graph-oriented snapshot is intentionally structured

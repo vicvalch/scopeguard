@@ -29,15 +29,15 @@ export type OperationalMemoryEntry = {
 };
 
 const KEYWORDS: Record<MemoryType, RegExp[]> = {
-  risks: [/\brisk\b/i, /may impact/i, /threat/i, /delayed/i],
-  blockers: [/\bblocker\b/i, /\bblocked\b/i, /cannot proceed/i],
-  decisions: [/\bdecision\b/i, /decided\b/i, /approved\b/i],
-  stakeholders: [/stakeholder/i, /sponsor/i, /owner:/i, /vendor/i, /client/i],
-  action_items: [/action item/i, /todo/i, /we need to/i, /next step/i],
-  unresolved_questions: [/\?/i, /open question/i, /unknown/i, /unclear/i],
-  dependencies: [/dependency/i, /depends on/i, /waiting on/i],
-  milestones: [/milestone/i, /go-live/i, /deadline/i, /launch/i],
-  escalations: [/escalat/i, /executive review/i, /raise to/i],
+  risks: [/\brisk\b/i, /may impact/i, /\bthreat\b/i, /\bat risk\b/i, /\brisk identified\b/i],
+  blockers: [/\bblocker\b/i, /\bblocked\b/i, /cannot proceed/i, /blocking\s+(?:us|the|delivery|progress)/i],
+  decisions: [/\bdecision\b/i, /\bdecided\b/i, /\bapproved\b/i, /\bsigned off\b/i, /\bwe agreed\b/i],
+  stakeholders: [/stakeholder/i, /\bsponsor\b/i, /owner:/i, /\bvendor\b/i, /\bclient\b/i, /\bexecutive\b/i],
+  action_items: [/action item/i, /\btodo\b/i, /we need to/i, /next step/i, /\baction required\b/i],
+  unresolved_questions: [/open question/i, /\bunknown\b/i, /\bunclear\b/i, /\bpending decision\b/i, /\bstill unclear\b/i],
+  dependencies: [/\bdependency\b/i, /depends on/i, /waiting on/i, /\bwaiting for\b/i, /\bpending from\b/i],
+  milestones: [/\bmilestone\b/i, /\bgo-live\b/i, /\bdeadline\b/i, /\blaunch\b/i, /\bphase\s+\d/i, /\brelease\s+\d/i],
+  escalations: [/\bescalat/i, /executive review/i, /raise to/i, /escalation\s+needed/i],
 };
 
 const normalize = (value: string) => value.toLowerCase().replace(/\s+/g, " ").trim();
@@ -60,15 +60,21 @@ export function extractOperationalMemoryCandidates(input: { text: string; source
   }> = [];
 
   for (const line of lines) {
+    // Detect resolution before keyword matching to avoid false active entries
+    const resolvedLine = /\b(resolved|closed|completed|done|fixed|addressed|no\s+longer\s+blocking)\b/i.test(line);
+
     for (const memoryType of MEMORY_TYPES) {
       if (KEYWORDS[memoryType].some((pattern) => pattern.test(line))) {
-        const resolved = /\b(resolved|closed|completed|done)\b/i.test(line);
+        // Suppress noise: short lines without operational substance
+        const hasOperationalSubstance = line.length >= 20 && /[A-Za-z]{4,}/.test(line);
+        if (!hasOperationalSubstance) continue;
+
         candidates.push({
           memoryType,
           memoryText: line.slice(0, 400),
           sourceType: input.sourceType,
           sourceReference: input.sourceReference,
-          status: resolved ? "resolved" : "active",
+          status: resolvedLine ? "resolved" : "active",
         });
       }
     }
@@ -187,21 +193,69 @@ export async function getOperationalMemory(input: {
   return (data ?? []).map(validateAndMapRow).filter((e): e is OperationalMemoryEntry => e !== null);
 }
 
-export async function buildContinuityContext(companyId: string, projectId: string | null) {
-  const entries = await getOperationalMemory({ companyId, projectId, unresolvedOnly: true, limit: 30 });
-  const grouped = new Map<MemoryType, OperationalMemoryEntry[]>();
-  for (const type of MEMORY_TYPES) grouped.set(type, []);
+// Compute operational relevance score for an entry.
+// Blockers and escalations: older unresolved = higher persistence concern.
+// Decisions and risks: recency matters more.
+function scoreContinuityEntry(entry: OperationalMemoryEntry, now: number): number {
+  const ageDays = Math.max(0, (now - Date.parse(entry.createdAt)) / 86_400_000);
 
-  for (const entry of entries) {
-    const bucket = grouped.get(entry.memoryType);
-    if (bucket && bucket.length < 3) bucket.push(entry);
+  switch (entry.memoryType) {
+    case "blockers":
+    case "escalations":
+      // Persistent unresolved items are operationally high-priority
+      return Math.min(100, 30 + ageDays * 7);
+    case "risks":
+      // Recent risks are more actionable than stale ones
+      return Math.max(5, 80 - ageDays * 4);
+    case "decisions":
+      // Decisions are most useful when recent
+      return Math.max(5, 70 - ageDays * 3);
+    case "stakeholders":
+      // Stakeholder signals that keep appearing are more significant
+      return Math.max(5, 60 - ageDays * 2);
+    default:
+      return Math.max(5, 50 - ageDays * 2);
+  }
+}
+
+export async function buildContinuityContext(companyId: string, projectId: string | null) {
+  // Fetch a larger window so temporal scoring has material to rank
+  const entries = await getOperationalMemory({ companyId, projectId, unresolvedOnly: true, limit: 60 });
+  const now = Date.now();
+
+  type ScoredEntry = { entry: OperationalMemoryEntry; ageDays: number; score: number };
+
+  const scored: ScoredEntry[] = entries.map((entry: OperationalMemoryEntry) => ({
+    entry,
+    ageDays: Math.floor(Math.max(0, (now - Date.parse(entry.createdAt)) / 86_400_000)),
+    score: scoreContinuityEntry(entry, now),
+  }));
+
+  const grouped = new Map<MemoryType, ScoredEntry[]>();
+  for (const type of MEMORY_TYPES) grouped.set(type, []);
+  for (const item of scored) {
+    const bucket = grouped.get(item.entry.memoryType);
+    if (bucket) bucket.push(item);
   }
 
+  // Sort each bucket by relevance score and take up to 5 (up from 3)
+  const take = (type: MemoryType): OperationalMemoryEntry[] =>
+    (grouped.get(type) ?? [])
+      .sort((a: ScoredEntry, b: ScoredEntry) => b.score - a.score)
+      .slice(0, 5)
+      .map((item: ScoredEntry) => item.entry);
+
+  // Unresolved: top 12 by combined relevance (up from 8)
+  const unresolvedRanked = scored
+    .sort((a: ScoredEntry, b: ScoredEntry) => b.score - a.score)
+    .slice(0, 12)
+    .map((item: ScoredEntry) => item.entry);
+
   return {
-    risks: grouped.get("risks") ?? [],
-    blockers: grouped.get("blockers") ?? [],
-    decisions: grouped.get("decisions") ?? [],
-    stakeholders: grouped.get("stakeholders") ?? [],
-    unresolved: entries.slice(0, 8),
+    risks: take("risks"),
+    blockers: take("blockers"),
+    decisions: take("decisions"),
+    stakeholders: take("stakeholders"),
+    unresolved: unresolvedRanked,
   };
 }

@@ -22,12 +22,31 @@ export function generateExecutiveTimeline(records: OperationalMemoryRecord[]): E
     .sort(byDate)
     .slice(-30)
     .map((record) => {
-      const severity = record.confidenceScore < 45 ? "high" : record.completionScore < 40 ? "watch" : "info";
+      // Severity: prefer fact-based adverse signals over score thresholds alone
+      const adverseFacts = record.extractedFacts.filter((f) =>
+        /(escalating|at_risk|critical|blocked|opposed|high|overload)/i.test(f),
+      );
+      const severity: ExecutiveTimelineEvent["severity"] =
+        adverseFacts.length >= 2
+          ? "critical"
+          : adverseFacts.length >= 1 || record.confidenceScore < 45
+            ? "high"
+            : record.completionScore < 40
+              ? "watch"
+              : "info";
+
+      // Prefer real extracted facts in the detail; fall back to metadata
+      const factLines = record.extractedFacts.slice(0, 2);
+      const detail =
+        factLines.length > 0
+          ? factLines.join(" · ")
+          : `confidence ${record.confidenceScore}, fields captured: ${Object.keys(record.data).filter((k) => k !== "confidence_score").length}`;
+
       return {
         id: record.id,
         timestamp: record.updatedAt,
-        title: `${record.domain.replaceAll("_", " ")} updated`,
-        detail: `${record.title} · confidence ${record.confidenceScore} · completion ${record.completionScore}`,
+        title: `${record.domain.replaceAll("_", " ")}: ${record.title}`,
+        detail,
         domain: record.domain,
         severity,
       };

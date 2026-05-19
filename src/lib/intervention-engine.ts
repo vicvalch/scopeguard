@@ -171,22 +171,64 @@ export function detectExecutionDeadlock(snapshot: ProjectMemorySnapshot | null):
   return blockers >= 3 && unresolvedIssues >= 3 && unresolvedDecisions >= 1;
 }
 
-export function generateInterventionRecommendations(triggers: InterventionTrigger[]): InterventionRecommendation[] {
+export function generateInterventionRecommendations(
+  triggers: InterventionTrigger[],
+  snapshot?: ProjectMemorySnapshot | null,
+): InterventionRecommendation[] {
   const active = new Set(triggers.filter((item) => item.active).map((item) => item.key));
   const recommendations: InterventionRecommendation[] = [];
 
+  // Pull actual operational entities for grounded action text
+  const topBlocker = snapshot?.project.blockers[0];
+  const blockerCount = (snapshot?.project.blockers.length ?? 0) + (snapshot?.project.unresolvedIssues.length ?? 0);
+  const pressuredStakeholders = snapshot?.stakeholders
+    .filter((s) => s.pressurePatterns.length > 0)
+    .map((s) => s.name)
+    .slice(0, 2) ?? [];
+  const unresolvedDecisionCount = snapshot?.decisions.filter((d) => d.unresolvedConsequences.length > 0).length ?? 0;
+
   if (active.has("unresolved_blockers_increasing") || active.has("unstable_delivery_cadence")) {
-    recommendations.push({ category: "execution_unblock", severity: "elevated", triggerKeys: ["unresolved_blockers_increasing", "unstable_delivery_cadence"].filter((key) => active.has(key as InterventionTrigger["key"])) as InterventionTrigger["key"][], action: "Run a blocker-burn session with owners and dates for top unresolved execution constraints.", rationale: "Execution stability deteriorating without corrective intervention." });
+    const blockerRef = topBlocker ? `"${topBlocker.slice(0, 60)}${topBlocker.length > 60 ? "…" : ""}"` : null;
+    recommendations.push({
+      category: "execution_unblock",
+      severity: "elevated",
+      triggerKeys: (["unresolved_blockers_increasing", "unstable_delivery_cadence"] as const).filter((key) => active.has(key)),
+      action: blockerRef
+        ? `Assign owner and deadline for oldest active blocker: ${blockerRef}.`
+        : "Run a blocker-burn session — assign owner and deadline to each of the unresolved execution constraints.",
+      rationale: `${blockerCount} unresolved item${blockerCount !== 1 ? "s" : ""} accumulating without owner accountability. Execution stability declining.`,
+    });
   }
   if (active.has("pressure_confidence_divergence") || active.has("repeated_escalation_without_resolution")) {
-    recommendations.push({ category: "stakeholder_alignment", severity: "critical", triggerKeys: ["pressure_confidence_divergence", "repeated_escalation_without_resolution"].filter((key) => active.has(key as InterventionTrigger["key"])) as InterventionTrigger["key"][], action: "Reset stakeholder contract: clarify tradeoffs, decision owners, and confidence gates in one alignment checkpoint.", rationale: "Stakeholder escalation pressure now exceeds delivery confidence." });
+    const stakeholderRef = pressuredStakeholders.length > 0 ? ` (${pressuredStakeholders.join(", ")})` : "";
+    const decisionRef = unresolvedDecisionCount > 0 ? ` ${unresolvedDecisionCount} unresolved decision${unresolvedDecisionCount !== 1 ? "s" : ""} pending.` : "";
+    recommendations.push({
+      category: "stakeholder_alignment",
+      severity: "critical",
+      triggerKeys: (["pressure_confidence_divergence", "repeated_escalation_without_resolution"] as const).filter((key) => active.has(key)),
+      action: `Reset stakeholder expectations with a single alignment checkpoint — clarify tradeoffs, decision gates, and delivery confidence${stakeholderRef}.`,
+      rationale: `Escalation pressure${stakeholderRef} exceeds delivery confidence.${decisionRef} Pattern indicates organizational misalignment.`,
+    });
   }
   if (active.has("no_recent_execution_updates") || active.has("organizational_silence_after_escalation")) {
-    recommendations.push({ category: "delivery_recovery", severity: "elevated", triggerKeys: ["no_recent_execution_updates", "organizational_silence_after_escalation"].filter((key) => active.has(key as InterventionTrigger["key"])) as InterventionTrigger["key"][], action: "Re-establish operating cadence with a deterministic update window and explicit owner accountability.", rationale: "Project drift detected across operational checkpoints." });
+    const daysSilent = triggers.find((t) => t.key === "no_recent_execution_updates")?.active ? "7+" : "10+";
+    recommendations.push({
+      category: "delivery_recovery",
+      severity: "elevated",
+      triggerKeys: (["no_recent_execution_updates", "organizational_silence_after_escalation"] as const).filter((key) => active.has(key)),
+      action: "Re-establish operating cadence: enforce a deterministic update window with explicit owner accountability within 24h.",
+      rationale: `${daysSilent} days without execution signal. Operational drift detected across delivery checkpoints.`,
+    });
   }
 
   if (recommendations.length === 0) {
-    recommendations.push({ category: "capacity_protection", severity: "watch", triggerKeys: [], action: "Maintain current execution cadence and monitor intervention thresholds daily.", rationale: "No immediate intervention pattern has crossed escalation thresholds." });
+    recommendations.push({
+      category: "capacity_protection",
+      severity: "watch",
+      triggerKeys: [],
+      action: "Maintain current execution cadence and monitor intervention thresholds daily.",
+      rationale: "No deterministic threshold breach currently requires intervention.",
+    });
   }
 
   return recommendations;
@@ -208,10 +250,18 @@ export function generateEscalationRecommendations(input: { escalationProbability
   const severity = toSeverity(input.escalationProbability);
   const requiredWithinHours = severity === "critical" ? 6 : severity === "elevated" ? 24 : 72;
 
+  const escalationReason = input.executionDeadlock
+    ? "Execution deadlock — blockers, unresolved issues, and pending decisions are converging."
+    : input.stakeholderBreakdown
+      ? "Stakeholder breakdown — high-influence decision-drivers in conflict or under sustained pressure."
+      : input.operationalDriftSignal.repeatedEscalationWithoutResolution
+        ? "Repeated escalation without organizational resolution — pattern indicates structural friction."
+        : "Combined instability signals crossed escalation threshold.";
+
   return [{
     severity,
     target: input.operationalDriftSignal.organizationalSilenceAfterEscalation && severity === "critical" ? "portfolio_office" : baseTarget,
-    reason: "Repeated escalation patterns indicate unresolved organizational friction.",
+    reason: escalationReason,
     requiredWithinHours,
   }];
 }
@@ -227,20 +277,89 @@ export function buildInterventionSnapshot(projectId: string | null, snapshot: Pr
   const stakeholderBreakdown = detectStakeholderBreakdown(snapshot);
   const executionDeadlock = detectExecutionDeadlock(snapshot);
 
+  // Pull entity references for grounded trigger reasons
+  const blockerCount = (snapshot?.project.blockers.length ?? 0) + (snapshot?.project.unresolvedIssues.length ?? 0);
+  const daysSilent = daysSince(snapshot?.lastUpdatedAt ?? null);
+  const pressuredStakeholderNames = (snapshot?.stakeholders ?? [])
+    .filter((s) => s.pressurePatterns.length > 0)
+    .map((s) => s.name)
+    .slice(0, 2)
+    .join(", ");
+  const commitmentCount = snapshot?.project.commitments.length ?? 0;
+  const riskCount = snapshot?.project.risks.length ?? 0;
+  const unresolvedDecisions = snapshot?.decisions.filter((d) => d.unresolvedConsequences.length > 0).length ?? 0;
+
   const triggers: InterventionTrigger[] = [
-    { key: "unresolved_blockers_increasing", active: deliveryInstability.unresolvedBlockersIncreasing, score: deliveryInstability.unresolvedBlockersIncreasing ? 75 : 15, reason: "Unresolved blockers and execution issues continue to accumulate." },
-    { key: "no_recent_execution_updates", active: deliveryInstability.noRecentExecutionUpdates, score: deliveryInstability.noRecentExecutionUpdates ? 70 : 10, reason: "No project updates within the current execution window." },
-    { key: "pressure_confidence_divergence", active: operationalDriftSignal.pressureConfidenceDivergence, score: operationalDriftSignal.pressureConfidenceDivergence ? 82 : 20, reason: "Stakeholder pressure is rising while delivery confidence drops." },
-    { key: "repeated_escalation_without_resolution", active: operationalDriftSignal.repeatedEscalationWithoutResolution, score: operationalDriftSignal.repeatedEscalationWithoutResolution ? 88 : 18, reason: "Escalation loops are present without organizational resolution." },
-    { key: "execution_instability_multi_signal", active: deliveryInstability.executionInstabilityAcrossSignals, score: deliveryInstability.executionInstabilityAcrossSignals ? 74 : 16, reason: "Multiple deterministic execution signals are unstable." },
-    { key: "unstable_delivery_cadence", active: deliveryInstability.unstableCadence, score: deliveryInstability.unstableCadence ? 68 : 12, reason: "Delivery cadence is unstable relative to active commitments." },
-    { key: "pm_overload_signal", active: (snapshot?.project.commitments.length ?? 0) >= 6 && (snapshot?.project.blockers.length ?? 0) >= 3, score: (snapshot?.project.commitments.length ?? 0) >= 6 ? 72 : 22, reason: "PM overload signal detected from sustained commitments and blockers." },
-    { key: "organizational_silence_after_escalation", active: operationalDriftSignal.organizationalSilenceAfterEscalation, score: operationalDriftSignal.organizationalSilenceAfterEscalation ? 84 : 14, reason: "Organizational silence followed after escalation pressure increased." },
+    {
+      key: "unresolved_blockers_increasing",
+      active: deliveryInstability.unresolvedBlockersIncreasing,
+      // Score scales with actual blocker accumulation, not a flat 75
+      score: deliveryInstability.unresolvedBlockersIncreasing ? clamp(45 + blockerCount * 6) : 15,
+      reason: deliveryInstability.unresolvedBlockersIncreasing
+        ? `${blockerCount} unresolved item${blockerCount !== 1 ? "s" : ""} accumulating without resolution.`
+        : "Blocker load within acceptable threshold.",
+    },
+    {
+      key: "no_recent_execution_updates",
+      active: deliveryInstability.noRecentExecutionUpdates,
+      score: deliveryInstability.noRecentExecutionUpdates ? clamp(40 + daysSilent * 4) : 10,
+      reason: deliveryInstability.noRecentExecutionUpdates
+        ? `No execution updates for ${daysSilent} day${daysSilent !== 1 ? "s" : ""}.`
+        : "Execution cadence has recent signal continuity.",
+    },
+    {
+      key: "pressure_confidence_divergence",
+      active: operationalDriftSignal.pressureConfidenceDivergence,
+      score: operationalDriftSignal.pressureConfidenceDivergence ? clamp(65 + blockerCount * 3) : 20,
+      reason: operationalDriftSignal.pressureConfidenceDivergence
+        ? `Stakeholder pressure rising${pressuredStakeholderNames ? ` (${pressuredStakeholderNames})` : ""} while delivery confidence drops.`
+        : "Pressure and confidence signals remain aligned.",
+    },
+    {
+      key: "repeated_escalation_without_resolution",
+      active: operationalDriftSignal.repeatedEscalationWithoutResolution,
+      score: operationalDriftSignal.repeatedEscalationWithoutResolution ? clamp(70 + unresolvedDecisions * 5) : 18,
+      reason: operationalDriftSignal.repeatedEscalationWithoutResolution
+        ? `Escalation pattern active with ${unresolvedDecisions} unresolved decision${unresolvedDecisions !== 1 ? "s" : ""}.`
+        : "No repeated escalation pattern detected.",
+    },
+    {
+      key: "execution_instability_multi_signal",
+      active: deliveryInstability.executionInstabilityAcrossSignals,
+      score: deliveryInstability.executionInstabilityAcrossSignals ? clamp(50 + riskCount * 5 + blockerCount * 3) : 16,
+      reason: deliveryInstability.executionInstabilityAcrossSignals
+        ? `${riskCount} risk${riskCount !== 1 ? "s" : ""} and ${blockerCount} unresolved item${blockerCount !== 1 ? "s" : ""} — multi-signal instability.`
+        : "Execution signals are within single-domain thresholds.",
+    },
+    {
+      key: "unstable_delivery_cadence",
+      active: deliveryInstability.unstableCadence,
+      score: deliveryInstability.unstableCadence ? clamp(40 + commitmentCount * 5) : 12,
+      reason: deliveryInstability.unstableCadence
+        ? `${commitmentCount} active commitment${commitmentCount !== 1 ? "s" : ""} with unresolved blockers degrading cadence.`
+        : "Delivery cadence is stable relative to commitment load.",
+    },
+    {
+      key: "pm_overload_signal",
+      active: commitmentCount >= 6 && (snapshot?.project.blockers.length ?? 0) >= 3,
+      score: commitmentCount >= 6 ? clamp(40 + commitmentCount * 4 + blockerCount * 3) : 22,
+      reason: commitmentCount >= 6 && (snapshot?.project.blockers.length ?? 0) >= 3
+        ? `PM managing ${commitmentCount} commitments with ${snapshot?.project.blockers.length} blockers — overload signal.`
+        : "PM commitment and blocker load within acceptable range.",
+    },
+    {
+      key: "organizational_silence_after_escalation",
+      active: operationalDriftSignal.organizationalSilenceAfterEscalation,
+      score: operationalDriftSignal.organizationalSilenceAfterEscalation ? clamp(60 + daysSilent * 3) : 14,
+      reason: operationalDriftSignal.organizationalSilenceAfterEscalation
+        ? `${daysSilent} days of silence following escalation — no organizational response recorded.`
+        : "No organizational silence pattern after escalation.",
+    },
   ];
 
   const escalationProbability = detectEscalationNeed({ deliveryInstability, operationalDriftSignal, stakeholderBreakdown, executionDeadlock });
   const interventionUrgency = toSeverity(clamp((deliveryInstability.instabilityScore + operationalDriftSignal.driftScore + escalationProbability) / 3));
-  const interventions = generateInterventionRecommendations(triggers);
+  const interventions = generateInterventionRecommendations(triggers, snapshot);
   const escalations = generateEscalationRecommendations({ escalationProbability, stakeholderBreakdown, executionDeadlock, operationalDriftSignal });
 
   const interventionRequired = interventionUrgency === "elevated" || interventionUrgency === "critical";
@@ -265,13 +384,7 @@ export function buildInterventionSnapshot(projectId: string | null, snapshot: Pr
       recommended_intervention_type: recommendedInterventionType,
       escalation_target: escalationTarget,
     },
-    commentary: [
-      "Execution stability deteriorating without corrective intervention.",
-      "Stakeholder escalation pressure now exceeds delivery confidence.",
-      "Project drift detected across operational checkpoints.",
-      "Repeated escalation patterns indicate unresolved organizational friction.",
-      "Intervention recommended before executive escalation occurs.",
-    ],
+    commentary: triggers.filter((t) => t.active).map((t) => t.reason),
     deliveryInstability,
     operationalDriftSignal,
     stakeholderBreakdown,

@@ -86,20 +86,37 @@ export const GitHubAdapter: IngestionAdapter = { source: "github", mapEvent: (ev
 
 export function buildMockOperationalIntelligence(projectId: string | null) {
   const now = new Date();
+  // Signals use template IDs — this is a structural simulation, not real integration data.
   const raw = [
-    JiraAdapter.mapEvent({ id: "100", issueKey: "OPS-12", timestamp: new Date(now.getTime() - 20 * 60000).toISOString(), projectId }),
-    SlackAdapter.mapEvent({ id: "slk-9", channel: "#delivery-war-room", timestamp: new Date(now.getTime() - 15 * 60000).toISOString(), projectId }),
-    TeamsAdapter.mapEvent({ id: "tm-4", team: "Program Delivery", timestamp: new Date(now.getTime() - 12 * 60000).toISOString(), projectId }),
-    GitHubAdapter.mapEvent({ id: "gh-77", repo: "pmfreak", timestamp: new Date(now.getTime() - 8 * 60000).toISOString(), projectId }),
+    JiraAdapter.mapEvent({ id: "sim-jira-1", issueKey: "SIM-001", timestamp: new Date(now.getTime() - 20 * 60000).toISOString(), projectId }),
+    SlackAdapter.mapEvent({ id: "sim-slack-1", channel: "#simulated-channel", timestamp: new Date(now.getTime() - 15 * 60000).toISOString(), projectId }),
+    TeamsAdapter.mapEvent({ id: "sim-teams-1", team: "Simulated Team", timestamp: new Date(now.getTime() - 12 * 60000).toISOString(), projectId }),
+    GitHubAdapter.mapEvent({ id: "sim-github-1", repo: "simulated-repo", timestamp: new Date(now.getTime() - 8 * 60000).toISOString(), projectId }),
   ];
   const timeline = buildTimelineStore(raw);
   const graph = buildOperationalGraph(timeline);
   const recommendationQueue = [
-    "next intervention: clear OPS-12 blocker owner and deadline",
-    "next escalation: notify delivery_manager if blocker age exceeds threshold",
-    "next stakeholder sync: sponsor confidence reset within 24h",
-    "recovery sequence: unblock -> deploy fix -> stakeholder update",
-    "delivery stabilization: enforce deterministic 4-hour heartbeat",
+    "[SIMULATED] Assign owner and deadline to oldest active blocker",
+    "[SIMULATED] Escalate to delivery manager if blocker age exceeds 5 days",
+    "[SIMULATED] Reset sponsor confidence checkpoint within 24h",
+    "[SIMULATED] Enforce deterministic 4-hour execution heartbeat",
   ];
-  return { rawSignals: raw, timeline, graph, recommendationQueue, whyIntervened: timeline.interventions.map((i) => ({ ...i, sourceSignals: i.signalIds, escalationChain: timeline.escalationChain, triggeringConditions: ["priority weight > 70", "escalation chain active"], dependencyContext: graph.edges, coordinationRationale: i.rationale, operationalConfidence: 76 })), architecturePlaceholders: ["websocket_infra", "agent_coordination", "autonomous_pm_agents", "org_wide_operational_graphs", "cross_project_telemetry"] };
+  return {
+    simulationMode: true,
+    simulationNote: "Live operational telemetry requires active integrations (Jira, Slack, Teams, GitHub). This response contains simulated structural data only.",
+    rawSignals: raw,
+    timeline,
+    graph,
+    recommendationQueue,
+    whyIntervened: timeline.interventions.map((i) => ({
+      ...i,
+      sourceSignals: i.signalIds,
+      escalationChain: timeline.escalationChain,
+      triggeringConditions: ["priority weight > 70", "escalation chain active"],
+      dependencyContext: graph.edges,
+      coordinationRationale: i.rationale,
+      operationalConfidence: 76,
+    })),
+    architecturePlaceholders: ["websocket_infra", "agent_coordination", "autonomous_pm_agents", "org_wide_operational_graphs", "cross_project_telemetry"],
+  };
 }

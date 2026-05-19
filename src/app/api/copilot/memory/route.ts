@@ -1,5 +1,5 @@
 import { getAuthUser } from "@/lib/auth";
-import { buildContinuityContext } from "@/lib/operational-memory-v1";
+import { buildContinuityContext, type OperationalMemoryEntry } from "@/lib/operational-memory-v1";
 import { AccessDeniedError, requireProjectAccess } from "@/lib/security/access-guards";
 import { verifyAgentAttestation } from "@/lib/security/agent-attestation";
 import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
@@ -34,12 +34,19 @@ export async function GET(request: Request) {
     }
   }
   const continuity = await buildContinuityContext(user.companyId, projectId);
+  const now = Date.now();
+
+  const formatEntry = (item: OperationalMemoryEntry, withAge = false): string => {
+    const ageDays = Math.floor(Math.max(0, (now - Date.parse(item.createdAt)) / 86_400_000));
+    const ageSuffix = withAge && ageDays >= 1 ? ` [${ageDays}d unresolved]` : "";
+    return `${item.memoryText}${ageSuffix} (${item.sourceType})`;
+  };
 
   return Response.json({
-    blockers: continuity.blockers.map((item) => `${item.memoryText} (from ${item.sourceType}:${item.sourceReference})`),
-    recentDecisions: continuity.decisions.map((item) => `${item.memoryText} (from ${item.sourceType}:${item.sourceReference})`),
-    stakeholderPressure: continuity.stakeholders.map((item) => `${item.memoryText} (from ${item.sourceType}:${item.sourceReference})`),
-    criticalRisks: continuity.risks.map((item) => `${item.memoryText} (from ${item.sourceType}:${item.sourceReference})`),
-    concerns: continuity.unresolved.map((item) => `${item.memoryText} (from ${item.sourceType}:${item.sourceReference})`).slice(0, 8),
+    blockers: continuity.blockers.map((item) => formatEntry(item, true)),
+    recentDecisions: continuity.decisions.map((item) => formatEntry(item, false)),
+    stakeholderPressure: continuity.stakeholders.map((item) => formatEntry(item, false)),
+    criticalRisks: continuity.risks.map((item) => formatEntry(item, false)),
+    concerns: continuity.unresolved.map((item: OperationalMemoryEntry) => formatEntry(item, true)).slice(0, 12),
   });
 }
