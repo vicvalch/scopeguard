@@ -7,6 +7,9 @@ const BLOCK_PATTERNS = [
   { name: "local runtime decision interface", re: /interface\s+\w*(Runtime|Governance)Decision\w*/g },
   { name: "local decision envelope type", re: /type\s+\w*(Runtime|Governance)Decision\w*\s*=\s*\{/g },
   { name: "local lineage interface", re: /interface\s+\w*Lineage\w*/g },
+  { name: "route-local sdk envelope type", re: /type\s+\w*(Sdk|SDK)Envelope\w*\s*=\s*\{/g },
+  { name: "route-local runtime error envelope", re: /type\s+\w*RuntimeErrorEnvelope\w*\s*=\s*\{/g },
+  { name: "route-local governance response contract", re: /interface\s+\w*(Governance|Delegation|Capability|Policy)Response\w*/g },
 ];
 const ALLOWLIST = ["src/lib/aoc/contracts/", "src/lib/aoc/enterprise/authorization.ts", "src/lib/aoc/runtime-client.ts"];
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { AccessDeniedError } from "@/lib/security/access-guards";
 import { logSecurityEvent, type SecurityEventType } from "@/lib/security/telemetry";
+import { sdkRuntimeError } from "@/lib/aoc/contracts/envelope-helpers";
 
 type DenyInput = {
   status: 401 | 403 | 404 | 409;
@@ -30,7 +31,25 @@ export function denyResponse(input: DenyInput) {
     actorRole: input.actorRole ?? null,
     metadata: { denial_reason: input.reason, ...(input.metadata ?? {}) },
   });
-  return NextResponse.json({ error: input.message }, { status: input.status });
+
+  const envelope = sdkRuntimeError({
+    code: "authorization_denied",
+    message: input.message,
+    metadata: {
+      routeId: input.routeId,
+      reason: input.reason,
+      actorUserId: input.actorUserId ?? null,
+      actorAgentId: input.actorAgentId ?? null,
+      workspaceId: input.workspaceId ?? null,
+      projectId: input.projectId ?? null,
+      requestedPermission: input.requestedPermission ?? null,
+      deniedPermission: input.deniedPermission ?? null,
+      actorRole: input.actorRole ?? null,
+      ...(input.metadata ?? {}),
+    },
+  });
+
+  return NextResponse.json({ ...envelope, error: input.message }, { status: input.status });
 }
 
 export function denyFromAccessError(error: AccessDeniedError, input: Omit<DenyInput, "reason">) {
