@@ -4,6 +4,7 @@ import { logSecurityEvent, type SecurityEventType } from "@/lib/security/telemet
 import type { SecurityAuditPort, AocGovernanceEventType, AocAuditEventPayload } from "@/aoc/protocol/ports/security-audit";
 
 const EVENT_MAP: Record<AocGovernanceEventType, SecurityEventType> = {
+  governance_action_allowed: "governance_action_allowed",
   governance_violation: "governance_violation",
   governance_approval_requested: "approval_requested",
   execution_grant_issued: "execution_grant_issued",

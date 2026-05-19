@@ -45,10 +45,17 @@ test('audit event emitted with ai_egress_decision', () => {
 });
 
 test('routes must keep using gateway: no runProviderInference in api routes', () => {
-  const apiFilesRaw = execSync('rg --files src/app/api', { encoding: 'utf8' }).trim();
-  if (!apiFilesRaw) return;
-  const apiFiles = apiFilesRaw.split('\n');
-  for (const file of apiFiles) {
+  function walkTs(dir) {
+    const results = [];
+    if (!fs.existsSync(dir)) return results;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) results.push(...walkTs(full));
+      else if (/\.(ts|tsx)$/.test(entry.name)) results.push(full);
+    }
+    return results;
+  }
+  for (const file of walkTs('src/app/api')) {
     const apiSource = fs.readFileSync(file, 'utf8');
     assert.ok(!apiSource.includes('runProviderInference'), `runProviderInference found in ${file}`);
   }
