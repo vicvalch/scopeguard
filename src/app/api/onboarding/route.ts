@@ -1,62 +1,193 @@
+import { z } from "zod";
+
 import { AccessDeniedError } from "@/lib/security/access-guards";
-import { requireAuthenticatedUser, requireWorkspaceContext, requireWorkspaceMember } from "@/lib/security/server-authorization";
-import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
+import { denyFromAccessError } from "@/lib/security/deny-response";
+import { requireAuthenticatedUser } from "@/lib/security/server-authorization";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { ensureUserWorkspace } from "@/lib/workspaces";
+import { resolveBootstrapRuntimeContext } from "@/lib/runtime/bootstrap/runtime";
 import { logFirstUserTelemetryEvent } from "@/lib/first-user-telemetry";
 
-type OnboardingPayload = {
-  workspace: string;
-  role: string;
-  projectType: string;
-  problem: string;
-  analysis: string;
-  source: "onboarding";
-  createdAt: string;
-};
+const onboardingSchema = z.object({
+  workspace: z.string().min(2).max(120),
+  role: z.string().min(2).max(120),
+  projectType: z.string().min(2).max(120),
+  problem: z.string().min(10).max(5000),
+  analysis: z.string().min(10).max(10000),
+  source: z.enum(["manual", "ai", "import"]).default("manual"),
+  createdAt: z.string().optional(),
+});
 
-const normalize = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+type OnboardingPayload = z.infer<typeof onboardingSchema>;
 
 export async function POST(request: Request) {
-  let userId: string | null = null;
+  const { user } = await requireAuthenticatedUser();
+
   try {
-    const { user } = await requireAuthenticatedUser();
-    userId = user.id;
-    const ensured = await ensureUserWorkspace(user.id);
-    const workspaceId = request.headers.get("x-pmf-workspace-id") ?? ensured.workspaceId;
-    await requireWorkspaceContext(workspaceId);
-    await requireWorkspaceMember(workspaceId);
+    const bootstrap = await resolveBootstrapRuntimeContext(user);
+    const workspaceId = bootstrap.workspaceId;
 
     let payload: Partial<OnboardingPayload>;
-    try { payload = (await request.json()) as Partial<OnboardingPayload>; } catch { return Response.json({ error: "Invalid JSON payload." }, { status: 400 }); }
 
-    const workspace = normalize(payload.workspace);
-    const role = normalize(payload.role);
-    const projectType = normalize(payload.projectType);
-    const problem = normalize(payload.problem);
-    const analysis = normalize(payload.analysis);
-    const source = payload.source === "onboarding" ? payload.source : "onboarding";
-    const createdAt = normalize(payload.createdAt);
+    try {
+      payload = (await request.json()) as Partial<OnboardingPayload>;
+    } catch {
+      return Response.json(
+        {
+          ok: false,
+          error: "Invalid JSON payload.",
+          phase: bootstrap.phase,
+          workspaceId,
+        },
+        { status: 400 },
+      );
+    }
+
+    const parsed = onboardingSchema.safeParse(payload);
+
+    if (!parsed.success) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Invalid onboarding payload.",
+          details: parsed.error.flatten(),
+          phase: bootstrap.phase,
+          workspaceId,
+        },
+        { status: 400 },
+      );
+    }
+
+    const {
+      workspace,
+      role,
+      projectType,
+      problem,
+      analysis,
+      source,
+      createdAt,
+    } = parsed.data;
+
     const parsedCreatedAt = createdAt ? new Date(createdAt) : new Date();
 
-    if (!workspace || !role || !projectType || !problem || !analysis) return Response.json({ error: "Missing required onboarding fields." }, { status: 400 });
-    if (Number.isNaN(parsedCreatedAt.getTime())) return Response.json({ error: "Invalid createdAt timestamp." }, { status: 400 });
+    if (Number.isNaN(parsedCreatedAt.getTime())) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Invalid createdAt value.",
+          phase: bootstrap.phase,
+          workspaceId,
+        },
+        { status: 400 },
+      );
+    }
 
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.from("onboarding_analyses").insert({ company_id: user.companyId, user_id: user.id, workspace_id: workspaceId, workspace, role, project_type: projectType, problem, analysis, source, created_at: parsedCreatedAt.toISOString() });
-    if (error) return Response.json({ error: "Unable to save onboarding analysis." }, { status: 500 });
-    const { error: authError } = await supabase.auth.updateUser({ data: { onboarding_completed: true } });
-    if (authError) return Response.json({ error: "Onboarding was saved, but completion state could not be updated." }, { status: 500 });
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    await logFirstUserTelemetryEvent({ eventType: "onboarding_completed", userId: user.id, workspaceId, metadata: { source } });
-    return Response.json({ ok: true, session: sessionData });
+    const { error: insertError } = await supabase
+      .from("onboarding_analyses")
+      .insert({
+        company_id: user.companyId,
+        user_id: user.id,
+        workspace_id: workspaceId,
+        workspace,
+        role,
+        project_type: projectType,
+        problem,
+        analysis,
+        source,
+        created_at: parsedCreatedAt.toISOString(),
+      });
+
+    if (insertError) {
+      console.error("[onboarding] analysis insert failed", {
+        userId: user.id,
+        workspaceId,
+        error: insertError.message,
+      });
+
+      return Response.json(
+        {
+          ok: false,
+          error: "Unable to store onboarding analysis.",
+          phase: bootstrap.phase,
+          workspaceId,
+        },
+        { status: 500 },
+      );
+    }
+
+    const { error: authError } = await supabase.auth.updateUser({
+      data: {
+        onboarding_completed: true,
+      },
+    });
+
+    if (authError) {
+      console.error("[onboarding] metadata update failed", {
+        userId: user.id,
+        workspaceId,
+        error: authError.message,
+      });
+
+      return Response.json(
+        {
+          ok: false,
+          error: "Onboarding stored but metadata update failed.",
+          phase: bootstrap.phase,
+          workspaceId,
+        },
+        { status: 500 },
+      );
+    }
+
+    try {
+      await logFirstUserTelemetryEvent({
+        eventType: "onboarding_completed",
+        userId: user.id,
+        workspaceId,
+        metadata: {
+          bootstrapEvent: "bootstrap_onboarding_analysis_completed",
+          runtimeBootstrapId: bootstrap.runtimeBootstrapId,
+          role,
+          projectType,
+          source,
+        },
+      });
+    } catch (telemetryError) {
+      console.warn("[onboarding] telemetry skipped", {
+        userId: user.id,
+        workspaceId,
+        error: String(telemetryError),
+      });
+    }
+
+    return Response.json({
+      ok: true,
+      workspaceId,
+      phase: bootstrap.phase,
+    });
   } catch (error) {
     if (error instanceof AccessDeniedError) {
-      if (String(error.metadata.reason) === "unauthorized") return denyResponse({ status: 401, routeId: "/api/onboarding", message: "Unauthorized", reason: "unauthorized" });
-      if (String(error.metadata.reason) === "workspace_missing") return denyResponse({ status: 409, routeId: "/api/onboarding", message: "Workspace context required.", reason: "workspace_missing", actorUserId: userId, eventType: "workspace_scope_violation" });
-      return denyFromAccessError(error, { status: 403, routeId: "/api/onboarding", message: "Invalid workspace context.", actorUserId: userId, eventType: "workspace_scope_violation" });
+      return denyFromAccessError(error, {
+        status: 403,
+        routeId: "/api/onboarding",
+        message: "Invalid onboarding bootstrap context.",
+        actorUserId: user.id,
+        eventType: "workspace_scope_violation",
+      });
     }
-    throw error;
+
+    console.error("[onboarding] unexpected failure", {
+      userId: user.id,
+      error: String(error),
+    });
+
+    return Response.json(
+      {
+        ok: false,
+        error: "Unexpected onboarding failure.",
+      },
+      { status: 500 },
+    );
   }
 }
