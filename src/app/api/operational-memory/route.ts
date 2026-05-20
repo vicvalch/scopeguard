@@ -1,7 +1,7 @@
 import { getAuthUser } from "@/lib/auth";
 import { denyResponse } from "@/lib/security/deny-response";
 import { authorizeRuntimeAction } from "@/aoc/runtime-consumer";
-import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
+import { buildEnterpriseRuntimeRequest } from "@/aoc/runtime-consumer";
 import {
   appendOperationalMemory,
   extractOperationalMemoryCandidates,
