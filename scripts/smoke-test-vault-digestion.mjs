@@ -2274,6 +2274,393 @@ export const EXPECTED_PATTERNS_BY_PROJECT = {
   'proj-muc-13098': ['delivery_drift_pattern'],
 };
 
+// ─── Adaptive Severity & Confidence Engine (mirrors src/lib/vault/adaptive-scoring/*) ─
+// Inline JS implementation — mirrors TypeScript source for deterministic validation.
+
+const ADAPTIVE_SEVERITY_RANK = { low: 1, medium: 2, high: 3, critical: 4 };
+
+function adaptiveRankToSeverity(rank) {
+  if (rank >= 3.5) return 'critical';
+  if (rank >= 2.5) return 'high';
+  if (rank >= 1.5) return 'medium';
+  return 'low';
+}
+
+function computeRecurrenceAmplifierJS(pattern) {
+  const { totalOccurrences, distinctDigestionRuns, timeSpanDays } = pattern.recurrenceProfile;
+  let severityAmplification = 0;
+  let description;
+  if (totalOccurrences >= 8 && distinctDigestionRuns >= 5) {
+    severityAmplification = 1.0;
+    description = `Severe recurrence: ${totalOccurrences} occurrences across ${distinctDigestionRuns} runs — full severity step amplified.`;
+  } else if (totalOccurrences >= 5 && distinctDigestionRuns >= 4) {
+    severityAmplification = 0.75;
+    description = `High recurrence: ${totalOccurrences} occurrences across ${distinctDigestionRuns} runs.`;
+  } else if (totalOccurrences >= 3 && distinctDigestionRuns >= 3) {
+    severityAmplification = 0.5;
+    description = `Moderate recurrence: ${totalOccurrences} occurrences across ${distinctDigestionRuns} runs.`;
+  } else if (totalOccurrences >= 2 && distinctDigestionRuns >= 2) {
+    severityAmplification = 0.25;
+    description = `Emerging recurrence: ${totalOccurrences} occurrences across ${distinctDigestionRuns} runs.`;
+  } else {
+    description = `Insufficient recurrence for amplification: ${totalOccurrences} occurrences.`;
+  }
+  const confidenceBoost = Math.min(0.3, (distinctDigestionRuns / 5) * 0.2 + (timeSpanDays / 14) * 0.1);
+  return {
+    recurrenceCount: totalOccurrences,
+    distinctRuns: distinctDigestionRuns,
+    timeSpanDays,
+    severityAmplification: Math.round(severityAmplification * 100) / 100,
+    confidenceBoost: Math.round(confidenceBoost * 100) / 100,
+    description,
+  };
+}
+
+function computeEscalationAmplifierJS(pattern) {
+  const { trajectory, status, patternType } = pattern;
+  let severityBoost = 0;
+  let confidenceBoost = 0;
+  const descriptions = [];
+  if (trajectory === 'increasing') {
+    severityBoost += 0.5; confidenceBoost += 0.10;
+    descriptions.push('Trajectory increasing — escalation amplified.');
+  } else if (trajectory === 'stable' && status === 'chronic') {
+    severityBoost += 0.25; confidenceBoost += 0.05;
+    descriptions.push('Stable trajectory with chronic status — persistent risk amplified.');
+  }
+  if (status === 'chronic') {
+    severityBoost += 0.25;
+    descriptions.push('Chronic status — long-term persistence amplified.');
+  }
+  if (patternType === 'escalation_trajectory_pattern' || patternType === 'governance_degradation_pattern') {
+    severityBoost += 0.25;
+    descriptions.push(`Pattern type ${patternType} carries inherent escalation weight.`);
+  }
+  return {
+    trajectory, status,
+    severityBoost: Math.min(1.0, Math.round(severityBoost * 100) / 100),
+    confidenceBoost: Math.min(0.2, Math.round(confidenceBoost * 100) / 100),
+    description: descriptions.join(' ') || 'No escalation amplification applied.',
+  };
+}
+
+const CONTRADICTION_RULES_JS = [
+  { type: 'blocker_resolved_after_persistent', patternTypes: ['recurring_blocker_pattern'], contradictingNutrientTypes: ['recovery_signal'], confidenceImpact: -0.10, severityImpact: -0.5 },
+  { type: 'approval_completed_after_escalation', patternTypes: ['escalation_trajectory_pattern', 'governance_degradation_pattern'], contradictingNutrientTypes: ['recovery_signal', 'decision_signal'], confidenceImpact: -0.08, severityImpact: -0.4 },
+  { type: 'vendor_responded_after_no_response', patternTypes: ['recurring_dependency_pattern', 'recurring_blocker_pattern'], contradictingNutrientTypes: ['recovery_signal', 'commitment_signal'], confidenceImpact: -0.07, severityImpact: -0.3 },
+  { type: 'timeline_stabilized_after_drift', patternTypes: ['delivery_drift_pattern'], contradictingNutrientTypes: ['recovery_signal', 'commitment_signal'], confidenceImpact: -0.08, severityImpact: -0.35 },
+  { type: 'recovery_after_chronic', patternTypes: ['chronic_risk_pattern', 'financial_friction_pattern'], contradictingNutrientTypes: ['recovery_signal'], confidenceImpact: -0.09, severityImpact: -0.4 },
+  { type: 'generic_resolution', patternTypes: ['stakeholder_pressure_pattern', 'ambiguity_accumulation_pattern'], contradictingNutrientTypes: ['recovery_signal', 'decision_signal'], confidenceImpact: -0.06, severityImpact: -0.25 },
+];
+
+function detectContradictionsJS(pattern, scopedNutrients) {
+  const now = new Date().toISOString();
+  const patternLastSeen = Date.parse(pattern.lastSeenAt);
+  const instances = [];
+  const seenPairs = new Set();
+  for (const rule of CONTRADICTION_RULES_JS) {
+    if (!rule.patternTypes.includes(pattern.patternType)) continue;
+    for (const nutrient of scopedNutrients) {
+      if (!rule.contradictingNutrientTypes.includes(nutrient.nutrientType)) continue;
+      const nutrientTs = Date.parse(nutrient.createdAt);
+      if (isNaN(nutrientTs) || nutrientTs <= patternLastSeen) continue;
+      const pairKey = `${rule.type}:${nutrient.id}`;
+      if (seenPairs.has(pairKey)) continue;
+      seenPairs.add(pairKey);
+      const excerptHint = (nutrient.evidence?.[0]?.excerpt ?? nutrient.summary ?? '').slice(0, 80);
+      instances.push({
+        contradictionType: rule.type,
+        description: `${rule.type} after ${pattern.patternType}: "${excerptHint}"`,
+        evidenceTimestamp: nutrient.createdAt,
+        affectedPatternTypes: [pattern.patternType],
+        confidenceImpact: rule.confidenceImpact,
+        severityImpact: rule.severityImpact,
+      });
+    }
+  }
+  const rawConf = instances.reduce((s, i) => s + i.confidenceImpact, 0);
+  const rawSev = instances.reduce((s, i) => s + i.severityImpact, 0);
+  return {
+    totalContradictions: instances.length,
+    instances: instances.slice(0, 10),
+    totalConfidenceImpact: Math.max(-0.40, rawConf),
+    totalSeverityImpact: Math.max(-1.5, rawSev),
+    detectedAt: now,
+  };
+}
+
+const RECOVERY_HALF_LIFE_DAYS = 14;
+
+function computeRecoveryProfileJS(pattern, scopedNutrients) {
+  const now = Date.now();
+  const patternFirstSeen = Date.parse(pattern.firstSeenAt);
+  const recoveryNutrients = scopedNutrients.filter(
+    (n) => n.nutrientType === 'recovery_signal' && Date.parse(n.createdAt) > patternFirstSeen,
+  );
+  if (recoveryNutrients.length === 0) {
+    return { recoveryDetected: false, recoveryCount: 0, recoveryStrength: 0, severitySuppression: 0, urgencyReduction: 0, operationalMemoryPreserved: true, description: 'No recovery signals detected after pattern onset.', latestRecoveryAt: null };
+  }
+  const timestamps = recoveryNutrients.map((n) => Date.parse(n.createdAt)).filter((t) => !isNaN(t));
+  const latestRecoveryMs = Math.max(...timestamps);
+  const daysSinceRecovery = Math.max(0, (now - latestRecoveryMs) / 86_400_000);
+  const countFactor = Math.min(1.0, recoveryNutrients.length / 3);
+  const recencyFactor = Math.pow(0.5, daysSinceRecovery / RECOVERY_HALF_LIFE_DAYS);
+  const avgConf = recoveryNutrients.reduce((s, n) => s + n.scoring.confidence, 0) / recoveryNutrients.length;
+  const recoveryStrength = Math.round(Math.min(1.0, countFactor * recencyFactor * (0.7 + avgConf * 0.3)) * 100) / 100;
+  const severitySuppression = Math.round(recoveryStrength * 1.0 * 100) / 100;
+  const urgencyReduction = Math.round(recoveryStrength * 0.6 * 100) / 100;
+  const latestRecoveryAt = new Date(latestRecoveryMs).toISOString();
+  return {
+    recoveryDetected: true, recoveryCount: recoveryNutrients.length, recoveryStrength,
+    severitySuppression, urgencyReduction, operationalMemoryPreserved: true,
+    description: `${recoveryNutrients.length} recovery signal(s) detected. Latest: ${latestRecoveryAt.slice(0, 10)}, ${Math.round(daysSinceRecovery)} days ago. Strength: ${(recoveryStrength * 100).toFixed(0)}%.`,
+    latestRecoveryAt,
+  };
+}
+
+function computeAdaptiveSeverityJS(pattern, recurrenceAmp, escalationAmp, contradictionProfile, recoveryProfile) {
+  const baseSeverity = pattern.severity;
+  const baseRank = ADAPTIVE_SEVERITY_RANK[baseSeverity];
+  const amplifiers = [];
+  const suppressors = [];
+
+  if (recurrenceAmp.severityAmplification > 0) {
+    amplifiers.push({ reason: 'recurrence_amplification', direction: 'amplify', magnitude: recurrenceAmp.severityAmplification, description: recurrenceAmp.description });
+  }
+  if (escalationAmp.severityBoost > 0) {
+    const reason = pattern.trajectory === 'increasing' ? 'escalation_trajectory_increasing' : 'chronic_status';
+    amplifiers.push({ reason, direction: 'amplify', magnitude: escalationAmp.severityBoost, description: escalationAmp.description });
+  }
+  if (!recoveryProfile.recoveryDetected && (pattern.status === 'confirmed' || pattern.status === 'chronic')) {
+    amplifiers.push({ reason: 'recovery_absent_chronic', direction: 'amplify', magnitude: 0.25, description: `No recovery signals for ${pattern.status} pattern — absence amplifies operational risk.` });
+  }
+  if (pattern.patternType === 'governance_degradation_pattern' && pattern.recurrenceProfile.totalOccurrences >= 3) {
+    amplifiers.push({ reason: 'governance_degradation_accumulation', direction: 'amplify', magnitude: 0.25, description: `Governance degradation across ${pattern.recurrenceProfile.totalOccurrences} occurrences.` });
+  }
+  if (pattern.recurrenceProfile.distinctDigestionRuns >= 3 && (pattern.patternType === 'recurring_dependency_pattern' || pattern.patternType === 'recurring_blocker_pattern')) {
+    amplifiers.push({ reason: 'dependency_clustering', direction: 'amplify', magnitude: 0.25, description: `Spans ${pattern.recurrenceProfile.distinctDigestionRuns} distinct runs.` });
+  }
+  if (recoveryProfile.recoveryDetected && recoveryProfile.severitySuppression > 0) {
+    suppressors.push({ reason: 'recovery_suppression', direction: 'suppress', magnitude: -recoveryProfile.severitySuppression, description: recoveryProfile.description });
+  }
+  if (contradictionProfile.totalSeverityImpact < 0) {
+    suppressors.push({ reason: 'contradiction_weakening', direction: 'suppress', magnitude: contradictionProfile.totalSeverityImpact, description: `${contradictionProfile.totalContradictions} contradiction(s): ${contradictionProfile.totalSeverityImpact.toFixed(2)} rank.` });
+  }
+  if (pattern.trajectory === 'decreasing' || pattern.trajectory === 'recovered') {
+    suppressors.push({ reason: 'trajectory_decreasing', direction: 'suppress', magnitude: -0.5, description: `Trajectory is ${pattern.trajectory}.` });
+  }
+  if (pattern.status === 'recovering' || pattern.status === 'resolved') {
+    suppressors.push({ reason: 'delivery_stabilized', direction: 'suppress', magnitude: -0.25, description: `Status is ${pattern.status}.` });
+  }
+
+  const netAmplification = amplifiers.reduce((s, f) => s + f.magnitude, 0) + suppressors.reduce((s, f) => s + f.magnitude, 0);
+  const adaptedRank = Math.max(1, Math.min(4, baseRank + netAmplification));
+  const adaptedSeverity = adaptiveRankToSeverity(adaptedRank);
+  const allReasons = [...amplifiers.map((f) => f.reason), ...suppressors.map((f) => f.reason)];
+
+  return {
+    baseSeverity, adaptedSeverity,
+    adaptedSeverityRank: Math.round(adaptedRank * 100) / 100,
+    amplifiers, suppressors,
+    netAmplification: Math.round(netAmplification * 100) / 100,
+    wasAmplified: netAmplification > 0,
+    wasSuppressed: netAmplification < 0,
+    adjustmentReasons: allReasons,
+  };
+}
+
+function computeAdaptiveConfidenceJS(pattern, recurrenceAmp, escalationAmp, contradictionProfile, recoveryProfile) {
+  const baseConfidence = pattern.confidence;
+  const amplifiers = [];
+  const suppressors = [];
+  const { distinctArtifacts, multiDaySpread, timeSpanDays, distinctDigestionRuns } = pattern.recurrenceProfile;
+
+  if (distinctArtifacts >= 5) amplifiers.push({ reason: 'evidence_consistency', direction: 'amplify', delta: 0.15, description: `${distinctArtifacts} distinct artifacts.` });
+  else if (distinctArtifacts >= 3) amplifiers.push({ reason: 'evidence_consistency', direction: 'amplify', delta: 0.10, description: `${distinctArtifacts} distinct artifacts.` });
+  else if (distinctArtifacts >= 2) amplifiers.push({ reason: 'evidence_consistency', direction: 'amplify', delta: 0.05, description: `${distinctArtifacts} distinct artifacts.` });
+
+  if (multiDaySpread && timeSpanDays >= 14) amplifiers.push({ reason: 'cross_artifact_recurrence', direction: 'amplify', delta: 0.10, description: `Signal persisted ${Math.round(timeSpanDays)} days.` });
+  else if (multiDaySpread && timeSpanDays >= 7) amplifiers.push({ reason: 'cross_artifact_recurrence', direction: 'amplify', delta: 0.06, description: `Signal persisted ${Math.round(timeSpanDays)} days.` });
+  else if (multiDaySpread) amplifiers.push({ reason: 'cross_artifact_recurrence', direction: 'amplify', delta: 0.03, description: 'Multi-day spread.' });
+
+  if (pattern.status === 'chronic') amplifiers.push({ reason: 'pattern_confirmation', direction: 'amplify', delta: 0.15, description: 'Pattern is chronic.' });
+  else if (pattern.status === 'confirmed') amplifiers.push({ reason: 'pattern_confirmation', direction: 'amplify', delta: 0.10, description: 'Pattern is confirmed.' });
+
+  if (pattern.trajectory === 'increasing' && (pattern.status === 'confirmed' || pattern.status === 'chronic')) {
+    amplifiers.push({ reason: 'correlated_signals', direction: 'amplify', delta: 0.10, description: 'Increasing trajectory + confirmed/chronic status.' });
+  }
+  if ((pattern.evidenceReferences ?? []).length >= 5) amplifiers.push({ reason: 'strong_lineage', direction: 'amplify', delta: 0.05, description: `${pattern.evidenceReferences.length} evidence references.` });
+  if (recurrenceAmp.confidenceBoost > 0) amplifiers.push({ reason: 'cross_artifact_recurrence', direction: 'amplify', delta: recurrenceAmp.confidenceBoost, description: `${distinctDigestionRuns} distinct runs.` });
+  if (escalationAmp.confidenceBoost > 0 && pattern.trajectory === 'increasing') {
+    amplifiers.push({ reason: 'correlated_signals', direction: 'amplify', delta: escalationAmp.confidenceBoost, description: escalationAmp.description });
+  }
+
+  if (contradictionProfile.totalConfidenceImpact < 0) suppressors.push({ reason: 'contradictory_evidence', direction: 'suppress', delta: contradictionProfile.totalConfidenceImpact, description: `${contradictionProfile.totalContradictions} contradiction(s).` });
+  if (baseConfidence < 0.6) suppressors.push({ reason: 'weak_evidence', direction: 'suppress', delta: -0.05, description: `Base confidence ${baseConfidence.toFixed(2)} < 0.60.` });
+  if (pattern.patternType === 'ambiguity_accumulation_pattern' && pattern.recurrenceProfile.totalOccurrences < 3) suppressors.push({ reason: 'noise_indicator', direction: 'suppress', delta: -0.05, description: 'Low-recurrence ambiguity.' });
+  if (recoveryProfile.recoveryDetected && recoveryProfile.recoveryStrength > 0) suppressors.push({ reason: 'recovery_present', direction: 'suppress', delta: -(recoveryProfile.recoveryStrength * 0.12), description: `Recovery strength ${(recoveryProfile.recoveryStrength * 100).toFixed(0)}%.` });
+  if (pattern.trajectory === 'decreasing' || pattern.trajectory === 'recovered') suppressors.push({ reason: 'decay_dominance', direction: 'suppress', delta: -0.06, description: `Trajectory is ${pattern.trajectory}.` });
+
+  const netDelta = amplifiers.reduce((s, f) => s + f.delta, 0) + suppressors.reduce((s, f) => s + f.delta, 0);
+  const adaptedConfidence = Math.round(Math.max(0.05, Math.min(0.99, baseConfidence + netDelta)) * 100) / 100;
+  const allReasons = [...amplifiers.map((f) => f.reason), ...suppressors.map((f) => f.reason)];
+
+  return {
+    baseConfidence, adaptedConfidence,
+    amplifiers, suppressors,
+    netDelta: Math.round(netDelta * 100) / 100,
+    wasAmplified: netDelta > 0,
+    wasSuppressed: netDelta < 0,
+    adjustmentReasons: allReasons,
+  };
+}
+
+function computeOperationalUrgencyJS(adaptedSeverity, adaptedConfidence, recoveryStrength) {
+  const rank = ADAPTIVE_SEVERITY_RANK[adaptedSeverity];
+  const effectiveRank = Math.max(1, rank - recoveryStrength * 0.5);
+  const effectiveConf = Math.max(0.05, adaptedConfidence - recoveryStrength * 0.1);
+  if (effectiveRank >= 4 && effectiveConf >= 0.7) return 'critical';
+  if (effectiveRank >= 3.5 && effectiveConf >= 0.5) return 'critical';
+  if (effectiveRank >= 3 && effectiveConf >= 0.6) return 'high';
+  if (effectiveRank >= 3 && effectiveConf >= 0.4) return 'high';
+  if (effectiveRank >= 2.5 && effectiveConf >= 0.5) return 'moderate';
+  if (effectiveRank >= 2 && effectiveConf >= 0.55) return 'moderate';
+  if (effectiveRank >= 2 && effectiveConf >= 0.35) return 'low';
+  if (effectiveRank >= 1.5 && effectiveConf >= 0.4) return 'low';
+  return 'informational';
+}
+
+const BASE_ESCALATION_LIKELIHOOD = {
+  escalation_trajectory_pattern: 0.55,
+  recurring_blocker_pattern: 0.40,
+  financial_friction_pattern: 0.45,
+  governance_degradation_pattern: 0.40,
+  recurring_dependency_pattern: 0.35,
+  stakeholder_pressure_pattern: 0.35,
+  delivery_drift_pattern: 0.30,
+  chronic_risk_pattern: 0.35,
+  ambiguity_accumulation_pattern: 0.25,
+  recovery_pattern: 0.05,
+};
+
+function computeEscalationLikelihoodJS(pattern, recoveryStrength, contradictionCount) {
+  let likelihood = BASE_ESCALATION_LIKELIHOOD[pattern.patternType] ?? 0.25;
+  if (pattern.trajectory === 'increasing') likelihood += 0.25;
+  else if (pattern.trajectory === 'decreasing' || pattern.trajectory === 'recovered') likelihood -= 0.15;
+  if (pattern.status === 'chronic') likelihood += 0.20;
+  else if (pattern.status === 'confirmed') likelihood += 0.10;
+  else if (pattern.status === 'recovering' || pattern.status === 'resolved') likelihood -= 0.15;
+  if (recoveryStrength > 0.5) likelihood -= recoveryStrength * 0.25;
+  else if (recoveryStrength > 0) likelihood -= recoveryStrength * 0.15;
+  if (contradictionCount > 0) likelihood -= Math.min(0.10, contradictionCount * 0.05);
+  return Math.round(Math.max(0, Math.min(1, likelihood)) * 100) / 100;
+}
+
+function computeAdaptiveScoringJS(pattern, allScopedNutrients) {
+  const computedAt = new Date().toISOString();
+  const recurrenceAmp = computeRecurrenceAmplifierJS(pattern);
+  const escalationAmp = computeEscalationAmplifierJS(pattern);
+  const contradictionProfile = detectContradictionsJS(pattern, allScopedNutrients);
+  const recoveryProfile = computeRecoveryProfileJS(pattern, allScopedNutrients);
+  const severityProfile = computeAdaptiveSeverityJS(pattern, recurrenceAmp, escalationAmp, contradictionProfile, recoveryProfile);
+  const confidenceProfile = computeAdaptiveConfidenceJS(pattern, recurrenceAmp, escalationAmp, contradictionProfile, recoveryProfile);
+  const { adaptedSeverity } = severityProfile;
+  const { adaptedConfidence } = confidenceProfile;
+  const operationalUrgency = computeOperationalUrgencyJS(adaptedSeverity, adaptedConfidence, recoveryProfile.recoveryStrength);
+  const escalationLikelihood = computeEscalationLikelihoodJS(pattern, recoveryProfile.recoveryStrength, contradictionProfile.totalContradictions);
+
+  const severityExplanation = [];
+  if (severityProfile.wasAmplified) severityExplanation.push(`Severity amplified: ${severityProfile.baseSeverity} → ${adaptedSeverity} (net: +${severityProfile.netAmplification.toFixed(2)})`);
+  else if (severityProfile.wasSuppressed) severityExplanation.push(`Severity suppressed: ${severityProfile.baseSeverity} → ${adaptedSeverity} (net: ${severityProfile.netAmplification.toFixed(2)})`);
+  else severityExplanation.push(`Severity unchanged at ${adaptedSeverity}.`);
+  for (const f of severityProfile.amplifiers) severityExplanation.push(`  + [${f.reason}] ${f.description}`);
+  for (const f of severityProfile.suppressors) severityExplanation.push(`  - [${f.reason}] ${f.description}`);
+
+  const confidenceExplanation = [];
+  if (confidenceProfile.wasAmplified) confidenceExplanation.push(`Confidence strengthened: ${confidenceProfile.baseConfidence.toFixed(2)} → ${adaptedConfidence.toFixed(2)} (net: +${confidenceProfile.netDelta.toFixed(2)})`);
+  else if (confidenceProfile.wasSuppressed) confidenceExplanation.push(`Confidence weakened: ${confidenceProfile.baseConfidence.toFixed(2)} → ${adaptedConfidence.toFixed(2)} (net: ${confidenceProfile.netDelta.toFixed(2)})`);
+  else confidenceExplanation.push(`Confidence stable at ${adaptedConfidence.toFixed(2)}.`);
+  for (const f of confidenceProfile.amplifiers) confidenceExplanation.push(`  + [${f.reason}] ${f.description}`);
+  for (const f of confidenceProfile.suppressors) confidenceExplanation.push(`  - [${f.reason}] ${f.description}`);
+
+  const operationalSummary = `${pattern.patternType} (${pattern.status}, trajectory: ${pattern.trajectory}) — adapted severity: ${adaptedSeverity}, confidence: ${adaptedConfidence.toFixed(2)}, urgency: ${operationalUrgency}, escalation: ${(escalationLikelihood * 100).toFixed(0)}%.${recoveryProfile.recoveryDetected ? ' Recovery detected.' : ''}`;
+
+  return {
+    patternId: pattern.id,
+    workspaceId: pattern.workspaceId,
+    projectId: pattern.projectId,
+    patternType: pattern.patternType,
+    adaptedSeverity, adaptedConfidence, operationalUrgency, escalationLikelihood,
+    severityProfile, confidenceProfile, contradictionProfile, recoveryProfile,
+    recurrenceAmplifier: recurrenceAmp,
+    escalationAmplifier: escalationAmp,
+    severityExplanation, confidenceExplanation, operationalSummary,
+    computedAt,
+  };
+}
+
+const URGENCY_RANK_JS = { critical: 5, high: 4, moderate: 3, low: 2, informational: 1 };
+
+/**
+ * Runs adaptive scoring on a list of learned patterns and their associated nutrients.
+ * Returns all AdaptiveScoringResult objects, sorted by urgency descending.
+ */
+export function runAdaptiveScoringAnalysis(patterns, allNutrients) {
+  return patterns.map((pattern) => {
+    const scopedNutrients = allNutrients.filter(
+      (n) => n.workspaceId === pattern.workspaceId && (n.projectId ?? null) === (pattern.projectId ?? null),
+    );
+    return computeAdaptiveScoringJS(pattern, scopedNutrients);
+  }).sort((a, b) => {
+    const urgencyDiff = (URGENCY_RANK_JS[b.operationalUrgency] ?? 0) - (URGENCY_RANK_JS[a.operationalUrgency] ?? 0);
+    return urgencyDiff !== 0 ? urgencyDiff : b.escalationLikelihood - a.escalationLikelihood;
+  });
+}
+
+/**
+ * Builds an adaptive operational context for a workspace+project.
+ */
+export function runAdaptiveContextAnalysis(patterns, allNutrients, workspaceId, projectId) {
+  const scopedPatterns = patterns.filter(
+    (p) => p.workspaceId === workspaceId && (p.projectId ?? null) === (projectId ?? null),
+  );
+  const scopedNutrients = allNutrients.filter(
+    (n) => n.workspaceId === workspaceId && (n.projectId ?? null) === (projectId ?? null),
+  );
+  const results = runAdaptiveScoringAnalysis(scopedPatterns, scopedNutrients);
+
+  const activeChronicRisks = results.filter((r) => r.patternType === 'chronic_risk_pattern' || (r.severityProfile.wasAmplified && ['critical','high'].includes(r.adaptedSeverity)));
+  const risingEscalations = results.filter((r) => r.patternType === 'escalation_trajectory_pattern' || (r.escalationAmplifier.trajectory === 'increasing' && r.escalationLikelihood >= 0.5));
+  const weakeningSignals = results.filter((r) => r.confidenceProfile.wasSuppressed || r.severityProfile.wasSuppressed);
+  const recoveryTrajectories = results.filter((r) => r.recoveryProfile.recoveryDetected);
+  const unresolvedDependencies = results.filter((r) => (r.patternType === 'recurring_dependency_pattern' || r.patternType === 'recurring_blocker_pattern') && !r.recoveryProfile.recoveryDetected);
+  const governanceDegradation = results.filter((r) => r.patternType === 'governance_degradation_pattern');
+
+  const totalContradictionCount = results.reduce((s, r) => s + r.contradictionProfile.totalContradictions, 0);
+  const totalRecoveryCount = results.reduce((s, r) => s + r.recoveryProfile.recoveryCount, 0);
+  const highConfidencePatternCount = results.filter((r) => r.adaptedConfidence >= 0.75).length;
+  const confidenceShiftCount = results.filter((r) => Math.abs(r.confidenceProfile.netDelta) >= 0.1).length;
+  const severityAmplificationCount = results.filter((r) => r.severityProfile.wasAmplified).length;
+  const severitySuppressionCount = results.filter((r) => r.severityProfile.wasSuppressed).length;
+
+  const hasRecovery = recoveryTrajectories.length > 0;
+  const hasCritical = results.some((r) => r.operationalUrgency === 'critical');
+  const hasHigh = results.some((r) => r.operationalUrgency === 'high');
+  const operationalReadiness = hasRecovery && !hasCritical ? 'recovering' : hasCritical ? 'critical' : hasHigh ? 'at_risk' : 'stable';
+  const topUrgencyRank = results.length > 0 ? results[0].operationalUrgency : 'informational';
+
+  return {
+    workspaceId, projectId,
+    generatedAt: new Date().toISOString(),
+    adaptiveScoringResults: results,
+    activeChronicRisks, risingEscalations, weakeningSignals, recoveryTrajectories,
+    unresolvedDependencies, governanceDegradation,
+    totalContradictionCount, totalRecoveryCount, highConfidencePatternCount,
+    confidenceShiftCount, severityAmplificationCount, severitySuppressionCount,
+    operationalReadiness, topUrgencyRank,
+  };
+}
+
 // Export for test consumption
 export { runSmokeTest, validateOverTriggering, validateUnderTriggering, validateSignalDensity, validateLineageIntegrity, validateDeterminism, digestArtifact };
 
