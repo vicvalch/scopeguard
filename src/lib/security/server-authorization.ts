@@ -1,8 +1,7 @@
 import { getAuthUser, type AuthUserContext } from "@/lib/auth";
 import { AccessDeniedError } from "@/lib/security/access-guards";
 import type { Permission, WorkspaceRole } from "@/lib/security/rbac";
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
-import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
+import { authorizeRuntimeAction, buildEnterpriseRuntimeRequest } from "@/aoc/runtime-consumer";
 import { PERMISSION_TO_GOVERNANCE_ACTION } from "@/lib/aoc/runtime/governance-actions";
 
 export type AuthenticatedContext = { user: AuthUserContext };

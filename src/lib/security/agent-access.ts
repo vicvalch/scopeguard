@@ -2,8 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireWorkspaceRole } from "@/lib/security/access-guards";
 import { type Permission } from "@/lib/security/rbac";
 import { ensurePmfreakAocAdaptersRegistered } from "@/lib/aoc/bootstrap";
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
-import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
+import { authorizeRuntimeAction, buildEnterpriseRuntimeRequest } from "@/aoc/runtime-consumer";
 import { getAuthUser } from "@/lib/auth";
 import { PERMISSION_TO_GOVERNANCE_ACTION } from "@/lib/aoc/runtime/governance-actions";
 

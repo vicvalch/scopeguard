@@ -2,8 +2,7 @@ import { getAuthUser, type AuthUserContext } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logSecurityEvent } from "@/lib/security/telemetry";
 import { type Permission, type WorkspaceRole } from "@/lib/security/rbac";
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
-import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
+import { authorizeRuntimeAction, buildEnterpriseRuntimeRequest } from "@/aoc/runtime-consumer";
 import { PERMISSION_TO_GOVERNANCE_ACTION } from "@/lib/aoc/runtime/governance-actions";
 
 export class AccessDeniedError extends Error {
