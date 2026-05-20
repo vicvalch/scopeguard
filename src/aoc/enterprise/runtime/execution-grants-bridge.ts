@@ -1,10 +1,9 @@
-import {
-  consumeExecutionGrant,
-  generateExecutionGrantToken,
-  issueExecutionGrant,
-  validateExecutionGrant,
-  type ExecutionGrantInput,
-} from "@/lib/security/execution-grants";
+import { generateExecutionGrantToken, type ExecutionGrantInput } from "@/aoc/enterprise/runtime/execution-grants";
+import { getRuntimeAuthorityPort } from "./authority-provider";
 
-export { consumeExecutionGrant, generateExecutionGrantToken, issueExecutionGrant, validateExecutionGrant };
+export { generateExecutionGrantToken };
 export type { ExecutionGrantInput };
+
+export async function issueExecutionGrant(input: ExecutionGrantInput) { return getRuntimeAuthorityPort().issueExecutionGrant(input); }
+export async function consumeExecutionGrant(input: ExecutionGrantInput) { return getRuntimeAuthorityPort().consumeExecutionGrant(input); }
+export async function validateExecutionGrant(input: ExecutionGrantInput) { return getRuntimeAuthorityPort().verifyExecutionGrant(input); }

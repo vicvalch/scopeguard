@@ -1,4 +1,9 @@
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
-import { enforceRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
+import { getRuntimeAuthorityPort } from "./authority-provider";
 
-export { authorizeRuntimeAction, enforceRuntimeAuthorization };
+export async function authorizeRuntimeAction(input: Parameters<ReturnType<typeof getRuntimeAuthorityPort>["authorizeAction"]>[0]) {
+  return getRuntimeAuthorityPort().authorizeAction(input);
+}
+
+export async function enforceRuntimeAuthorization(input: Parameters<ReturnType<typeof getRuntimeAuthorityPort>["enforceAuthorization"]>[0]) {
+  return getRuntimeAuthorityPort().enforceAuthorization(input);
+}
