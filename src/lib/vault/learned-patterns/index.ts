@@ -58,3 +58,6 @@ export type { VaultPatternPersistenceResult } from "./persistence";
 
 export { computeAdaptiveScoring, explainAdaptiveScoring } from "./adaptive-scoring";
 export type { AdaptiveScoringResult, SeverityAdjustmentReason, ConfidenceAdjustmentReason, ContradictionProfile, RecoveryProfile, ConfidenceEvolution, SeverityEvolution } from "./adaptive-scoring";
+
+export { detectInterventionsFromPatterns, learnInterventionEfficacy } from "./intervention-learning";
+export type { VaultIntervention, InterventionType, InterventionOutcome, InterventionFatigueProfile, InterventionEvidence } from "./intervention-learning";
