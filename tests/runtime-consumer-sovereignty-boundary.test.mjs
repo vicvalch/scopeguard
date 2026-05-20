@@ -18,6 +18,8 @@ const LEGACY_SECURITY_IMPORTS = [
   "@/lib/security/delegated-capabilities",
   "@/lib/security/agent-access",
   "@/lib/security/access-guards",
+  "@/lib/aoc/enterprise/authorization",
+  "@/lib/aoc/enterprise/runtime",
 ];
 
 const RUNTIME_CONSUMER_ALLOWED_IMPORT_PREFIXES = [
@@ -96,11 +98,8 @@ test("protocol layer does not import runtime-consumer or enterprise runtime/secu
 });
 
 test("legacy security imports are constrained to enterprise runtime bridge files", () => {
-  const bridgeFiles = new Set([
-    "src/aoc/enterprise/runtime/execution-grants-bridge.ts",
-    "src/aoc/enterprise/runtime/delegated-capabilities-bridge.ts",
-    "src/aoc/enterprise/runtime/agent-access-bridge.ts",
-    "src/aoc/enterprise/runtime/access-guards-bridge.ts",
+  const adapterFiles = new Set([
+    "src/aoc/enterprise/runtime/in-process-authority-adapter.ts",
   ]);
 
   const files = collectFiles("src/aoc").concat(collectFiles("src/lib/security"));
@@ -110,7 +109,7 @@ test("legacy security imports are constrained to enterprise runtime bridge files
     if (!hasLegacySecurityImport) continue;
 
     const isLegacyImpl = file.startsWith("src/lib/security/");
-    const isBridge = bridgeFiles.has(file);
-    assert.equal(isLegacyImpl || isBridge, true, `${file} must not directly import legacy security modules`);
+    const isAdapter = adapterFiles.has(file);
+    assert.equal(isLegacyImpl || isAdapter, true, `${file} must not directly import legacy security modules`);
   }
 });

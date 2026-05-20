@@ -101,8 +101,8 @@ test('src/aoc imports from @/lib/security only via runtime-consumer adapters', (
   }
   const lines = output.trim().split('\n').filter(Boolean);
   const allowlist = [
-    'src/aoc/enterprise/runtime/execution-grants-bridge.ts',
-    'src/aoc/enterprise/runtime/delegated-capabilities-bridge.ts',
+    'src/aoc/enterprise/runtime/in-process-authority-adapter.ts',
+    'src/aoc/enterprise/runtime/authority-port.ts',
     'src/aoc/enterprise/runtime/agent-access-bridge.ts',
     'src/aoc/enterprise/runtime/access-guards-bridge.ts',
   ];
