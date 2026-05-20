@@ -126,12 +126,7 @@ test("protocol layer does not import runtime-consumer or enterprise runtime/secu
 });
 
 test("legacy security imports are constrained to enterprise runtime bridge files", () => {
-  const adapterFiles = new Set([
-    "src/aoc/enterprise/runtime/in-process-authority-adapter.ts",
-    "src/aoc/enterprise/runtime/access-guards-bridge.ts",
-    "src/aoc/enterprise/runtime/agent-access-bridge.ts",
-    "src/aoc/enterprise/runtime/authority-port.ts",
-  ]);
+  const adapterFiles = new Set([]);
 
   const files = collectFiles("src/aoc").concat(collectFiles("src/lib/security"));
   for (const file of files) {

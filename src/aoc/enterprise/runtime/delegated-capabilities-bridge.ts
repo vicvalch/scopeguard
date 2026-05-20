@@ -1,4 +1,4 @@
-import { buildAuthorityLineage, explainDelegationChain, type DelegationConstraints, type DelegationDecision, type DelegationInput } from "@/aoc/enterprise/runtime/delegated-capabilities";
+import { buildAuthorityLineage, explainDelegationChain, type DelegationConstraints, type DelegationDecision, type DelegationInput } from "./delegated-capabilities";
 import { getRuntimeAuthorityPort } from "./authority-provider";
 
 export { buildAuthorityLineage, explainDelegationChain };

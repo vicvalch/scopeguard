@@ -20,6 +20,7 @@ export class ExternalRuntimeAuthorityAdapter implements RuntimeAuthorityPort {
   async validateDelegatedCapability(input: any): Promise<any> { return this.unavailable(); }
   async evaluateAgentAccess(input: any): Promise<any> { return this.unavailable(); }
   async requireAgentScope(input: any): Promise<any> { return this.unavailable(); }
+  async grantAgentScope(input: any): Promise<any> { return this.unavailable(); }
   async requireWorkspaceMembership(workspaceId: string): Promise<any> { return this.unavailable(); }
   async requireWorkspaceRole(workspaceId: string, allowedRoles: any[]): Promise<any> { return this.unavailable(); }
   async requireProjectAccess(projectId: string): Promise<any> { return this.unavailable(); }

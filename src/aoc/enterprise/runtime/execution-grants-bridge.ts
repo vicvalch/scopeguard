@@ -1,4 +1,4 @@
-import { generateExecutionGrantToken, type ExecutionGrantInput } from "@/aoc/enterprise/runtime/execution-grants";
+import { generateExecutionGrantToken, type ExecutionGrantInput } from "./execution-grants";
 import { getRuntimeAuthorityPort } from "./authority-provider";
 
 export { generateExecutionGrantToken };
