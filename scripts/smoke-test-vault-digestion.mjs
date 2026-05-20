@@ -2234,9 +2234,60 @@ function buildPatternsFromNutrientsJS(allNutrients, allResidue) {
     patterns.push({ id: patternId, workspaceId: rc.workspaceId, projectId: rc.projectId, patternType: 'recovery_pattern', title: rc.title, summary: rc.summary, firstSeenAt: allSorted[0]?.createdAt ?? now, lastSeenAt: allSorted[allSorted.length - 1]?.createdAt ?? now, recurrenceCount: recovNuts.length, involvedNutrientIds: rc.involvedNutrientIds, involvedResidueIds: rc.involvedResidueIds, evidenceReferences, confidence: 0.4, severity: 'low', trajectory: 'decreasing', status: 'recovering', promotionReason: 'recovery_after_blockers', recurrenceProfile: { totalOccurrences: recovNuts.length, distinctArtifacts: new Set(recovNuts.map((n) => n.evidence[0]?.sourceArtifactId).filter(Boolean)).size, distinctDigestionRuns: new Set(recovNuts.map((n) => n.digestionRunId)).size, timeSpanDays: 0, multiDaySpread: false }, createdAt: now, updatedAt: now });
   }
 
-  return patterns;
+  return patterns.map((pattern) => ({ ...pattern, adaptiveScoring: computeAdaptiveScoringJS(pattern, patterns) }));
 }
 
+
+
+function computeAdaptiveScoringJS(pattern, peerPatterns) {
+  const rank = { low: 1, medium: 2, high: 3, critical: 4 };
+  let sev = rank[pattern.severity] ?? 2;
+  let conf = pattern.confidence;
+  const sevReasons = [];
+  const confReasons = [];
+  const contradictions = pattern.evidenceReferences.filter((e) => /resolved|stabilized|completed|responded/i.test(e.excerpt)).length;
+  const recoveries = peerPatterns.filter((p) => p.patternType === 'recovery_pattern').length;
+  const unresolvedDays = Math.max(0, (Date.parse(pattern.lastSeenAt) - Date.parse(pattern.firstSeenAt)) / 86_400_000);
+
+  if (pattern.recurrenceCount >= 4) { sev += 0.45; conf += 0.08; sevReasons.push('recurrence_increase'); confReasons.push('cross_artifact_recurrence'); }
+  if (pattern.trajectory === 'increasing') { sev += 0.4; conf += 0.05; sevReasons.push('escalation_trajectory_increase'); confReasons.push('correlated_signals'); }
+  if (pattern.status === 'chronic') { sev += 0.35; conf += 0.05; sevReasons.push('chronic_pattern'); confReasons.push('pattern_confirmation'); }
+  if (unresolvedDays > 10 && recoveries === 0) { sev += 0.3; sevReasons.push('recovery_absent'); }
+  if (pattern.patternType === 'governance_degradation_pattern') { sev += 0.2; sevReasons.push('governance_degradation'); }
+
+  if (recoveries > 0) { sev -= Math.min(0.5, recoveries * 0.18); conf -= 0.06; sevReasons.push('recovery_detected'); confReasons.push('contradictory_evidence'); }
+  if (contradictions > 0) { conf -= Math.min(0.24, contradictions * 0.08); sev -= 0.2; sevReasons.push('contradiction_accumulation'); confReasons.push('contradictory_evidence'); }
+
+  conf = Math.max(0.05, Math.min(0.99, Math.round(conf * 100) / 100));
+  sev = Math.max(1, Math.min(4, sev));
+  const adaptiveSeverity = sev >= 3.5 ? 'critical' : sev >= 2.5 ? 'high' : sev >= 1.5 ? 'medium' : 'low';
+  const operationalUrgency = Math.round(((sev / 4) * 0.7 + conf * 0.3) * 100);
+  const relevance = Math.round((Math.min(1, (pattern.recurrenceProfile.timeSpanDays + 1) / 30) * 0.4 + conf * 0.6) * 100);
+  const escalationLikelihood = Math.min(100, Math.round((Math.min(1, pattern.recurrenceCount / 6) * 0.5 + (pattern.trajectory === 'increasing' ? 0.35 : 0.1) + (pattern.status === 'chronic' ? 0.15 : 0.05)) * 100));
+
+  return {
+    adaptiveSeverity,
+    adaptiveConfidence: conf,
+    operationalUrgency,
+    relevance,
+    escalationLikelihood,
+    severityEvolution: { base: pattern.severity, adjusted: adaptiveSeverity, history: [pattern.severity, adaptiveSeverity], reasons: [...new Set(sevReasons)] },
+    confidenceEvolution: { base: pattern.confidence, adjusted: conf, history: [pattern.confidence, conf], reasons: [...new Set(confReasons)] },
+    contradictionProfile: { contradictionCount: contradictions },
+    recoveryProfile: { recoveryCount: recoveries, unresolvedDays: Math.round(unresolvedDays), recoveryPresent: recoveries > 0 },
+  };
+}
+
+function getAdaptiveOperationalContextJS(patterns) {
+  const scored = patterns.map((p) => computeAdaptiveScoringJS(p, patterns));
+  return {
+    activeChronicRisks: patterns.filter((p) => p.status === 'chronic').length,
+    risingEscalations: patterns.filter((p) => p.trajectory === 'increasing').length,
+    recoveringPatterns: patterns.filter((p) => p.status === 'recovering' || p.trajectory === 'recovered').length,
+    contradictionAccumulation: scored.reduce((s, x) => s + x.contradictionProfile.contradictionCount, 0),
+    averageAdaptiveConfidence: scored.length ? Math.round((scored.reduce((s, x) => s + x.adaptiveConfidence, 0) / scored.length) * 100) / 100 : 0,
+  };
+}
 /**
  * Runs the learned pattern analysis on all digested simulation artifacts.
  * Returns patterns grouped by project.
@@ -2260,7 +2311,7 @@ export function runLearnedPatternAnalysis(digestedResults) {
     typeDistribution[p.patternType] = (typeDistribution[p.patternType] ?? 0) + 1;
   }
 
-  return { patterns, byProject, typeDistribution, totalPatterns: patterns.length };
+  return { patterns, byProject, typeDistribution, totalPatterns: patterns.length, adaptiveOperationalContext: getAdaptiveOperationalContextJS(patterns) };
 }
 
 /**

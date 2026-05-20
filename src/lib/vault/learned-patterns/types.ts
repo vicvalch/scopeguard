@@ -7,6 +7,7 @@
  */
 
 import type { VaultNutrientType } from "../digestive/types";
+import type { AdaptiveScoringResult } from "./adaptive-scoring";
 
 // ─── Pattern Classification ───────────────────────────────────────────────────
 
@@ -123,6 +124,7 @@ export type VaultLearnedPattern = {
   recurrenceProfile: PatternRecurrenceProfile;
   createdAt: string;
   updatedAt: string;
+  adaptiveScoring?: AdaptiveScoringResult;
 };
 
 // ─── Context Object ───────────────────────────────────────────────────────────
@@ -145,6 +147,13 @@ export type PatternContext = {
   }>;
   patternCount: number;
   readinessSignal: "none" | "emerging" | "active" | "critical";
+  adaptiveOperationalContext?: {
+    activeChronicRisks: number;
+    risingEscalations: number;
+    recoveringPatterns: number;
+    contradictionAccumulation: number;
+    averageAdaptiveConfidence: number;
+  };
 };
 
 // ─── Learning Result ──────────────────────────────────────────────────────────

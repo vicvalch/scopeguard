@@ -30,6 +30,11 @@ export {
   getLearnedPatternContext,
   getTopOperationalPatterns,
   updatePatternFromNutrients,
+  getAdaptiveOperationalContext,
+  getAdaptiveSeverity,
+  getAdaptiveConfidence,
+  computeAdaptiveScoringForPattern,
+  explainAdaptivePatternScoring,
 } from "./learning-service";
 
 // ─── Scoring ──────────────────────────────────────────────────────────────────
@@ -49,3 +54,7 @@ export type { PromotionCandidate } from "./promotion-rules";
 
 export { persistLearnedPatterns } from "./persistence";
 export type { VaultPatternPersistenceResult } from "./persistence";
+
+
+export { computeAdaptiveScoring, explainAdaptiveScoring } from "./adaptive-scoring";
+export type { AdaptiveScoringResult, SeverityAdjustmentReason, ConfidenceAdjustmentReason, ContradictionProfile, RecoveryProfile, ConfidenceEvolution, SeverityEvolution } from "./adaptive-scoring";

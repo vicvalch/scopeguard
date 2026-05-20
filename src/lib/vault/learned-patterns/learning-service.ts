@@ -18,6 +18,7 @@ import { detectRecurringSignalGroups } from "./recurrence-engine";
 import { evaluatePromotionRules, detectRecoveryPatternCandidates } from "./promotion-rules";
 import { computePatternScores, computeRecoveryScores } from "./pattern-scoring";
 import { persistLearnedPatterns } from "./persistence";
+import { computeAdaptiveScoring, explainAdaptiveScoring } from "./adaptive-scoring";
 import type {
   VaultLearnedPattern,
   LearnedPatternEvidence,
@@ -180,7 +181,41 @@ function buildPatternsFromNutrients(
     });
   }
 
-  return patterns;
+  const enriched = patterns.map((pattern) => ({
+    ...pattern,
+    adaptiveScoring: computeAdaptiveScoring(pattern, patterns),
+  }));
+
+  return enriched;
+}
+
+
+
+export function getAdaptiveSeverity(pattern: VaultLearnedPattern, patterns: VaultLearnedPattern[]) {
+  return computeAdaptiveScoring(pattern, patterns).adaptiveSeverity;
+}
+
+export function getAdaptiveConfidence(pattern: VaultLearnedPattern, patterns: VaultLearnedPattern[]) {
+  return computeAdaptiveScoring(pattern, patterns).adaptiveConfidence;
+}
+
+export function computeAdaptiveScoringForPattern(pattern: VaultLearnedPattern, patterns: VaultLearnedPattern[]) {
+  return computeAdaptiveScoring(pattern, patterns);
+}
+
+export function getAdaptiveOperationalContext(patterns: VaultLearnedPattern[]) {
+  const enriched = patterns.map((p) => computeAdaptiveScoring(p, patterns));
+  return {
+    activeChronicRisks: patterns.filter((p) => p.status === "chronic").length,
+    risingEscalations: patterns.filter((p) => p.trajectory === "increasing").length,
+    recoveringPatterns: patterns.filter((p) => p.status === "recovering" || p.trajectory === "recovered").length,
+    contradictionAccumulation: enriched.reduce((s, x) => s + x.contradictionProfile.contradictionCount, 0),
+    averageAdaptiveConfidence: enriched.length ? Math.round((enriched.reduce((s, x) => s + x.adaptiveConfidence, 0) / enriched.length) * 100) / 100 : 0,
+  };
+}
+
+export function explainAdaptivePatternScoring(pattern: VaultLearnedPattern, patterns: VaultLearnedPattern[]) {
+  return explainAdaptiveScoring(computeAdaptiveScoring(pattern, patterns));
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -334,6 +369,7 @@ export function getLearnedPatternContext(
     })),
     patternCount: scopedPatterns.length,
     readinessSignal,
+    adaptiveOperationalContext: getAdaptiveOperationalContext(scopedPatterns),
   };
 }
 

@@ -476,3 +476,33 @@ test('smoke test expected pattern types match EXPECTED_PATTERNS_BY_PROJECT', () 
   }
   assert.equal(missed.length, 0, `Missing expected patterns: ${missed.map((m) => `${m.projectId}/${m.expected}`).join(', ')}`);
 });
+
+test('patternsDetected include adaptiveScoring with adaptive severity/confidence', () => {
+  const nutrients = makeRecurringNutrients('blocker_signal', 4, 'ws-adp', 'proj-adp');
+  const digestedResults = nutrients.map((n) => ({
+    artifact: { id: n.evidence[0].sourceArtifactId, workspaceId: n.workspaceId, projectId: n.projectId },
+    result: { nutrients: [n], residue: [], entities: [], digestivePass: { runId: n.digestionRunId, workspaceId: n.workspaceId, projectId: n.projectId, actorUserId: null, rawMaterialId: null, startedAt: n.createdAt, completedAt: n.createdAt, extractionMethod: 'rule_based', nutrientCount: 1, residueCount: 0, entityCount: 0, suppressedCandidateCount: 0 } },
+  }));
+  const analysis = runLearnedPatternAnalysis(digestedResults);
+  assert.ok(analysis.patterns.length > 0, 'Expected learned patterns');
+  for (const pattern of analysis.patterns) {
+    assert.ok(pattern.adaptiveScoring, 'Pattern should include adaptiveScoring');
+    assert.ok(['low', 'medium', 'high', 'critical'].includes(pattern.adaptiveScoring.adaptiveSeverity), 'adaptiveSeverity should be valid');
+    assert.equal(typeof pattern.adaptiveScoring.adaptiveConfidence, 'number', 'adaptiveConfidence should be number');
+  }
+});
+
+test('runLearnedPatternAnalysis includes adaptiveOperationalContext', () => {
+  const digestedResults = SIMULATION_ARTIFACTS.map((artifact) => ({ artifact, result: digestArtifact(artifact) }));
+  const analysis = runLearnedPatternAnalysis(digestedResults);
+  assert.ok(analysis.adaptiveOperationalContext, 'adaptiveOperationalContext should exist');
+  assert.equal(typeof analysis.adaptiveOperationalContext.activeChronicRisks, 'number');
+  assert.equal(typeof analysis.adaptiveOperationalContext.averageAdaptiveConfidence, 'number');
+});
+
+test('smoke test learned patterns explicitly validate adaptive scoring presence', () => {
+  const digestedResults = SIMULATION_ARTIFACTS.map((artifact) => ({ artifact, result: digestArtifact(artifact) }));
+  const analysis = runLearnedPatternAnalysis(digestedResults);
+  const missing = analysis.patterns.filter((p) => !p.adaptiveScoring || typeof p.adaptiveScoring.adaptiveConfidence !== 'number');
+  assert.equal(missing.length, 0, `All learned patterns must include adaptive scoring. Missing: ${missing.length}`);
+});
