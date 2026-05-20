@@ -1,10 +1,9 @@
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
-import { evaluateRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
 import { buildEnterpriseRuntimeRequest, type PMFreakRuntimeContextInput } from "@/lib/aoc/pmfreak-runtime-consumer";
 import { bootstrapRuntimeConsumer } from "./runtime-bootstrap";
 import { normalizeRuntimeDecision } from "./runtime-decision";
 import { createRuntimeExecutionContext } from "./runtime-context";
 import { RuntimeDependencyUnavailableError } from "./runtime-errors";
+import { authorizeRuntimeAction, enforceRuntimeAuthorization } from "./runtime-authorization";
 
 export class RuntimeConsumerClient {
   async authorizeAction(input: PMFreakRuntimeContextInput) {
@@ -19,7 +18,7 @@ export class RuntimeConsumerClient {
   }
 
   async evaluateCapability(input: PMFreakRuntimeContextInput) { return this.authorizeAction(input); }
-  async verifyTrust(input: Parameters<typeof evaluateRuntimeAuthorization>[0]) { return evaluateRuntimeAuthorization(input); }
+  async verifyTrust(input: Parameters<typeof enforceRuntimeAuthorization>[0]) { return enforceRuntimeAuthorization(input); }
   async recordRuntimeEvent(eventType: string, metadata: Record<string, unknown>) { return { eventType, metadata, emittedAt: new Date().toISOString() }; }
 }
 

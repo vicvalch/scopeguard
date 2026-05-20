@@ -8,9 +8,9 @@ import { readProjectMemory, type StoredProjectAnalysis } from "@/lib/project-mem
 import { getRuntimeAuthorityView } from "@/lib/aoc/runtime-observability";
 import { appendOperationalMemory, buildContinuityContext, extractOperationalMemoryCandidates } from "@/lib/operational-memory-v1";
 import { enforceRuntimeAuthorization } from "@/aoc/runtime-consumer";
-import { consumeExecutionGrant } from "@/lib/security/execution-grants";
-import { buildAuthorityLineage, consumeDelegatedCapability, explainDelegationChain } from "@/lib/security/delegated-capabilities";
-import { evaluateAgentAccess } from "@/lib/security/agent-access";
+import { consumeExecutionGrant } from "@/aoc/runtime-consumer";
+import { buildAuthorityLineage, consumeDelegatedCapability, explainDelegationChain } from "@/aoc/runtime-consumer";
+import { evaluateAgentAccess } from "@/aoc/runtime-consumer";
 // verifyAgentAttestation is enforced within governance-runtime for ai.execute actions.
 import { denyResponse } from "@/lib/security/deny-response";
 import { verifyAiResponse } from "@/lib/ai/response-verifier";

@@ -1,7 +1,7 @@
 import { getAuthUser } from "@/lib/auth";
 import { denyResponse } from "@/lib/security/deny-response";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { issueDelegatedCapability } from "@/lib/security/delegated-capabilities";
+import { issueDelegatedCapability } from "@/aoc/runtime-consumer";
 
 export async function GET(request: Request) {
   const user = await getAuthUser();

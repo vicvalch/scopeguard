@@ -1,6 +1,6 @@
 import { getAuthUser } from "@/lib/auth";
 import { buildContinuityContext, type OperationalMemoryEntry } from "@/lib/operational-memory-v1";
-import { AccessDeniedError, requireProjectAccess } from "@/lib/security/access-guards";
+import { AccessDeniedError, requireProjectAccess } from "@/aoc/runtime-consumer";
 import { verifyAgentAttestation } from "@/lib/security/agent-attestation";
 import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 

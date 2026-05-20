@@ -2,10 +2,10 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/lib/security/server-authorization";
-import { requireWorkspaceRole } from "@/lib/security/access-guards";
+import { requireWorkspaceRole } from "@/aoc/runtime-consumer";
 import { createCapabilityRequest } from "@/lib/security/capability-flow";
 import { evaluatePolicyDecision } from "@/lib/security/policy-engine";
-import { evaluateAgentAccess } from "@/lib/security/agent-access";
+import { evaluateAgentAccess } from "@/aoc/runtime-consumer";
 import { resolveUserAocActorContext } from "@/lib/aoc/actor-context";
 const DEMO_TAG = "playground-demo";
 async function workspaceContext(){const { user } = await requireAuthenticatedUser(); const supabase=await createSupabaseServerClient(); const {data:membership}=await supabase.from("workspace_memberships").select("workspace_id,role").eq("user_id",user.id).limit(1).maybeSingle<{workspace_id:string;role:string}>(); if(!membership) throw new Error("No workspace"); return {user,workspaceId:membership.workspace_id,supabase};}

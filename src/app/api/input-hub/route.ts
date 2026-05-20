@@ -2,7 +2,7 @@ import { getAuthUser } from "@/lib/auth";
 import { routeOperationalInput } from "@/lib/input-routing";
 import { listOperationalMemory } from "@/lib/operational-memory";
 import type { InputHubMode } from "@/lib/operational-classifier";
-import { AccessDeniedError, requireProjectPermission } from "@/lib/security/access-guards";
+import { AccessDeniedError, requireProjectPermission } from "@/aoc/runtime-consumer";
 import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 
 export async function GET(request: Request) {

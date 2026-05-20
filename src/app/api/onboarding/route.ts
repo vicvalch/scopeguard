@@ -1,4 +1,4 @@
-import { AccessDeniedError } from "@/lib/security/access-guards";
+import { AccessDeniedError } from "@/aoc/runtime-consumer";
 import { requireAuthenticatedUser, requireWorkspaceContext, requireWorkspaceMember } from "@/lib/security/server-authorization";
 import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 import { createSupabaseServerClient } from "@/lib/supabase/server";

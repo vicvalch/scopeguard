@@ -1,4 +1,4 @@
-import { AccessDeniedError, requireProjectPermission } from "@/lib/security/access-guards";
+import { AccessDeniedError, requireProjectPermission } from "@/aoc/runtime-consumer";
 import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";

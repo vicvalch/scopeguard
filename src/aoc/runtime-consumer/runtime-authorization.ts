@@ -1,4 +1,5 @@
 import type { GovernanceEvaluationInput } from "@aoc-enterprise/runtime";
+import { authorizeRuntimeAction as authorizeEnterpriseRuntimeAction } from "@/lib/aoc/enterprise/authorization";
 import { enforceRuntimeAuthorization as enforceEnterpriseRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
 import { RuntimeDependencyUnavailableError } from "./runtime-errors";
 
@@ -41,5 +42,14 @@ export async function enforceRuntimeAuthorization(input: GovernanceEvaluationInp
       },
       response: failClosedResponse(input.routeId),
     };
+  }
+}
+
+
+export async function authorizeRuntimeAction(input: Parameters<typeof authorizeEnterpriseRuntimeAction>[0]) {
+  try {
+    return await authorizeEnterpriseRuntimeAction(input);
+  } catch (error) {
+    return { allowed: false as const, reason: "runtime_dependency_unavailable", decisionId: `runtime_consumer_fail_closed_${input.routeId}`, runtimeMetadata: { authoritySource: "runtime-consumer", delegatedTo: "enterprise-runtime", failClosed: true, error: error instanceof Error ? error.message : String(error) } };
   }
 }

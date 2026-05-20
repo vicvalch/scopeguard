@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/lib/security/server-authorization";
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
+import { authorizeRuntimeAction } from "@/aoc/runtime-consumer";
 import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {

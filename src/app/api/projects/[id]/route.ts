@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { AccessDeniedError } from "@/lib/security/access-guards";
+import { AccessDeniedError } from "@/aoc/runtime-consumer";
 import { requireAuthenticatedUser, requireProjectAccess } from "@/lib/security/server-authorization";
 import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 

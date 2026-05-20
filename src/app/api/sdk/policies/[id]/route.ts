@@ -1,6 +1,6 @@
 import { getAuthUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
+import { authorizeRuntimeAction } from "@/aoc/runtime-consumer";
 import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
 import { SDK_GOVERNANCE_ACTIONS } from "@/lib/aoc/runtime/governance-actions";
 

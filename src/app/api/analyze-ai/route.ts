@@ -1,5 +1,5 @@
 import { getAuthUser } from "@/lib/auth";
-import { AccessDeniedError, requireProjectPermission } from "@/lib/security/access-guards";
+import { AccessDeniedError, requireProjectPermission } from "@/aoc/runtime-consumer";
 import { getCompanySubscription } from "@/lib/billing";
 import {
   enrichWithPortfolioIntelligence,

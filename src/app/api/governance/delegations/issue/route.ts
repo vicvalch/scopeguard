@@ -1,5 +1,5 @@
 import { getAuthUser } from "@/lib/auth";
-import { issueDelegatedCapability } from "@/lib/security/delegated-capabilities";
+import { issueDelegatedCapability } from "@/aoc/runtime-consumer";
 import { denyResponse } from "@/lib/security/deny-response";
 
 const hasCapabilityClaim = (value: unknown): value is { capabilityClaim: unknown } =>

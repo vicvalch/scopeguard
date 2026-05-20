@@ -1,5 +1,5 @@
 import { getAuthUser } from "@/lib/auth";
-import { consumeExecutionGrant } from "@/lib/security/execution-grants";
+import { consumeExecutionGrant } from "@/aoc/runtime-consumer";
 import { denyResponse } from "@/lib/security/deny-response";
 import { logSecurityEvent } from "@/lib/security/telemetry";
 

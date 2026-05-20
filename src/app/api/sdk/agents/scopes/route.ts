@@ -1,6 +1,6 @@
 import { getAuthUser } from "@/lib/auth";
-import { grantAgentScope } from "@/lib/security/agent-access";
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
+import { grantAgentScope } from "@/aoc/runtime-consumer";
+import { authorizeRuntimeAction } from "@/aoc/runtime-consumer";
 import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
 import { SDK_GOVERNANCE_ACTIONS } from "@/lib/aoc/runtime/governance-actions";
 

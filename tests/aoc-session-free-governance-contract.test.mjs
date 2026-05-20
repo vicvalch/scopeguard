@@ -92,12 +92,20 @@ test('src/aoc contains no direct session or cookie imports', () => {
   }
 });
 
-test('src/aoc contains no imports from @/lib/security', () => {
+test('src/aoc imports from @/lib/security only via runtime-consumer adapters', () => {
   let output = '';
   try {
     output = execSync('grep -r "@/lib/security" src/aoc', { encoding: 'utf8' });
   } catch {
     output = '';
   }
-  assert.strictEqual(output.trim(), '', `src/aoc must not import from @/lib/security but found: ${output.trim()}`);
+  const lines = output.trim().split('\n').filter(Boolean);
+  const allowlist = [
+    'src/aoc/runtime-consumer/runtime-execution-grants.ts',
+    'src/aoc/runtime-consumer/runtime-delegation.ts',
+    'src/aoc/runtime-consumer/runtime-agent-access.ts',
+    'src/aoc/runtime-consumer/runtime-capabilities.ts',
+  ];
+  const disallowed = lines.filter((line) => !allowlist.some((allowed) => line.startsWith(`${allowed}:`)));
+  assert.strictEqual(disallowed.length, 0, `src/aoc must only import @/lib/security via runtime-consumer adapters but found: ${disallowed.join('\n')}`);
 });

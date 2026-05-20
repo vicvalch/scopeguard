@@ -1,6 +1,6 @@
 import { getAuthUser } from "@/lib/auth";
-import { requireGovernancePermission } from "@/lib/security/access-guards";
-import { issueExecutionGrant } from "@/lib/security/execution-grants";
+import { requireGovernancePermission } from "@/aoc/runtime-consumer";
+import { issueExecutionGrant } from "@/aoc/runtime-consumer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logSecurityEvent } from "@/lib/security/telemetry";
 

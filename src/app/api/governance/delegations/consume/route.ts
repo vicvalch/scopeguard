@@ -1,5 +1,5 @@
 import { getAuthUser } from "@/lib/auth";
-import { consumeDelegatedCapability } from "@/lib/security/delegated-capabilities";
+import { consumeDelegatedCapability } from "@/aoc/runtime-consumer";
 import { denyResponse } from "@/lib/security/deny-response";
 
 export async function POST(request: Request) {

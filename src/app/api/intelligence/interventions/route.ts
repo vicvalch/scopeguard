@@ -1,5 +1,5 @@
-import { requireProjectPermission, requireWorkspaceMembership } from "@/lib/security/access-guards";
-import { AccessDeniedError } from "@/lib/security/access-guards";
+import { requireProjectPermission, requireWorkspaceMembership } from "@/aoc/runtime-consumer";
+import { AccessDeniedError } from "@/aoc/runtime-consumer";
 import { denyFromAccessError } from "@/lib/security/deny-response";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { buildInterventionSnapshot } from "@/lib/intervention-engine";

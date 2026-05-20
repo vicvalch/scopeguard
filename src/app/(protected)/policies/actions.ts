@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAuthenticatedUser } from "@/lib/security/server-authorization";
-import { requireWorkspaceRole } from "@/lib/security/access-guards";
+import { requireWorkspaceRole } from "@/aoc/runtime-consumer";
 
 export async function createPolicyAction(formData: FormData) {
   const { user } = await requireAuthenticatedUser();

@@ -1,4 +1,4 @@
-import { AccessDeniedError, requireProjectPermission, requireWorkspaceMembership } from "@/lib/security/access-guards";
+import { AccessDeniedError, requireProjectPermission, requireWorkspaceMembership } from "@/aoc/runtime-consumer";
 import { denyFromAccessError } from "@/lib/security/deny-response";
 import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";
 import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
