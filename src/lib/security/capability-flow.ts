@@ -2,8 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { type Permission } from "@/lib/security/rbac";
 import { AccessDeniedError, requireWorkspaceRole } from "@/lib/security/access-guards";
 import { requireAuthenticatedUser } from "@/lib/security/server-authorization";
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
-import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
+import { authorizeRuntimeAction, buildEnterpriseRuntimeRequest } from "@/aoc/runtime-consumer";
 import { CAPABILITY_PERMISSION_TO_GOVERNANCE_ACTION, PERMISSION_TO_GOVERNANCE_ACTION } from "@/lib/aoc/runtime/governance-actions";
 
 export type CapabilityPermission = "read" | "write" | "approve" | "manage" | "execute" | "delegate";
@@ -47,7 +46,8 @@ export async function createCapabilityRequest(input: { workspaceId: string; targ
   } else if (runtimeDecision.allowed) {
     initialStatus = "approved";
   } else {
-    const requiredApprovalType = runtimeDecision.runtimeMetadata.requiredApprovalType as string | null | undefined;
+    const requiredApprovalType =
+      (runtimeDecision.runtimeMetadata as { requiredApprovalType?: string | null } | undefined)?.requiredApprovalType;
     initialStatus = requiredApprovalType ? "pending" : "denied";
   }
 

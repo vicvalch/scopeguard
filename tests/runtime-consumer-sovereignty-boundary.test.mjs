@@ -23,6 +23,15 @@ const LEGACY_SECURITY_IMPORTS = [
   "@/lib/aoc/enterprise/runtime",
 ];
 
+
+
+const MIGRATED_SECURITY_WRAPPERS = [
+  "src/lib/security/server-authorization.ts",
+  "src/lib/security/agent-access.ts",
+  "src/lib/security/access-guards.ts",
+  "src/lib/security/capability-flow.ts",
+];
+
 const RUNTIME_CONSUMER_ALLOWED_IMPORT_PREFIXES = [
   "@/aoc/enterprise/runtime/",
   "@/aoc/protocol/",
@@ -82,6 +91,24 @@ test("runtime-consumer imports only approved boundaries", () => {
   }
 });
 
+
+
+test("product-facing security wrappers consume runtime authority via runtime-consumer boundary", () => {
+  const forbidden = [
+    "@/lib/aoc/enterprise/authorization",
+    "@/lib/aoc/enterprise/runtime",
+    "@/lib/aoc/pmfreak-runtime-consumer",
+  ];
+
+  for (const file of MIGRATED_SECURITY_WRAPPERS) {
+    const src = readFileSync(file, "utf8");
+    for (const specifier of forbidden) {
+      assert.equal(src.includes(specifier), false, `${file} must not import ${specifier}`);
+    }
+    assert.equal(src.includes("@/aoc/runtime-consumer"), true, `${file} must import runtime authority from @/aoc/runtime-consumer`);
+  }
+});
+
 test("enterprise runtime implementation does not import runtime-consumer", () => {
   for (const file of collectFiles("src/aoc/enterprise/runtime")) {
     const src = readFileSync(file, "utf8");
@@ -101,6 +128,9 @@ test("protocol layer does not import runtime-consumer or enterprise runtime/secu
 test("legacy security imports are constrained to enterprise runtime bridge files", () => {
   const adapterFiles = new Set([
     "src/aoc/enterprise/runtime/in-process-authority-adapter.ts",
+    "src/aoc/enterprise/runtime/access-guards-bridge.ts",
+    "src/aoc/enterprise/runtime/agent-access-bridge.ts",
+    "src/aoc/enterprise/runtime/authority-port.ts",
   ]);
 
   const files = collectFiles("src/aoc").concat(collectFiles("src/lib/security"));

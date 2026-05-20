@@ -76,6 +76,9 @@ test('runtime wrapper calls bootstrap before governance evaluation', () => {
 test('agent access evaluator delegates final authority to enterprise runtime', () => {
   assert.match(agentAccessSrc, /authorizeRuntimeAction/);
   assert.match(agentAccessSrc, /buildEnterpriseRuntimeRequest/);
+  assert.match(agentAccessSrc, /from "@\/aoc\/runtime-consumer"/);
+  assert.doesNotMatch(agentAccessSrc, /@\/lib\/aoc\/enterprise\/authorization/);
+  assert.doesNotMatch(agentAccessSrc, /@\/lib\/aoc\/pmfreak-runtime-consumer/);
   assert.doesNotMatch(agentAccessSrc, /evaluatePolicyDecision/);
 });
 

@@ -24,6 +24,8 @@ const BRIDGE_ALLOWLIST = new Set([
   "src/aoc/enterprise/runtime/agent-access-bridge.ts",
   "src/aoc/enterprise/runtime/access-guards-bridge.ts",
   "src/aoc/enterprise/runtime/authorization-bridge.ts",
+  "src/aoc/enterprise/runtime/authority-port.ts",
+  "src/aoc/enterprise/runtime/in-process-authority-adapter.ts",
 ]);
 
 function collectTsFiles(root) {
