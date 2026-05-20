@@ -75,6 +75,6 @@ export function scoreNutrient(inputs: ScoringInputs): VaultNutrientScoring {
     actionability,
     evidenceStrength,
     decayProfile,
-    significanceScore: inputs.significanceScore,
+    significanceScore: inputs.significanceScore ?? inputs.confidence,
   };
 }
