@@ -1,7 +1,6 @@
-import { evaluateAgentAccess as evaluateLegacyAgentAccess, grantAgentScope, requireAgentScope as requireLegacyAgentScope } from "@/lib/security/agent-access";
 import { getRuntimeAuthorityPort } from "./authority-provider";
+import type { RuntimeAgentAccessInput, RuntimeAgentScopeInput } from "./authority-port";
 
-export { grantAgentScope };
-
-export async function evaluateAgentAccess(input: Parameters<typeof evaluateLegacyAgentAccess>[0]) { return getRuntimeAuthorityPort().evaluateAgentAccess(input); }
-export async function requireAgentScope(input: Parameters<typeof requireLegacyAgentScope>[0]) { return getRuntimeAuthorityPort().requireAgentScope(input); }
+export async function grantAgentScope(input: RuntimeAgentScopeInput) { return getRuntimeAuthorityPort().grantAgentScope(input); }
+export async function evaluateAgentAccess(input: RuntimeAgentAccessInput) { return getRuntimeAuthorityPort().evaluateAgentAccess(input); }
+export async function requireAgentScope(input: RuntimeAgentScopeInput) { return getRuntimeAuthorityPort().requireAgentScope(input); }

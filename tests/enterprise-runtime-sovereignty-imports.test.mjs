@@ -18,15 +18,7 @@ const FORBIDDEN_PATTERNS = [
   "access-guards",
 ];
 
-const BRIDGE_ALLOWLIST = new Set([
-  "src/aoc/enterprise/runtime/execution-grants-bridge.ts",
-  "src/aoc/enterprise/runtime/delegated-capabilities-bridge.ts",
-  "src/aoc/enterprise/runtime/agent-access-bridge.ts",
-  "src/aoc/enterprise/runtime/access-guards-bridge.ts",
-  "src/aoc/enterprise/runtime/authorization-bridge.ts",
-  "src/aoc/enterprise/runtime/authority-port.ts",
-  "src/aoc/enterprise/runtime/in-process-authority-adapter.ts",
-]);
+const BRIDGE_ALLOWLIST = new Set([]);
 
 function collectTsFiles(root) {
   try {

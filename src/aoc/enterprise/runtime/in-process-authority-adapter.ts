@@ -1,32 +1,28 @@
-import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
-import { enforceRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
-import { consumeExecutionGrant, issueExecutionGrant, validateExecutionGrant } from "@/lib/security/execution-grants";
-import { consumeDelegatedCapability, evaluateDelegatedAccess, issueDelegatedCapability, resolveAuthorityChain, revokeDelegatedCapability, validateDelegatedCapability } from "@/lib/security/delegated-capabilities";
-import { evaluateAgentAccess, requireAgentScope } from "@/lib/security/agent-access";
-import { requireGovernancePermission, requireProjectAccess, requireProjectPermission, requireWorkspaceMembership, requireWorkspaceRole } from "@/lib/security/access-guards";
-import type { RuntimeAuthorityPort, RuntimeAuthorityProviderMetadata } from "./authority-port";
+import type { InProcessAuthorityDependencies, RuntimeAuthorityPort, RuntimeAuthorityProviderMetadata } from "./authority-port";
 
 const metadata: RuntimeAuthorityProviderMetadata = { authorityProviderKind: "in_process", authorityProviderId: "pmfreak.in-process", authoritySource: "enterprise-runtime", failClosed: true };
 
 export class InProcessRuntimeAuthorityAdapter implements RuntimeAuthorityPort {
+  constructor(private readonly deps: InProcessAuthorityDependencies) {}
   getProviderMetadata() { return metadata; }
   private withProvider<T extends object>(result: T) { return { ...result, authorityProvider: metadata }; }
-  async authorizeAction(input: Parameters<typeof authorizeRuntimeAction>[0]) { return this.withProvider(await authorizeRuntimeAction(input)); }
-  async enforceAuthorization(input: Parameters<typeof enforceRuntimeAuthorization>[0]) { return this.withProvider(await enforceRuntimeAuthorization(input)); }
-  async issueExecutionGrant(input: Parameters<typeof issueExecutionGrant>[0]) { return this.withProvider(await issueExecutionGrant(input)); }
-  async consumeExecutionGrant(input: Parameters<typeof consumeExecutionGrant>[0]) { return this.withProvider(await consumeExecutionGrant(input)); }
-  async verifyExecutionGrant(input: Parameters<typeof validateExecutionGrant>[0]) { return this.withProvider(await validateExecutionGrant(input)); }
-  async issueDelegatedCapability(input: Parameters<typeof issueDelegatedCapability>[0]) { return this.withProvider(await issueDelegatedCapability(input)); }
-  async consumeDelegatedCapability(input: Parameters<typeof consumeDelegatedCapability>[0]) { return this.withProvider(await consumeDelegatedCapability(input)); }
-  async revokeDelegatedCapability(input: Parameters<typeof revokeDelegatedCapability>[0]) { return this.withProvider(await revokeDelegatedCapability(input)); }
-  async evaluateDelegatedAccess(input: Parameters<typeof evaluateDelegatedAccess>[0]) { return this.withProvider(await evaluateDelegatedAccess(input)); }
-  async resolveAuthorityChain(input: Parameters<typeof resolveAuthorityChain>[0]) { return this.withProvider(await resolveAuthorityChain(input)); }
-  async validateDelegatedCapability(input: Parameters<typeof validateDelegatedCapability>[0]) { return this.withProvider(await validateDelegatedCapability(input)); }
-  async evaluateAgentAccess(input: Parameters<typeof evaluateAgentAccess>[0]) { return this.withProvider(await evaluateAgentAccess(input)); }
-  async requireAgentScope(input: Parameters<typeof requireAgentScope>[0]) { return this.withProvider(await requireAgentScope(input)); }
-  async requireWorkspaceMembership(workspaceId: string) { return this.withProvider(await requireWorkspaceMembership(workspaceId)); }
-  async requireWorkspaceRole(workspaceId: string, allowedRoles: Parameters<typeof requireWorkspaceRole>[1]) { return this.withProvider(await requireWorkspaceRole(workspaceId, allowedRoles)); }
-  async requireProjectAccess(projectId: string) { return this.withProvider(await requireProjectAccess(projectId)); }
-  async requireProjectPermission(projectId: string, permission: Parameters<typeof requireProjectPermission>[1]) { return this.withProvider(await requireProjectPermission(projectId, permission)); }
-  async requireGovernancePermission(workspaceId: string, permission: Parameters<typeof requireGovernancePermission>[1]) { return this.withProvider(await requireGovernancePermission(workspaceId, permission)); }
+  async authorizeAction(input: Parameters<InProcessAuthorityDependencies["authorizeAction"]>[0]) { return this.withProvider(await this.deps.authorizeAction(input)); }
+  async enforceAuthorization(input: Parameters<InProcessAuthorityDependencies["enforceAuthorization"]>[0]) { return this.withProvider(await this.deps.enforceAuthorization(input)); }
+  async issueExecutionGrant(input: Parameters<InProcessAuthorityDependencies["issueExecutionGrant"]>[0]) { return this.withProvider(await this.deps.issueExecutionGrant(input)); }
+  async consumeExecutionGrant(input: Parameters<InProcessAuthorityDependencies["consumeExecutionGrant"]>[0]) { return this.withProvider(await this.deps.consumeExecutionGrant(input)); }
+  async verifyExecutionGrant(input: Parameters<InProcessAuthorityDependencies["verifyExecutionGrant"]>[0]) { return this.withProvider(await this.deps.verifyExecutionGrant(input)); }
+  async issueDelegatedCapability(input: Parameters<InProcessAuthorityDependencies["issueDelegatedCapability"]>[0]) { return this.withProvider(await this.deps.issueDelegatedCapability(input)); }
+  async consumeDelegatedCapability(input: Parameters<InProcessAuthorityDependencies["consumeDelegatedCapability"]>[0]) { return this.withProvider(await this.deps.consumeDelegatedCapability(input)); }
+  async revokeDelegatedCapability(input: Parameters<InProcessAuthorityDependencies["revokeDelegatedCapability"]>[0]) { return this.withProvider(await this.deps.revokeDelegatedCapability(input)); }
+  async evaluateDelegatedAccess(input: Parameters<InProcessAuthorityDependencies["evaluateDelegatedAccess"]>[0]) { return this.withProvider(await this.deps.evaluateDelegatedAccess(input)); }
+  async resolveAuthorityChain(input: Parameters<InProcessAuthorityDependencies["resolveAuthorityChain"]>[0]) { return this.withProvider(await this.deps.resolveAuthorityChain(input)); }
+  async validateDelegatedCapability(input: Parameters<InProcessAuthorityDependencies["validateDelegatedCapability"]>[0]) { return this.withProvider(await this.deps.validateDelegatedCapability(input)); }
+  async evaluateAgentAccess(input: Parameters<InProcessAuthorityDependencies["evaluateAgentAccess"]>[0]) { return this.withProvider(await this.deps.evaluateAgentAccess(input)); }
+  async requireAgentScope(input: Parameters<InProcessAuthorityDependencies["requireAgentScope"]>[0]) { return this.withProvider(await this.deps.requireAgentScope(input)); }
+  async grantAgentScope(input: Parameters<InProcessAuthorityDependencies["grantAgentScope"]>[0]) { return this.withProvider(await this.deps.grantAgentScope(input)); }
+  async requireWorkspaceMembership(workspaceId: string) { return this.withProvider(await this.deps.requireWorkspaceMembership(workspaceId)); }
+  async requireWorkspaceRole(workspaceId: string, allowedRoles: Parameters<InProcessAuthorityDependencies["requireWorkspaceRole"]>[1]) { return this.withProvider(await this.deps.requireWorkspaceRole(workspaceId, allowedRoles)); }
+  async requireProjectAccess(projectId: string) { return this.withProvider(await this.deps.requireProjectAccess(projectId)); }
+  async requireProjectPermission(projectId: string, permission: Parameters<InProcessAuthorityDependencies["requireProjectPermission"]>[1]) { return this.withProvider(await this.deps.requireProjectPermission(projectId, permission)); }
+  async requireGovernancePermission(workspaceId: string, permission: Parameters<InProcessAuthorityDependencies["requireGovernancePermission"]>[1]) { return this.withProvider(await this.deps.requireGovernancePermission(workspaceId, permission)); }
 }
