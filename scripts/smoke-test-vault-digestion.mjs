@@ -2325,6 +2325,29 @@ export const EXPECTED_PATTERNS_BY_PROJECT = {
   'proj-muc-13098': ['delivery_drift_pattern'],
 };
 
+
+
+export function detectInterventionsFromDigestedResults(digestedResults, learnedPatterns) {
+  const interventions = [];
+  const rules = [
+    ['follow_up', [/follow\s*up/i,/seguimiento/i,/solicit[oó]\s+actualizaci[oó]n/i]],
+    ['escalation', [/escalat/i,/sponsor\s+intervention/i]],
+    ['technical_session', [/technical\s+session|mesa\s+t[eé]cnica|guided\s+session|workshop|validaci[oó]n\s+t[eé]cnica/i]],
+    ['approval_request', [/approval\s+requested|pendiente\s+aprobaci[oó]n|visto\s+bueno/i]],
+    ['vendor_coordination', [/vendor|td\s*synnex|cisco|manageengine|supplier\s+follow-up/i]],
+    ['financial_escalation', [/payment\s+pending|\binvoice\b|\bPO\b|\bOC\b|billing|facturaci[oó]n|presupuesto/i]],
+    ['recovery_action', [/resolved|unblocked|completed|recovered|habilitado|ya\s+se\s+complet[oó]/i]],
+  ];
+  for (const { result } of digestedResults) for (const n of result.nutrients) {
+    const text = `${n.summary} ${n.evidence.map((e)=>e.excerpt).join(' ')}`;
+    for (const [type, pats] of rules) if (pats.some((r)=>r.test(text))) {
+      interventions.push({ id: crypto.randomUUID(), workspaceId: n.workspaceId, projectId: n.projectId, interventionType: type, attemptedAt: n.createdAt, targetPatternId: null, summary: n.summary, evidence: n.evidence[0]?.excerpt ?? n.summary });
+      break;
+    }
+  }
+  return interventions;
+}
+
 // Export for test consumption
 export { runSmokeTest, validateOverTriggering, validateUnderTriggering, validateSignalDensity, validateLineageIntegrity, validateDeterminism, digestArtifact };
 
