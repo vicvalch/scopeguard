@@ -6,6 +6,7 @@ import { join } from "node:path";
 const APP_FORBIDDEN = [
   "@/lib/aoc/enterprise/runtime",
   "@/lib/aoc/enterprise/authorization",
+  "@/lib/aoc/pmfreak-runtime-consumer",
   "@/aoc/enterprise/runtime",
   "@/lib/security/execution-grants",
   "@/lib/security/delegated-capabilities",
@@ -53,7 +54,7 @@ test("app routes use runtime-consumer authority boundary", () => {
   for (const file of collectFiles("src/app")) {
     const src = readFileSync(file, "utf8");
     for (const forbidden of APP_FORBIDDEN) assert.equal(src.includes(forbidden), false, `${file} must not import ${forbidden}`);
-    if (src.includes("authorizeRuntimeAction(") || src.includes("enforceRuntimeAuthorization(") || src.includes("consumeDelegatedCapability(") || src.includes("consumeExecutionGrant(")) {
+    if (src.includes("authorizeRuntimeAction(") || src.includes("enforceRuntimeAuthorization(") || src.includes("consumeDelegatedCapability(") || src.includes("consumeExecutionGrant(") || src.includes("buildEnterpriseRuntimeRequest(") || src.includes("buildRuntimeConsumerRequest(")) {
       assert.equal(src.includes("@/aoc/runtime-consumer"), true, `${file} must import runtime authority from @/aoc/runtime-consumer`);
     }
   }

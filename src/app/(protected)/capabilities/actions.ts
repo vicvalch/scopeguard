@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createCapabilityRequest } from "@/lib/security/capability-flow";
 import { requireAuthenticatedUser } from "@/lib/security/server-authorization";
 import { authorizeRuntimeAction } from "@/aoc/runtime-consumer";
-import { buildEnterpriseRuntimeRequest } from "@/lib/aoc/pmfreak-runtime-consumer";
+import { buildEnterpriseRuntimeRequest } from "@/aoc/runtime-consumer";
 import { SDK_GOVERNANCE_ACTIONS } from "@/lib/aoc/runtime/governance-actions";
 
 export async function createCapabilityRequestAction(formData: FormData) {
