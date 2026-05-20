@@ -4,19 +4,19 @@ import {
   type GovernanceEvaluationInput,
 } from "@aoc-enterprise/runtime";
 import { denyResponse } from "@/lib/security/deny-response";
-import { ensurePmfreakAocAdaptersRegistered } from "@/lib/aoc/bootstrap";
+import { ensurePmfreakAocAdaptersRegistered, getEnterpriseRuntimeComposeOptions } from "@/lib/aoc/bootstrap";
 import type { SecurityEventType } from "@/lib/security/telemetry";
 
 export type { GovernanceEvaluationInput } from "@aoc-enterprise/runtime";
 
 export async function evaluateRuntimeAuthorization(input: GovernanceEvaluationInput) {
   ensurePmfreakAocAdaptersRegistered();
-  return evaluateEnforcementPipeline(input);
+  return evaluateEnforcementPipeline(input, getEnterpriseRuntimeComposeOptions());
 }
 
 export async function enforceRuntimeAuthorization(input: GovernanceEvaluationInput) {
   ensurePmfreakAocAdaptersRegistered();
-  const { decision } = await enforceEnforcementPipeline(input);
+  const { decision } = await enforceEnforcementPipeline(input, getEnterpriseRuntimeComposeOptions());
   if (!decision.allowed) {
     const response = denyResponse({
       status: 403,

@@ -3,7 +3,7 @@ import {
   type GovernanceEvaluationInput,
   type GovernanceDecisionState,
 } from "@aoc-enterprise/runtime";
-import { ensurePmfreakAocAdaptersRegistered } from "@/lib/aoc/bootstrap";
+import { ensurePmfreakAocAdaptersRegistered, getEnterpriseRuntimeComposeOptions } from "@/lib/aoc/bootstrap";
 
 export type EnterpriseRuntimeDecision = import("@/lib/aoc/contracts").CanonicalRuntimeDecision & {
   decisionSource: "enterprise-runtime" | "policy-simulation" | "compatibility-adapter";
@@ -85,6 +85,6 @@ export function normalizeRuntimeDecision(decision: Awaited<ReturnType<typeof enf
 
 export async function authorizeRuntimeAction(input: GovernanceEvaluationInput) {
   ensurePmfreakAocAdaptersRegistered();
-  const result = await enforceEnforcementPipeline(input);
+  const result = await enforceEnforcementPipeline(input, getEnterpriseRuntimeComposeOptions());
   return normalizeRuntimeDecision(result.decision);
 }
