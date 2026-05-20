@@ -33,7 +33,10 @@
     "check:build-reproducibility": "node scripts/check-build-reproducibility.mjs",
     "check:package-purity": "npm run check:forbidden-imports && npm run check:package-exports && npm run check:typescript-package-isolation && npm run check:tarball-purity",
     "check:publish-integrity": "npm run build:aoc && npm run check:package-purity && npm run check:build-reproducibility",
-    "check:typescript-package-isolation": "node scripts/check-typescript-package-isolation.mjs"
+    "check:typescript-package-isolation": "node scripts/check-typescript-package-isolation.mjs",
+    "test:launch-smoke": "node scripts/run-launch-smoke-tests.mjs",
+    "diag:runtime": "node scripts/runtime-diagnostics-report.mjs",
+    "check:launch-readiness": "node scripts/check-launch-readiness.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",

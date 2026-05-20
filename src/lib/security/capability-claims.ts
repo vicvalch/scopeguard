@@ -10,8 +10,8 @@ import {
   verifyCapabilityClaim as verifyProtocolCapabilityClaim,
   type CapabilityClaim,
 } from "@/aoc/protocol/contracts/capability-claims";
-import { composeCapabilityClaimPorts, composeCapabilityVerificationPorts } from "@/aoc/enterprise/runtime";
-import { ensurePmfreakAocAdaptersRegistered } from "@/lib/aoc/bootstrap";
+import { composeCapabilityClaimPorts, composeCapabilityVerificationPorts, composeRuntimeContext } from "@/aoc/enterprise/runtime";
+import { ensurePmfreakAocAdaptersRegistered, getEnterpriseRuntimeComposeOptions } from "@/lib/aoc/bootstrap";
 
 const PMFREAK_DEFAULT_TRUST_DOMAIN = "pmfreak-local";
 
@@ -42,15 +42,17 @@ void CLAIM_CONTRACT_MARKERS;
 export async function createCapabilityClaim(input: Omit<CapabilityClaim, "version" | "proof"> & { keyId?: string; trustDomain?: string }) {
   ensurePmfreakAocAdaptersRegistered();
   const trustDomain = input.trustDomain ?? input.issuer.trustDomain ?? PMFREAK_DEFAULT_TRUST_DOMAIN;
+  const runtime = composeRuntimeContext(getEnterpriseRuntimeComposeOptions());
   return createProtocolCapabilityClaim(
     { ...input, trustDomain, issuer: { ...input.issuer, trustDomain } },
-    composeCapabilityClaimPorts()
+    composeCapabilityClaimPorts(runtime)
   );
 }
 
 export async function verifyCapabilityClaim(claim: CapabilityClaim, expected: any = {}) {
   ensurePmfreakAocAdaptersRegistered();
-  return verifyProtocolCapabilityClaim(claim, expected, composeCapabilityVerificationPorts());
+  const runtime = composeRuntimeContext(getEnterpriseRuntimeComposeOptions());
+  return verifyProtocolCapabilityClaim(claim, expected, composeCapabilityVerificationPorts(runtime));
 }
 
 export {
