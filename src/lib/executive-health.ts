@@ -1,4 +1,5 @@
 import type { OperationalMemoryRecord } from "@/lib/operational-memory";
+import { detectOperationalContradictions } from "@/lib/cross-signal-reasoning";
 
 export type EscalationLevel = "low" | "medium" | "high" | "critical";
 
@@ -19,6 +20,7 @@ export type OperationalCoherenceScore = {
   missingTraceability: number;
   incompleteDomains: number;
   staleMemory: number;
+  contradictionCount: number;
 };
 
 const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
@@ -62,18 +64,44 @@ export function computeOperationalCoherence(records: OperationalMemoryRecord[]):
   const conflictingSignals = records.filter((record) => record.confidenceScore < 45 && record.completionScore > 75).length;
   const incompleteDomains = records.filter((record) => record.completionScore < 40).length;
 
-  const penalties = clamp(staleCount * 10 + missingTraceability * 15 + conflictingSignals * 8 + incompleteDomains * 10);
+  // Operational contradictions: cross-domain narrative incoherence reduces overall confidence.
+  // Contradictions are qualitatively different from signal gaps — they indicate the system is
+  // reasoning over internally inconsistent data, which makes executive conclusions less trustworthy.
+  const contradictions = detectOperationalContradictions(records);
+  const contradictionCount = contradictions.length;
+  const contradictionPenalty = contradictions.reduce((sum, c) => sum + c.confidencePenalty, 0);
+
+  const penalties = clamp(staleCount * 10 + missingTraceability * 15 + conflictingSignals * 8 + incompleteDomains * 10 + contradictionPenalty);
   return {
     overall: clamp(100 - penalties),
     conflictingSignals,
     missingTraceability,
     incompleteDomains,
     staleMemory: staleCount,
+    contradictionCount,
   };
 }
 
-export function computeEscalationLevel(input: { health: ProjectHealthScore; coherence: OperationalCoherenceScore; hasGovernanceGap: boolean; stakeholderPressure: number; deliveryRisk: number }): EscalationLevel {
-  const probability = clamp((100 - input.health.overall) * 0.35 + (100 - input.coherence.overall) * 0.2 + input.stakeholderPressure * 0.2 + input.deliveryRisk * 0.2 + (input.hasGovernanceGap ? 12 : 0));
+export function computeEscalationLevel(input: {
+  health: ProjectHealthScore;
+  coherence: OperationalCoherenceScore;
+  hasGovernanceGap: boolean;
+  stakeholderPressure: number;
+  deliveryRisk: number;
+  compoundSeverityBoost?: number;
+}): EscalationLevel {
+  // Contradictions increase escalation probability: incoherent operational narratives are
+  // themselves a governance concern that warrants elevated executive caution.
+  const contradictionBoost = input.coherence.contradictionCount * 8;
+  const probability = clamp(
+    (100 - input.health.overall) * 0.35 +
+    (100 - input.coherence.overall) * 0.2 +
+    input.stakeholderPressure * 0.2 +
+    input.deliveryRisk * 0.2 +
+    (input.hasGovernanceGap ? 12 : 0) +
+    contradictionBoost +
+    (input.compoundSeverityBoost ?? 0),
+  );
   if (probability >= 85) return "critical";
   if (probability >= 65) return "high";
   if (probability >= 40) return "medium";

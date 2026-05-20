@@ -2,6 +2,7 @@ import type { ExecutionRiskSnapshot } from "@/lib/execution-risk";
 import type { InterventionSnapshot } from "@/lib/intervention-engine";
 import type { ProjectMemorySnapshot } from "@/lib/memory/organization-memory";
 import type { StakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
+import { type CoordinationCollapseRisk } from "@/lib/cross-signal-reasoning";
 
 export type CoordinationPriority = "critical" | "high" | "medium" | "low";
 export type CoordinationActionType =
@@ -73,6 +74,7 @@ export type OperationalCoordinationSnapshot = {
   dependency_deadlock_risk: { level: "none" | "watch" | "high"; deadlocks: string[] };
   stakeholder_alignment_sequence: InterventionWorkflow;
   escalation_overload_risk: { level: "none" | "watch" | "high"; competingEscalations: number; commentary: string };
+  coordination_collapse_risk: CoordinationCollapseRisk;
   machineOutput: {
     coordination_urgency: CoordinationPriority;
     dependency_collision_count: number;
@@ -296,6 +298,10 @@ export function buildOperationalCoordinationSnapshot(input: {
   const recoveryWorkflow = buildDeliveryRecoveryWorkflow(queue);
   const escalationSequence = buildEscalationWorkflow(queue);
 
+  // Coordination collapse: escalation snapshot already computed this; surface it here
+  // so the coordination layer can act on it with appropriate urgency escalation.
+  const coordinationCollapse = input.interventionIntelligence.coordinationCollapse;
+
   // Only count escalation actions that have actually crossed the urgency threshold (>=65);
   // having the action type in the queue doesn't constitute overload if urgency is low
   const competingEscalations = queue.actions.filter((a) => (a.type === "executive_escalation" || a.type === "executive_communication") && a.urgency >= 65).length;
@@ -306,6 +312,13 @@ export function buildOperationalCoordinationSnapshot(input: {
   };
 
   const coordinationUrgency = queue.actions[0]?.priority ?? "low";
+
+  const collapseCommentary =
+    coordinationCollapse.level === "critical"
+      ? `CRITICAL: Coordination collapse risk detected — ${coordinationCollapse.collapsePatterns[0] ?? "multiple breakdown patterns converging"}. Immediate executive intervention required.`
+      : coordinationCollapse.level === "elevated"
+        ? `Coordination fragility elevated — ${coordinationCollapse.description}`
+        : null;
 
   return {
     projectId: input.projectId,
@@ -318,6 +331,7 @@ export function buildOperationalCoordinationSnapshot(input: {
     dependency_deadlock_risk: { level: escalationDeadlocks.length >= 2 ? "high" : escalationDeadlocks.length === 1 ? "watch" : "none", deadlocks: escalationDeadlocks },
     stakeholder_alignment_sequence: alignmentWorkflow,
     escalation_overload_risk: overloadRisk,
+    coordination_collapse_risk: coordinationCollapse,
     machineOutput: {
       coordination_urgency: coordinationUrgency,
       dependency_collision_count: dependencyCollisions.length,
@@ -325,6 +339,7 @@ export function buildOperationalCoordinationSnapshot(input: {
       queue_size: queue.actions.length,
     },
     commentary: [
+      ...(collapseCommentary ? [collapseCommentary] : []),
       recoveryWorkflow.blockedBy.length > 0 ? "Execution recovery is blocked by unresolved stakeholder dependency." : "Delivery recovery requires coordination stabilization before escalation.",
       conflicts.includes("multiple escalations competing simultaneously")
         ? "Escalation path collision detected between operational and executive workflows."

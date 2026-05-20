@@ -1,4 +1,5 @@
 import type { ProjectMemorySnapshot, StakeholderMemory } from "@/lib/memory/organization-memory";
+import { assessDependencyPropagation } from "@/lib/cross-signal-reasoning";
 
 export enum ProjectRiskLevel {
   Low = "low",
@@ -161,14 +162,38 @@ export const detectDeadlineDrift = (snapshot: ProjectMemorySnapshot | null): Dea
 const detectDependencyRisk = (snapshot: ProjectMemorySnapshot | null): DependencyRiskSignal => {
   const dependencyCount = snapshot?.project.dependencies.length ?? 0;
   const unresolvedIssues = snapshot?.project.unresolvedIssues.length ?? 0;
-  const riskScore = clamp(dependencyCount * 9 + unresolvedIssues * 11);
+  const daysSilent = normalizeDaysSinceUpdate(snapshot?.lastUpdatedAt ?? null);
+
+  // Dependency aging amplifies risk: unresolved dependencies that persist through silence
+  // are increasingly likely to be forgotten or to cause cascading downstream blockage.
+  const agingFactor = daysSilent >= 7 && unresolvedIssues >= 2 ? clamp(daysSilent * 1.5) : 0;
+  const riskScore = clamp(dependencyCount * 9 + unresolvedIssues * 11 + agingFactor);
+
+  // Propagation: assess whether this dependency load is threatening adjacent domains
+  const pressureMentions = snapshot?.stakeholders.reduce((sum, s) => sum + s.pressurePatterns.length + s.sentimentSignals.length, 0) ?? 0;
+  const propagation = assessDependencyPropagation({
+    dependencyCount,
+    unresolvedIssues,
+    deliveryRiskScore: clamp((snapshot?.project.blockers.length ?? 0) * 15 + (snapshot?.project.risks.length ?? 0) * 10),
+    stakeholderPressureScore: clamp(pressureMentions * 10),
+    daysSilent,
+  });
+
+  const summary =
+    propagation.propagationRisk === "critical"
+      ? `Dependency chain is propagating risk across multiple operational domains — ${propagation.causalChain[0] ?? "cascading impact active"}.`
+      : propagation.propagationRisk === "elevated"
+        ? `Dependency load (${dependencyCount} deps) is amplifying adjacent delivery and stakeholder risk.`
+        : riskScore >= 65
+          ? "Dependency execution risk is elevated due to unresolved cross-team issues."
+          : "Dependency pathways are visible with moderate control.";
 
   return {
     category: RiskCategory.DependencyRisk,
     score: riskScore,
     level: toLevel(riskScore),
     severity: toSeverity(riskScore),
-    summary: riskScore >= 65 ? "Dependency execution risk is elevated due to unresolved cross-team issues." : "Dependency pathways are visible with moderate control.",
+    summary,
     dependencyCount,
     unresolvedIssues,
   };
@@ -197,7 +222,18 @@ export const buildExecutionRiskSnapshot = (projectId: string | null, snapshot: P
   const degradingSignals = signals.filter((signal) => signal.score >= 65).length;
   const executionStability = degradingSignals >= 3 ? "degrading" : degradingSignals >= 1 ? "watching" : "stable";
 
-  const commentary = signals.filter((signal) => signal.score >= 50).map((signal) => signal.summary).slice(0, 4);
+  // Cross-signal compound deterioration: when 3+ signals co-degrade, add a causality note
+  // to the commentary so the executive layer understands this is compound, not isolated.
+  const elevatedSignals = signals.filter((s) => s.score >= 55);
+  const compoundNote =
+    elevatedSignals.length >= 3
+      ? `Compound deterioration: ${elevatedSignals.map((s) => s.category.replace("_", " ")).join(", ")} are co-degrading — severity is multiplicative, not additive.`
+      : elevatedSignals.length >= 2
+        ? `${elevatedSignals[0].category.replace("_", " ")} is amplifying ${elevatedSignals[1].category.replace("_", " ")} — these signals are reinforcing each other.`
+        : null;
+
+  const baseCommentary = signals.filter((signal) => signal.score >= 50).map((signal) => signal.summary).slice(0, 4);
+  const commentary = compoundNote ? [compoundNote, ...baseCommentary] : baseCommentary;
 
   return {
     projectId,

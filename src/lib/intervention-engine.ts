@@ -1,6 +1,7 @@
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import type { ProjectMemorySnapshot } from "@/lib/memory/organization-memory";
 import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
+import { detectCoordinationCollapseRisk, detectOrganizationalDrift, type CoordinationCollapseRisk } from "@/lib/cross-signal-reasoning";
 
 export type InterventionSeverity = "none" | "watch" | "elevated" | "critical";
 export type InterventionCategory = "delivery_recovery" | "stakeholder_alignment" | "execution_unblock" | "capacity_protection" | "escalation_governance";
@@ -15,7 +16,8 @@ export type InterventionTrigger = {
     | "execution_instability_multi_signal"
     | "unstable_delivery_cadence"
     | "pm_overload_signal"
-    | "organizational_silence_after_escalation";
+    | "organizational_silence_after_escalation"
+    | "coordination_collapse_risk";
   active: boolean;
   score: number;
   reason: string;
@@ -80,6 +82,7 @@ export type InterventionSnapshot = {
   triggers: InterventionTrigger[];
   interventions: InterventionRecommendation[];
   escalations: EscalationRecommendation[];
+  coordinationCollapse: CoordinationCollapseRisk;
 };
 
 const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
@@ -289,6 +292,28 @@ export function buildInterventionSnapshot(projectId: string | null, snapshot: Pr
   const riskCount = snapshot?.project.risks.length ?? 0;
   const unresolvedDecisions = snapshot?.decisions.filter((d) => d.unresolvedConsequences.length > 0).length ?? 0;
 
+  // Coordination collapse: convergence of breakdown signals that individually wouldn't alarm
+  const coordinationCollapse = detectCoordinationCollapseRisk({
+    daysSilent,
+    unresolvedDependencies: snapshot?.project.dependencies.length ?? 0,
+    repeatedEscalationWithoutResolution: operationalDriftSignal.repeatedEscalationWithoutResolution,
+    blockerCount,
+    stalledDecisions: unresolvedDecisions,
+    executionDeadlock,
+  });
+
+  // Organizational drift: detect directional movement not just current state
+  const stakeholderPressureEvents = snapshot?.stakeholders.reduce((sum, s) => sum + s.pressurePatterns.length, 0) ?? 0;
+  const orgDrift = detectOrganizationalDrift({
+    escalationFrequencyIncreasing: operationalDriftSignal.repeatedEscalationWithoutResolution,
+    silenceDurationDays: daysSilent,
+    repeatedEscalationWithoutResolution: operationalDriftSignal.repeatedEscalationWithoutResolution,
+    coordinationBreakdownPresent: coordinationCollapse.level === "elevated" || coordinationCollapse.level === "critical",
+    pmFatigue: clamp(commitmentCount * 8 + (snapshot?.project.blockers.length ?? 0) * 4),
+    deliveryRisk: clamp((snapshot?.project.blockers.length ?? 0) * 15 + (snapshot?.project.risks.length ?? 0) * 10),
+    stakeholderPressure: clamp(stakeholderPressureEvents * 10),
+  });
+
   const triggers: InterventionTrigger[] = [
     {
       key: "unresolved_blockers_increasing",
@@ -355,6 +380,14 @@ export function buildInterventionSnapshot(projectId: string | null, snapshot: Pr
         ? `${daysSilent} days of silence following escalation — no organizational response recorded.`
         : "No organizational silence pattern after escalation.",
     },
+    {
+      key: "coordination_collapse_risk",
+      active: coordinationCollapse.level === "elevated" || coordinationCollapse.level === "critical",
+      score: coordinationCollapse.level === "critical" ? 85 : coordinationCollapse.level === "elevated" ? 65 : coordinationCollapse.level === "watch" ? 40 : 10,
+      reason: coordinationCollapse.level !== "none"
+        ? coordinationCollapse.description
+        : "No coordination collapse patterns detected.",
+    },
   ];
 
   const escalationProbability = detectEscalationNeed({ deliveryInstability, operationalDriftSignal, stakeholderBreakdown, executionDeadlock });
@@ -366,25 +399,34 @@ export function buildInterventionSnapshot(projectId: string | null, snapshot: Pr
   const recommendedInterventionType = interventions[0]?.category ?? "capacity_protection";
   const escalationTarget = escalations[0]?.target ?? "none";
 
+  const deliveryBreakdownRisk = clamp((deliveryInstability.instabilityScore * 0.6) + (executionRisk.overallRisk === "critical" ? 35 : executionRisk.overallRisk === "high" ? 20 : executionRisk.overallRisk === "medium" ? 10 : 0));
+  const organizationalDriftScore = clamp((operationalDriftSignal.driftScore * 0.7) + (stakeholderIntel.politicalRisk === "critical" ? 30 : stakeholderIntel.politicalRisk === "high" ? 20 : stakeholderIntel.politicalRisk === "moderate" ? 10 : 0));
+
+  const commentary = [
+    ...triggers.filter((t) => t.active).map((t) => t.reason),
+    ...(orgDrift.driftDetected ? [`Organizational drift (${orgDrift.driftSeverity}): ${orgDrift.driftIndicators[0] ?? "directional deterioration detected"}.`] : []),
+    ...(coordinationCollapse.level !== "none" ? [coordinationCollapse.description] : []),
+  ];
+
   return {
     projectId,
     generatedAt: new Date().toISOString(),
     interventionRequired,
     interventionUrgency,
     escalationProbability,
-    deliveryBreakdownRisk: clamp((deliveryInstability.instabilityScore * 0.6) + (executionRisk.overallRisk === "critical" ? 35 : executionRisk.overallRisk === "high" ? 20 : executionRisk.overallRisk === "medium" ? 10 : 0)),
-    organizationalDrift: clamp((operationalDriftSignal.driftScore * 0.7) + (stakeholderIntel.politicalRisk === "critical" ? 30 : stakeholderIntel.politicalRisk === "high" ? 20 : stakeholderIntel.politicalRisk === "moderate" ? 10 : 0)),
+    deliveryBreakdownRisk,
+    organizationalDrift: organizationalDriftScore,
     recommendedInterventionType,
     escalationTarget,
     machineOutput: {
       intervention_required: interventionRequired,
       escalation_probability: escalationProbability,
-      delivery_breakdown_risk: clamp((deliveryInstability.instabilityScore * 0.6) + (executionRisk.overallRisk === "critical" ? 35 : executionRisk.overallRisk === "high" ? 20 : executionRisk.overallRisk === "medium" ? 10 : 0)),
-      organizational_drift: clamp((operationalDriftSignal.driftScore * 0.7) + (stakeholderIntel.politicalRisk === "critical" ? 30 : stakeholderIntel.politicalRisk === "high" ? 20 : stakeholderIntel.politicalRisk === "moderate" ? 10 : 0)),
+      delivery_breakdown_risk: deliveryBreakdownRisk,
+      organizational_drift: organizationalDriftScore,
       recommended_intervention_type: recommendedInterventionType,
       escalation_target: escalationTarget,
     },
-    commentary: triggers.filter((t) => t.active).map((t) => t.reason),
+    commentary,
     deliveryInstability,
     operationalDriftSignal,
     stakeholderBreakdown,
@@ -392,6 +434,7 @@ export function buildInterventionSnapshot(projectId: string | null, snapshot: Pr
     triggers,
     interventions,
     escalations,
+    coordinationCollapse,
   };
 }
 
