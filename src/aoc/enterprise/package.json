@@ -1,21 +1,21 @@
 {
   "name": "@aoc-enterprise/runtime",
   "version": "0.1.0",
-  "description": "AOC enterprise runtime — delegation, policy evaluation, and execution grants for governance-aware workspaces",
+  "description": "AOC enterprise runtime \u2014 delegation, policy evaluation, and execution grants for governance-aware workspaces",
   "license": "UNLICENSED",
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/enterprise/runtime/index.d.ts",
-      "import": "./dist/enterprise/runtime/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./runtime": {
-      "types": "./dist/enterprise/runtime/index.d.ts",
-      "import": "./dist/enterprise/runtime/index.js"
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js"
     },
     "./runtime/*": {
-      "types": "./dist/enterprise/runtime/*.d.ts",
-      "import": "./dist/enterprise/runtime/*.js"
+      "types": "./dist/runtime/*.d.ts",
+      "import": "./dist/runtime/*.js"
     }
   },
   "files": [
@@ -33,13 +33,16 @@
     "url": "https://github.com/Architects-of-Change-Protocol/pmfreak.git",
     "directory": "src/aoc/enterprise"
   },
-  "main": "./dist/enterprise/runtime/index.js",
-  "module": "./dist/enterprise/runtime/index.js",
-  "types": "./dist/enterprise/runtime/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "sideEffects": false,
   "peerDependencies": {},
   "scripts": {
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@aoc/protocol": "file:../protocol"
   }
 }

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 const packages = [
   { name: '@aoc/protocol', dir: 'src/aoc/protocol', entries: ['dist/index.js', 'dist/index.d.ts'] },
-  { name: '@aoc-enterprise/runtime', dir: 'src/aoc/enterprise', entries: ['dist/enterprise/runtime/index.js', 'dist/enterprise/runtime/index.d.ts'] }
+  { name: '@aoc-enterprise/runtime', dir: 'src/aoc/enterprise', entries: ['dist/index.js', 'dist/index.d.ts', 'dist/runtime/index.js', 'dist/runtime/index.d.ts'] }
 ];
 
 let failed = false;

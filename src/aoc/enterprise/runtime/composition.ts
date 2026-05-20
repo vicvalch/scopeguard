@@ -2,27 +2,37 @@
 // This is the only enterprise-runtime module allowed to read from the runtime
 // adapter registry. All orchestration modules receive RuntimeContext explicitly.
 
-import { getAocAdapter } from "../../runtime/adapters";
-import type { CapabilityClaimPorts } from "../../protocol/ports/capability-verification";
+import type { CapabilityClaimPorts } from "@aoc/protocol/ports/capability-verification";
+import type { RuntimeContext } from "./context";
 import {
   runtimeContextToCapabilityClaimPorts,
   runtimeContextToCapabilityVerificationPorts,
-  type RuntimeContext,
   type RuntimeMetadata,
 } from "./context";
 
 export type ComposeRuntimeContextOptions = {
   metadata?: Partial<RuntimeMetadata>;
+  adapters: Pick<
+    RuntimeContext,
+    | "trustDomain"
+    | "trustCoordination"
+    | "securityAudit"
+    | "privilegedDb"
+    | "accessVerification"
+    | "agentAttestation"
+    | "policyEvaluator"
+  >;
 };
 
-export function composeRuntimeContext(options: ComposeRuntimeContextOptions = {}): RuntimeContext {
-  const trustDomain = getAocAdapter("trustDomain");
-  const trustCoordination = getAocAdapter("trustCoordination");
-  const securityAudit = getAocAdapter("securityAudit");
-  const privilegedDb = getAocAdapter("privilegedDb");
-  const accessVerification = getAocAdapter("accessVerification");
-  const agentAttestation = getAocAdapter("agentAttestation");
-  const policyEvaluator = getAocAdapter("policyEvaluator");
+export function composeRuntimeContext(options: ComposeRuntimeContextOptions): RuntimeContext {
+  const { adapters } = options;
+  const trustDomain = adapters.trustDomain;
+  const trustCoordination = adapters.trustCoordination;
+  const securityAudit = adapters.securityAudit;
+  const privilegedDb = adapters.privilegedDb;
+  const accessVerification = adapters.accessVerification;
+  const agentAttestation = adapters.agentAttestation;
+  const policyEvaluator = adapters.policyEvaluator;
   const signer = {
     resolvePrivateSigningKey({ key }: Parameters<CapabilityClaimPorts["signer"]["resolvePrivateSigningKey"]>[0]) {
       if (!key.secret_ref) return null;
@@ -64,12 +74,12 @@ export function composeRuntimeContext(options: ComposeRuntimeContextOptions = {}
   };
 }
 
-export function composeCapabilityClaimPorts(runtime: RuntimeContext = composeRuntimeContext()): CapabilityClaimPorts {
+export function composeCapabilityClaimPorts(runtime: RuntimeContext): CapabilityClaimPorts {
   return runtimeContextToCapabilityClaimPorts(runtime);
 }
 
 export function composeCapabilityVerificationPorts(
-  runtime: RuntimeContext = composeRuntimeContext(),
+  runtime: RuntimeContext,
 ): Pick<CapabilityClaimPorts, "trustDomain" | "trustCoordination"> {
   return runtimeContextToCapabilityVerificationPorts(runtime);
 }

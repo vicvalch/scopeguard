@@ -1,7 +1,7 @@
 {
   "name": "@aoc/protocol",
   "version": "0.1.0",
-  "description": "AOC protocol contracts — capability claim types, issuance, and cryptographic verification",
+  "description": "AOC protocol contracts \u2014 capability claim types, issuance, and cryptographic verification",
   "license": "UNLICENSED",
   "type": "module",
   "exports": {
@@ -16,6 +16,18 @@
     "./contracts/*": {
       "types": "./dist/contracts/*.d.ts",
       "import": "./dist/contracts/*.js"
+    },
+    "./actor-model": {
+      "types": "./dist/actor-model.d.ts",
+      "import": "./dist/actor-model.js"
+    },
+    "./ports": {
+      "types": "./dist/ports/index.d.ts",
+      "import": "./dist/ports/index.js"
+    },
+    "./ports/*": {
+      "types": "./dist/ports/*.d.ts",
+      "import": "./dist/ports/*.js"
     }
   },
   "files": [

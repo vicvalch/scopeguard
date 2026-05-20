@@ -24,10 +24,15 @@
     "check:lifecycle": "node scripts/check-lifecycle-integrity.mjs",
     "check:release-readiness": "node scripts/check-release-readiness.mjs",
     "publish:dry-run": "node scripts/publish-dry-run.mjs",
-    "check:governance": "npm run check:aoc-boundaries && npm run check:no-local-auth-bypass && npm run check:runtime-contract-drift && npm run check:package-exports && npm run check:compatibility && npm run check:lifecycle && npm run check:release-readiness",
+    "check:governance": "npm run check:aoc-boundaries && npm run check:no-local-auth-bypass && npm run check:runtime-contract-drift && npm run check:package-exports && npm run check:compatibility && npm run check:lifecycle && npm run check:release-readiness && npm run check:package-purity",
     "changeset": "changeset",
     "changeset:version": "changeset version",
-    "changeset:publish": "changeset publish"
+    "changeset:publish": "changeset publish",
+    "check:forbidden-imports": "node scripts/check-forbidden-imports.mjs",
+    "check:tarball-purity": "node scripts/check-tarball-purity.mjs",
+    "check:build-reproducibility": "node scripts/check-build-reproducibility.mjs",
+    "check:package-purity": "npm run check:forbidden-imports && npm run check:package-exports && npm run check:tarball-purity",
+    "check:publish-integrity": "npm run build:aoc && npm run check:package-purity && npm run check:build-reproducibility"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",

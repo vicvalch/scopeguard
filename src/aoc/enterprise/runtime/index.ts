@@ -4,6 +4,7 @@ import {
   type GovernanceEvaluationInput,
 } from "./governance-core";
 import { composeRuntimeContext } from "./composition";
+import type { ComposeRuntimeContextOptions } from "./composition";
 
 export type { GovernanceEvaluationInput };
 export type {
@@ -38,10 +39,10 @@ export {
   composeCapabilityVerificationPorts,
 } from "./composition";
 
-export async function evaluateEnforcementPipeline(input: GovernanceEvaluationInput) {
-  return evaluateGovernanceActionWithContext(composeRuntimeContext(), input);
+export async function evaluateEnforcementPipeline(input: GovernanceEvaluationInput, options: ComposeRuntimeContextOptions) {
+  return evaluateGovernanceActionWithContext(composeRuntimeContext(options), input);
 }
 
-export async function enforceEnforcementPipeline(input: GovernanceEvaluationInput) {
-  return enforceGovernanceActionWithContext(composeRuntimeContext(), input);
+export async function enforceEnforcementPipeline(input: GovernanceEvaluationInput, options: ComposeRuntimeContextOptions) {
+  return enforceGovernanceActionWithContext(composeRuntimeContext(options), input);
 }

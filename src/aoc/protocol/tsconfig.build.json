@@ -10,7 +10,8 @@
     "composite": false,
     "module": "esnext",
     "moduleResolution": "bundler",
-    "target": "ES2022"
+    "target": "ES2022",
+    "paths": {}
   },
   "include": [
     "**/*.ts"

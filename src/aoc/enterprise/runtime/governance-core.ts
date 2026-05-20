@@ -2,9 +2,9 @@
 // Future extraction boundary: this module must NOT import from host application modules.
 // All host services are provided through explicit RuntimeContext injection.
 // The legacy shim src/lib/security/governance-runtime.ts re-exports from here.
-import type { AocPermission, AocGovernanceAction, AocGovernanceDecisionState, AocTrustLevel, AocActorRole } from "../../protocol/actor-model";
-import type { AocGovernanceEventType } from "../../protocol/ports/security-audit";
-import { AocAccessDeniedError } from "../../protocol/ports/access-verification";
+import type { AocPermission, AocGovernanceAction, AocGovernanceDecisionState, AocTrustLevel, AocActorRole } from "@aoc/protocol/actor-model";
+import type { AocGovernanceEventType } from "@aoc/protocol/ports/security-audit";
+import { AocAccessDeniedError } from "@aoc/protocol/ports/access-verification";
 import type { RuntimeContext } from "./context";
 
 export type GovernanceActorType = "user" | "ai_agent" | "system";

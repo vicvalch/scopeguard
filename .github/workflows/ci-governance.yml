@@ -27,3 +27,6 @@ jobs:
         run: npm run check:governance
       - name: Publish readiness
         run: npm run check:publish-ready
+
+      - name: Package purity
+        run: npm run check:package-purity
