@@ -3,7 +3,7 @@
 // adapter registry. All orchestration modules receive RuntimeContext explicitly.
 
 import { getAocAdapter } from "../../runtime/adapters";
-import type { CapabilityClaimPorts } from "../../protocol/ports/capability-verification";
+import type { CapabilityClaimPorts } from "@aoc/protocol/ports/capability-verification";
 import {
   runtimeContextToCapabilityClaimPorts,
   runtimeContextToCapabilityVerificationPorts,
