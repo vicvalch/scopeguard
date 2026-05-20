@@ -1,39 +1,46 @@
 # Intervention Efficacy Learning
 
-Deterministic backend layer that learns which intervention categories **appear** to help recurring patterns under tenant/project scope.
+Deterministic backend layer that learns which intervention categories **appear correlated** with recovery under strict workspace/project scope.
 
-## Scope
-- Detect intervention-like actions from evidence-backed nutrients.
-- Link interventions to learned patterns with workspace/project isolation.
-- Infer conservative outcomes (`helped`, `failed`, `worsened`, `stalled`, `inconclusive`, `pending`, `recovered`).
-- Score efficacy (0-100) and confidence (0-1).
-- Detect intervention fatigue loops and escalation-shift candidates.
+## Persistence tables
+- `vault_interventions`: core record, outcome, efficacy/confidence, fatigue summary, metadata.
+- `vault_intervention_evidence`: per-intervention evidence lineage rows.
+- `vault_intervention_outcomes`: snapshot of outcome reasons + deltas over time.
 
-## Deterministic detection
-Rule patterns map nutrient summary/evidence excerpts into intervention types (follow-up, escalation, technical session, approval request, vendor coordination, customer/internal alignment, risk acceptance, governance clarification, logistics push, financial escalation, recovery action).
+## RLS model
+All three tables use `workspace_id` scoping + `public.is_workspace_member(workspace_id)` policies for select/insert/update. This prevents cross-workspace intervention memory reads.
 
-## Pattern linking
-Linking requires same workspace, same project (or explicit workspace scoped null project), and intervention-to-pattern theme compatibility.
+## Write semantics
+`persistInterventions` writes core rows plus evidence/outcome rows. Metadata stores:
+- target signals
+- outcome reasons
+- time-to-effect + recurrence
+- severity/confidence deltas
+- fatigue profile
+- `detectionMethod: "rule_based"`
 
-## Outcome inference
-Post-attempt signals are evaluated conservatively:
-- recovery without renewed escalation => helped/recovered
-- escalating pressure after attempt => worsened
-- recurring blocker/dependency with no recovery => failed
-- mixed recovery + escalation => inconclusive
-- insufficient post-window evidence => pending
-- unchanged active trajectory => stalled
+Persistence is graceful-fallback: if Supabase/tables are unavailable, cognition remains in-memory and returns `method: "none"` with an error string.
 
-## Efficacy and fatigue
-Efficacy combines inferred outcome + recurrence and signal deltas. Fatigue increases on repeated failed/stalled attempts by same type and target, exposing a deterministic recommended intervention shift.
+## Read semantics
+`loadInterventionHistory` supports workspace-required queries with optional project/pattern/type/outcome/fatigue/since filters, ordered by `attemptedAt` descending.
 
-## Persistence model
-Current implementation is in-memory/context-first. It is prepared for workspace/project-scoped persistence tables with RLS.
+`getInterventionMemoryContext` returns deterministic organizational memory fields:
+- totals/distributions
+- efficacy averages by intervention type
+- fatigue and repeated-failure loops
+- recovered counts
+- repeated pattern links
+- recommended escalation shifts
+- evidence summaries
 
-## Explainability
-Each intervention stores outcome reasons and evidence references from nutrient lineage excerpts. No LLM scoring, no embeddings, no autonomous execution.
+## Fatigue accumulation across runs
+When historical intervention memory is available, repeated attempts and failed attempts are accumulated for the same workspace+project+pattern+intervention type. Repeated stalled/failed loops increase fatigue and escalation recommendations.
 
 ## Limitations
-- Correlation-only interpretation; no causality claims.
-- Fixed lexical rules; no semantic generalization beyond deterministic patterns.
-- Early-stage in-memory persistence path.
+- Correlation only; no causality claims.
+- Rule-based lexical detection only.
+- No autonomous intervention execution.
+- No global memory across workspaces.
+
+## Future Copilot integration
+This persistence layer is designed to feed future decision-support copilots with deterministic, explainable intervention memory context — not autonomous actions.
