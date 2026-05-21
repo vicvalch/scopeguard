@@ -27,6 +27,7 @@ import { retrieveInterventionHistory, buildInterventionMemorySummary, extractOpe
 import { buildOperationalConfidenceProfile, calculateInterventionEfficacy, calculateStakeholderResponsiveness, buildInterventionEfficacySummary } from "@/lib/vault/intervention-efficacy";
 import { buildAdaptiveOperationalConfidence } from "@/lib/vault/adaptive-confidence";
 import { prioritizeOperationalMemory } from "@/lib/vault/memory-prioritization";
+import { orchestrateOperationalAttention } from "@/lib/vault/attention-orchestration";
 import { buildInterventionSnapshot } from "@/lib/intervention-engine";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
@@ -263,6 +264,7 @@ export async function POST(request: Request) {
   let boundedOperationalConfidenceSummary = ["Operational confidence is degraded; deterministic efficacy scoring unavailable."];
   let boundedAdaptiveConfidenceSummary = ["confidence trajectory degrading", "operational drift elevated"];
   let boundedPrioritizedMemorySummary = ["Operational prioritization unavailable; using continuity and execution defaults."];
+  let boundedAttentionRoutingSummary = ["Operational attention orchestration degraded; bounded routing defaults applied."];
   try {
     const [efficacy, stakeholders, confidence] = await Promise.all([
       calculateInterventionEfficacy({ workspaceId: resolvedWorkspaceId ?? "", projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null, scoringWindowDays: 30, recentOnly: true, limit: 40 }),
@@ -295,6 +297,17 @@ export async function POST(request: Request) {
       stakeholders,
     });
     boundedPrioritizedMemorySummary = prioritizedMemory.summaries.slice(0, 4);
+    const attentionOrchestration = await orchestrateOperationalAttention({
+      workspaceId: resolvedWorkspaceId ?? "",
+      projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+      prioritizedMemory: prioritizedMemory.prioritized,
+      adaptiveConfidence: adaptiveConfidence.adaptive,
+      efficacy,
+      stakeholders,
+      continuitySignals: continuity.continuitySignals,
+      interventionHistory,
+    });
+    boundedAttentionRoutingSummary = attentionOrchestration.routingSummaries.slice(0, 4);
   } catch (error) {
     console.warn("[copilot] intervention_efficacy_scoring_failed", {
       companyId: user.companyId,
@@ -384,6 +397,9 @@ ${boundedAdaptiveConfidenceSummary.map((line) => `- ${line}`).join("\n")}
 
 Operational Priority Signals:
 ${boundedPrioritizedMemorySummary.map((line) => `- ${line}`).join("\n")}
+
+Operational Attention Signals:
+${boundedAttentionRoutingSummary.map((line) => `- ${line}`).join("\n")}
 
 AOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser message: ${payload.message}`,
         },
