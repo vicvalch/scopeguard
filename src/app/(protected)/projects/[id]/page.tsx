@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { requireAuthUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { evaluateCapabilityAccess } from "@/lib/security/capability-flow";
+import { resolveCanonicalProject } from "@/lib/projects/canonical-project-resolver";
+import { redirect } from "next/navigation";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -18,6 +20,11 @@ export default async function ProjectDetailPage({ params }: Props) {
     .maybeSingle();
 
   if (!project) notFound();
+
+  const canonicalProject = await resolveCanonicalProject(project.workspace_id, id);
+  if (canonicalProject.status === "invalid" && canonicalProject.projectId) {
+    redirect(`/projects/${canonicalProject.projectId}?recoveredFrom=invalidProject`);
+  }
 
   await evaluateCapabilityAccess({ workspaceId: project.workspace_id, projectId: project.id, permission: "read" });
 
