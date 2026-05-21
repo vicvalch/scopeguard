@@ -195,6 +195,7 @@ export async function POST(request: Request) {
   const methodology = payload.methodology ?? "Hybrid";
   const conversationSessionKey = payload.sessionKey?.trim() || "default";
   const activeDomain = payload.activeDomain?.trim() || "operational_memory";
+  const resolvedWorkspaceId = isAgentCall ? workspaceIdHeader! : await resolveWorkspaceIdForUser(user.id, payload.projectId?.trim());
   const subscription = await getCompanySubscription(user.companyId);
 
   const allMemory = await readProjectMemory(user.companyId);
@@ -219,12 +220,19 @@ export async function POST(request: Request) {
 
   const continuitySignals = toOperationalSignals(runtimeContext);
   const continuity = await buildContinuityContext(user.companyId, selectedProject?.id ?? null);
-  const scopedConversationState = loadRuntimeConversationState({
-    companyId: user.companyId,
-    workspaceId: isAgentCall ? workspaceIdHeader! : await resolveWorkspaceIdForUser(user.id, payload.projectId?.trim()),
-    projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
-    sessionKey: conversationSessionKey,
-  });
+  let scopedConversationState = null;
+  let continuityPersistenceDegraded = false;
+  try {
+    scopedConversationState = await loadRuntimeConversationState({
+      companyId: user.companyId,
+      workspaceId: resolvedWorkspaceId,
+      projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+      sessionKey: conversationSessionKey,
+    });
+  } catch (error) {
+    continuityPersistenceDegraded = true;
+    console.warn("[copilot] continuity_load_failed", { companyId: user.companyId, error: error instanceof Error ? error.message : String(error) });
+  }
 
   const system = `You are PMFreak, an AI Project Manager with operational realism and delivery accountability.
 Preserve PM-native operational tone: experienced, calm under pressure, politically aware, delivery-focused.
@@ -423,20 +431,27 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
     continuity.unresolved.length ? "operational-memory" : "operational-memory:low",
   ];
 
-  const updatedConversationState = updateRuntimeConversationState({
-    companyId: user.companyId,
-    workspaceId: isAgentCall ? workspaceIdHeader! : await resolveWorkspaceIdForUser(user.id, payload.projectId?.trim()),
-    projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
-    sessionKey: conversationSessionKey,
-    activeDomain,
-    message: payload.message,
-    evidenceRefs,
-  });
+  let updatedConversationState = scopedConversationState;
+  try {
+    updatedConversationState = await updateRuntimeConversationState({
+      companyId: user.companyId,
+      workspaceId: resolvedWorkspaceId,
+      projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+      sessionKey: conversationSessionKey,
+      activeDomain,
+      message: payload.message,
+      evidenceRefs,
+    });
+  } catch (error) {
+    continuityPersistenceDegraded = true;
+    console.warn("[copilot] continuity_update_failed", { companyId: user.companyId, error: error instanceof Error ? error.message : String(error) });
+  }
 
   const trustNotes: string[] = [];
   if (!continuity.unresolved.length) trustNotes.push("Operational memory is currently sparse; guidance is based on live runtime signals.");
   if (!continuitySignals.length) trustNotes.push("Cross-signal confidence is limited because runtime context currently has weak evidence density.");
   if (["scope", "lessons"].includes(activeDomain)) trustNotes.push("Selected domain currently carries simulated placeholder reasoning.");
+  if (continuityPersistenceDegraded) trustNotes.push("Continuity persistence is degraded; response used live runtime context only.");
 
   const confidence = verification.confidenceScore >= 75 ? "High" : verification.confidenceScore >= 50 ? "Moderate" : "Low";
   const followUps = [
@@ -452,7 +467,7 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
     supportingEvidence: [
       ...continuitySignals.slice(0, 2),
       ...continuity.unresolved.slice(0, 2).map((item) => `${item.memoryType}: ${item.memoryText}`),
-      `Evidence sources: ${updatedConversationState.recentEvidence.join(", ")}`,
+      `Evidence sources: ${(updatedConversationState?.recentEvidence ?? evidenceRefs).join(", ")}`,
     ],
     confidence: `${confidence} confidence (${verification.confidenceScore}/100 verification score).`,
     suggestedActions: [
