@@ -19,6 +19,12 @@ import { runInference } from "@/lib/ai/providers/router";
 import { InferenceError } from "@/lib/ai/inference/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadRuntimeConversationState, updateRuntimeConversationState } from "@/lib/runtime-conversation-state";
+import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";
+import { buildInterventionSnapshot } from "@/lib/intervention-engine";
+import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
+import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
+import { buildOperationalCoordinationSnapshot } from "@/lib/coordination-orchestrator";
+import { generateRuntimeOperationalPlans, type RuntimeOperationalPlan } from "@/lib/runtime-operational-plans";
 
 // Resolves the caller's workspace from their project (if given) or first membership.
 // Used only on the human-user path where no workspace header is supplied.
@@ -55,6 +61,7 @@ type CopilotRequest = {
 type CopilotResponse = {
   answer: string;
   runtimeResponse?: { observation: string; interpretation: string; supportingEvidence: string[]; confidence: string; suggestedActions: string[]; followUps: string[]; trustNotes: string[] };
+  operationalPlans?: RuntimeOperationalPlan[];
   diagnosis?: string;
   immediateAction?: string;
   reinforcement?: string;
@@ -462,5 +469,28 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
     followUps,
     trustNotes,
   };
+  if (selectedProject?.id) {
+    const snapshot = await readProjectMemorySnapshot(selectedProject.id);
+    const interventionSnapshot = buildInterventionSnapshot(selectedProject.id, snapshot);
+    const coordinationSnapshot = buildOperationalCoordinationSnapshot({
+      projectId: selectedProject.id,
+      workspaceId: isAgentCall ? workspaceIdHeader! : null,
+      executionRisk: buildExecutionRiskSnapshot(selectedProject.id, snapshot),
+      stakeholderIntelligence: buildStakeholderRelationshipSnapshot(selectedProject.id, snapshot),
+      interventionIntelligence: interventionSnapshot,
+      organizationalMemory: snapshot,
+      timelineIntelligence: {
+        daysSinceUpdate: snapshot?.lastUpdatedAt ? Math.max(0, Math.floor((Date.now() - Date.parse(snapshot.lastUpdatedAt)) / 86_400_000)) : 30,
+        stale: snapshot?.lastUpdatedAt ? Math.max(0, Math.floor((Date.now() - Date.parse(snapshot.lastUpdatedAt)) / 86_400_000)) >= 7 : true,
+      },
+    });
+    result.operationalPlans = generateRuntimeOperationalPlans({
+      projectId: selectedProject.id,
+      intervention: interventionSnapshot,
+      coordination: coordinationSnapshot,
+    });
+  } else {
+    result.operationalPlans = [];
+  }
   return Response.json({ ...result, verificationScore: verification.confidenceScore });
 }
