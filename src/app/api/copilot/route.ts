@@ -22,6 +22,7 @@ import { loadRuntimeConversationState, updateRuntimeConversationState } from "@/
 import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";
 import { ingestConversationIntoVault } from "@/lib/vault/conversation-ingestion";
 import { retrieveOperationalContinuity, buildContinuityContext as buildRuntimeContinuityContext } from "@/lib/vault/continuity-retrieval";
+import { detectLearnedExecutionPatterns } from "@/lib/vault/learned-execution-patterns";
 import { buildInterventionSnapshot } from "@/lib/intervention-engine";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
@@ -242,6 +243,17 @@ export async function POST(request: Request) {
     includeResolved: false,
   });
   const boundedContinuityContext = buildRuntimeContinuityContext(continuity.continuitySignals, 8);
+  const learnedExecutionPatterns = await detectLearnedExecutionPatterns({
+    companyId: user.companyId,
+    workspaceId: resolvedWorkspaceId ?? "",
+    projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+    activeDomain: ["delivery", "risk", "governance", "stakeholder", "financial", "timeline", "general"].includes(activeDomain) ? activeDomain as "delivery" | "risk" | "governance" | "stakeholder" | "financial" | "timeline" | "general" : "general",
+    lookbackDays: 21,
+    includeResolved: false,
+    maxPatterns: 8,
+  });
+  const executionPatternSignals = learnedExecutionPatterns.patterns.slice(0, 4).map((pattern) => `- ${pattern.patternType.replaceAll("_", " ")} (${pattern.severity}): ${pattern.explanation}`).join("\n") || "- No recurring execution pattern detected.";
+  const executionPatternSummary = learnedExecutionPatterns.summary.slice(0, 4).map((line) => `- ${line}`).join("\n") || "- No compact execution pattern summary available.";
   let scopedConversationState = null;
   let continuityPersistenceDegraded = false;
   try {
@@ -317,7 +329,7 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
         { role: "system", content: system },
         {
           role: "user",
-          content: `User role: ${payload.role ?? user.role}\nProject selected: ${payload.projectName ?? selectedProject?.projectName ?? "Not specified"}\nKnown project memory:\n${contextSummary || "No memory available."}\n\nRecent Operational Continuity:\n${boundedContinuityContext.continuitySignals.slice(0, 4).map((signal) => `- ${signal.type.replaceAll("_signal", "").replaceAll("_", " ")} (${signal.urgency}): ${signal.evidenceExcerpt}`).join("\n") || "- No scoped continuity signals available."}\n\nContinuity summary:\n${boundedContinuityContext.continuitySummary.map((line) => `- ${line}`).join("\n") || "- No continuity summary available."}\n\nOperational continuity signals:\n${continuitySignals.length ? continuitySignals.map((s) => `- ${s}`).join("\n") : "- No reliable continuity signal extracted."}\n\nAOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser message: ${payload.message}`,
+          content: `User role: ${payload.role ?? user.role}\nProject selected: ${payload.projectName ?? selectedProject?.projectName ?? "Not specified"}\nKnown project memory:\n${contextSummary || "No memory available."}\n\nRecent Operational Continuity:\n${boundedContinuityContext.continuitySignals.slice(0, 4).map((signal) => `- ${signal.type.replaceAll("_signal", "").replaceAll("_", " ")} (${signal.urgency}): ${signal.evidenceExcerpt}`).join("\n") || "- No scoped continuity signals available."}\n\nContinuity summary:\n${boundedContinuityContext.continuitySummary.map((line) => `- ${line}`).join("\n") || "- No continuity summary available."}\n\nOperational continuity signals:\n${continuitySignals.length ? continuitySignals.map((s) => `- ${s}`).join("\n") : "- No reliable continuity signal extracted."}\n\nExecution Pattern Signals:\n${executionPatternSignals}\n\nExecution pattern summary:\n${executionPatternSummary}\n\nAOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser message: ${payload.message}`,
         },
       ],
       responseFormat: { type: "json_object" },
