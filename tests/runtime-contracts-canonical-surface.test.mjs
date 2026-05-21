@@ -75,9 +75,32 @@ test("runtime-input-contracts.ts exports canonical input contract names", () => 
   }
 });
 
-test("transitional any compatibility remains intentionally allowed", () => {
+test("RuntimeAgentAccessInput is canonicalized and no longer any", () => {
   const content = readFileSync(runtimeContractsPath, "utf8");
-  assert.match(content, /TRANSITIONAL: kept intentionally broad during Runtime Contracts Extraction\./);
+  assert.match(content, /export type RuntimeAgentAccessInput = \{/);
+  assert.doesNotMatch(content, /export type RuntimeAgentAccessInput = any;/);
+  assert.match(content, /workspaceId: string;/);
+  assert.match(content, /action\?: string \| null;/);
+  assert.match(content, /agentId\?: string \| null;/);
+  assert.match(content, /actorAgentId\?: string \| null;/);
+  assert.match(content, /actorUserId\?: string \| null;/);
+  assert.match(content, /requestedPermission\?: RuntimePermission \| string \| null;/);
+  assert.match(content, /projectId\?: string \| null;/);
+  assert.match(content, /resourceType\?: string \| null;/);
+  assert.match(content, /resourceId\?: string \| null;/);
+  assert.match(content, /metadata\?: Record<string, unknown>;/);
+});
+
+test("RuntimeAgentScopeInput is canonicalized and no longer any", () => {
+  const content = readFileSync(runtimeContractsPath, "utf8");
+  assert.match(content, /export type RuntimeAgentScopeInput = \{/);
+  assert.doesNotMatch(content, /export type RuntimeAgentScopeInput = any;/);
+  assert.match(content, /workspaceId: string;/);
+  assert.match(content, /scope\?: string \| null;/);
+  assert.match(content, /scopes\?: string\[\];/);
+  assert.match(content, /action\?: string \| null;/);
+  assert.match(content, /requestedPermission\?: RuntimePermission \| string \| null;/);
+  assert.match(content, /metadata\?: Record<string, unknown>;/);
 });
 
 
@@ -87,7 +110,7 @@ test("RuntimeGovernanceEvaluationInput is structurally narrowed and compatibilit
   assert.doesNotMatch(content, /export type RuntimeGovernanceEvaluationInput = any;/);
   assert.match(content, /workspaceId\?: string \| null;/);
   assert.match(content, /actorType: "user" \| "system" \| "ai_agent";/);
-  assert.match(content, /action: string;/);
+  assert.match(content, /action\?: string \| null;/);
   assert.match(content, /metadata\?: Record<string, unknown>;/);
   assert.match(content, /requestedPermission\?: string \| null;/);
   assert.match(content, /projectId\?: string \| null;/);
@@ -129,4 +152,12 @@ test("runtime wrappers stay wired to canonical governance input contracts", () =
   const content = readFileSync(authorityPortPath, "utf8");
   assert.match(content, /authorizeAction\(input: RuntimeGovernanceEvaluationInput\)/);
   assert.match(content, /enforceAuthorization\(input: RuntimeGovernanceEvaluationInput\)/);
+});
+
+
+test("authority-port methods stay wired to runtime agent access/scope contracts", () => {
+  const content = readFileSync(authorityPortPath, "utf8");
+  assert.match(content, /evaluateAgentAccess\(input: RuntimeAgentAccessInput\)/);
+  assert.match(content, /requireAgentScope\(input: RuntimeAgentScopeInput\)/);
+  assert.match(content, /grantAgentScope\(input: RuntimeAgentScopeInput\)/);
 });
