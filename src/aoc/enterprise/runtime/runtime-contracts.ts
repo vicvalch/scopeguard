@@ -6,7 +6,22 @@ export type RuntimeAuthUserContext = { id: string; [key: string]: unknown };
 
 // TRANSITIONAL: kept intentionally broad during Runtime Contracts Extraction.
 // Future PRs will narrow this once all adapters consume canonical contracts.
-export type RuntimeGovernanceEvaluationInput = any;
+export type RuntimeGovernanceEvaluationInput = {
+  workspaceId?: string | null;
+  actorType: "user" | "system" | "ai_agent";
+  action: string;
+  requestedPermission?: string | null;
+  projectId?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  actorUserId?: string | null;
+  actorAgentId?: string | null;
+  actorRole?: string | null;
+  routeId: string;
+  metadata?: Record<string, unknown>;
+  agentToken?: string | null;
+  systemActor?: string | null;
+};
 
 // TRANSITIONAL: kept intentionally broad during Runtime Contracts Extraction.
 // Future PRs will narrow this once all adapters consume canonical contracts.
