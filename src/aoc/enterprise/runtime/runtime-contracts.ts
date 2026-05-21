@@ -23,9 +23,39 @@ export type RuntimeGovernanceEvaluationInput = {
   systemActor?: string | null;
 };
 
-// TRANSITIONAL: kept intentionally broad during Runtime Contracts Extraction.
-// Future PRs will narrow this once all adapters consume canonical contracts.
-export type RuntimeEnterpriseDecision = any;
+// TRANSITIONAL: compatibility-safe canonical envelope for enterprise runtime decisions.
+// Optional fields intentionally preserve broad adapter/consumer interoperability.
+export type RuntimeEnterpriseDecision = {
+  allowed: boolean;
+  decisionId: string;
+  authority?: string;
+  reason: string;
+  requestedPermission?: string | null;
+  action?: string | null;
+  workspaceId?: string | null;
+  projectId?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  actorUserId?: string | null;
+  actorAgentId?: string | null;
+  actorType?: "user" | "system" | "ai_agent";
+  routeId?: string | null;
+  runtimeVersion?: string | null;
+  trustDomain?: string | null;
+  evaluationTimestamp?: string;
+  decisionSource?: string | null;
+  authoritative?: boolean;
+  runtimeMetadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  audit?: Record<string, unknown>;
+  lineage?: {
+    correlationId?: string;
+    executionTraceId?: string;
+    delegationLineage?: string[];
+    decisionLineage?: string[];
+    [key: string]: unknown;
+  };
+};
 
 export type RuntimeEnforcementResult = { decision: unknown; response: Response | null };
 

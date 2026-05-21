@@ -46,3 +46,14 @@ test("enterprise/protocol boundaries stay clean", () => {
   const protocolExports = readFileSync("src/aoc/protocol/index.ts", "utf8");
   assert.equal(/@\/lib|@\/app|@\/sdk|@\/aoc\/enterprise/.test(protocolExports), false, "src/aoc/protocol must not import app/lib/sdk/enterprise aliases");
 });
+
+
+test("runtime-consumer normalization remains wired to enterprise decisions", () => {
+  const client = readFileSync("src/aoc/runtime-consumer/runtime-client.ts", "utf8");
+  const authorization = readFileSync("src/aoc/runtime-consumer/runtime-authorization.ts", "utf8");
+  assert.equal(client.includes("normalizeRuntimeDecision"), true, "runtime-client must normalize decisions");
+  assert.equal(client.includes("decision.decisionId"), true, "runtime-client must consume decisionId");
+  assert.equal(client.includes("decision.allowed"), true, "runtime-client must consume allowed");
+  assert.equal(authorization.includes("decisionId"), true, "runtime-authorization must produce decisionId");
+  assert.equal(authorization.includes("allowed: false"), true, "runtime-authorization fail-closed path must preserve allowed boolean");
+});

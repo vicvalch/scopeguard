@@ -105,6 +105,26 @@ test("RuntimeGovernanceEvaluationInput supports canonical actor types", () => {
   assert.match(content, /"ai_agent"/);
 });
 
+
+test("RuntimeEnterpriseDecision is canonicalized and no longer any", () => {
+  const content = readFileSync(runtimeContractsPath, "utf8");
+  assert.match(content, /export type RuntimeEnterpriseDecision = \{/);
+  assert.doesNotMatch(content, /export type RuntimeEnterpriseDecision = any;/);
+  assert.match(content, /allowed: boolean;/);
+  assert.match(content, /decisionId: string;/);
+});
+
+test("RuntimeEnterpriseDecision preserves extensible metadata and lineage envelope", () => {
+  const content = readFileSync(runtimeContractsPath, "utf8");
+  assert.match(content, /metadata\?: Record<string, unknown>;/);
+  assert.match(content, /lineage\?: \{/);
+  assert.match(content, /correlationId\?: string;/);
+  assert.match(content, /executionTraceId\?: string;/);
+  assert.match(content, /delegationLineage\?: string\[\];/);
+  assert.match(content, /decisionLineage\?: string\[\];/);
+  assert.match(content, /\[key: string\]: unknown;/);
+});
+
 test("runtime wrappers stay wired to canonical governance input contracts", () => {
   const content = readFileSync(authorityPortPath, "utf8");
   assert.match(content, /authorizeAction\(input: RuntimeGovernanceEvaluationInput\)/);
