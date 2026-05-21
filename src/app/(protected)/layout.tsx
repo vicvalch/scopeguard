@@ -1,4 +1,6 @@
 import { requireAuthUser } from "@/lib/auth";
+import { assertRuntimeAuthContinuity } from "@/lib/auth/runtime-auth-continuity";
+import { resolveCanonicalWorkspace } from "@/lib/workspaces/canonical-workspace-resolver";
 import { OperationalShell } from "@/components/pmfreak/operational-shell";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
@@ -6,8 +8,17 @@ import { isFounderOrInternalUser } from "@/lib/auth";
 import { ensureUserWorkspace } from "@/lib/workspaces";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
+  const continuity = await assertRuntimeAuthContinuity();
+  if (!continuity.ok) {
+    const redirectTarget = encodeURIComponent("/projects");
+    redirect(`/login?next=${redirectTarget}`);
+  }
+
   const user = await requireAuthUser();
-  await ensureUserWorkspace(user.id);
+  const resolvedWorkspace = await resolveCanonicalWorkspace(user.id);
+  if (!resolvedWorkspace.workspaceId) {
+    await ensureUserWorkspace(user.id);
+  }
   if (!isFounderOrInternalUser(user)) {
     const supabase = createSupabaseServiceRoleClient({ routeId: "(protected)/layout", operation: "service_role_query", reason: "existing_privileged_flow", systemActor: "system" });
     const { data: memberships } = await supabase.from("workspace_memberships").select("workspace_id").eq("user_id", user.id).limit(20);

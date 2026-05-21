@@ -3,6 +3,7 @@ import { requireAuthenticatedUser, requireWorkspaceContext, requireWorkspaceMemb
 import { denyFromAccessError, denyResponse } from "@/lib/security/deny-response";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUserWorkspace } from "@/lib/workspaces";
+import { resolveCanonicalWorkspace } from "@/lib/workspaces/canonical-workspace-resolver";
 import { logFirstUserTelemetryEvent } from "@/lib/first-user-telemetry";
 
 type OnboardingPayload = {
@@ -23,7 +24,9 @@ export async function POST(request: Request) {
     const { user } = await requireAuthenticatedUser();
     userId = user.id;
     const ensured = await ensureUserWorkspace(user.id);
-    const workspaceId = request.headers.get("x-pmf-workspace-id") ?? ensured.workspaceId;
+    const requestedWorkspace = request.headers.get("x-pmf-workspace-id");
+    const canonicalWorkspace = await resolveCanonicalWorkspace(user.id, requestedWorkspace);
+    const workspaceId = canonicalWorkspace.workspaceId ?? ensured.workspaceId;
     await requireWorkspaceContext(workspaceId);
     await requireWorkspaceMember(workspaceId);
 
