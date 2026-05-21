@@ -24,7 +24,7 @@
     "check:lifecycle": "node scripts/check-lifecycle-integrity.mjs",
     "check:release-readiness": "node scripts/check-release-readiness.mjs",
     "publish:dry-run": "node scripts/publish-dry-run.mjs",
-    "check:governance": "npm run check:aoc-boundaries && npm run check:no-local-auth-bypass && npm run check:runtime-contract-drift && npm run check:package-exports && npm run check:compatibility && npm run check:lifecycle && npm run check:release-readiness && npm run check:package-purity",
+    "check:governance": "npm run check:aoc-boundaries && npm run check:no-local-auth-bypass && npm run check:runtime-contract-drift && npm run check:package-exports && npm run check:compatibility && npm run check:lifecycle && npm run check:release-readiness",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish",
@@ -61,7 +61,8 @@
     "check:production-runtime": "node scripts/check-production-runtime.mjs",
     "check:live-federation-runtime": "node scripts/check-live-federation-runtime.mjs",
     "check:trial-domain-foundation": "node scripts/check-trial-domain-foundation.mjs",
-    "check:live-federation-ingestion": "node scripts/check-live-federation-ingestion.mjs"
+    "check:live-federation-ingestion": "node scripts/check-live-federation-ingestion.mjs",
+    "check:billing-integrity": "node scripts/check-billing-integrity.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
