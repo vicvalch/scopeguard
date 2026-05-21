@@ -45,7 +45,7 @@ test("retrieval fail-soft degradation and dedupe fingerprints exist", () => {
 });
 
 test("copilot route integrates continuity retrieval before inference with bounded context", () => {
-  assert.match(copilotRoute, /retrieveOperationalContinuity\(/);
+  assert.match(copilotRoute, /retrieveOperationalContinuityLegacy\(/);
   assert.match(copilotRoute, /buildRuntimeContinuityContext\(continuity\.continuitySignals, 8\)/);
   assert.match(copilotRoute, /Recent Operational Continuity:/);
   assert.doesNotMatch(copilotRoute, /source:\s*\$\{item\.sourceType\}:\$\{item\.sourceReference\}/);
