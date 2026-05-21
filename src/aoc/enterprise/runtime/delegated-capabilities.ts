@@ -5,15 +5,12 @@ import { createHash, randomBytes } from "node:crypto";
 import type { PolicyDecision } from "@aoc/protocol/ports/policy-evaluation";
 import type { AocActorContext } from "@aoc/protocol/actor-model";
 import type { RuntimeContext } from "./context";
-
+import type { DelegationConstraints, DelegationDecision, DelegationInput } from "./runtime-input-contracts";
+export type { DelegationConstraints, DelegationDecision, DelegationInput } from "./runtime-input-contracts";
 const FORBIDDEN = new Set(["billing.manage", "members.manage", "workspace.manage", "privileged.use"]);
 const OWNER_ADMIN_ALLOWED = new Set(["project.read", "memory.read", "memory.write", "document.upload", "ai.execute"]);
 const PM_ALLOWED = new Set(["project.read", "memory.read", "memory.write", "document.upload"]);
 const DEFAULT_MAX_DELEGATION_DEPTH = 3;
-
-export type DelegationConstraints = { maxUses?: number; allowedUntil?: string; allowedActions?: string[]; allowedProjectIds?: string[]; allowedResourceTypes?: string[]; delegationDepth?: number; canDelegate?: boolean; [key: string]: unknown };
-export type DelegationDecision = "allow" | "deny" | "revoked" | "expired" | "invalid_chain" | "policy_denied" | "exceeded_scope" | "exceeded_depth";
-export type DelegationInput = { [key: string]: unknown; parentDelegationId?: string | null; parentGrantId?: string | null; parentDecisionId?: string | null; delegatorUserId?: string | null; delegatorAgentId?: string | null; delegateeUserId?: string | null; delegateeAgentId?: string | null; action: string; requestedPermission: string; workspaceId: string; projectId?: string | null; resourceType?: string | null; resourceId?: string | null; constraints?: DelegationConstraints; expiresAt?: string; depth?: number; delegatorRole?: "owner" | "admin" | "pm" | string; parentGrant?: { expires_at?: string | null; project_id?: string | null; requested_permission?: string | null } | null; parentConstraints?: DelegationConstraints; maxUses?: number; delegationToken?: string; actorUserId?: string | null; actorAgentId?: string | null; delegationId?: string; metadata?: Record<string, unknown>; revokedReason?: string | null; maxDelegationDepth?: number; };
 
 const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
 const genToken = () => randomBytes(32).toString("base64url");

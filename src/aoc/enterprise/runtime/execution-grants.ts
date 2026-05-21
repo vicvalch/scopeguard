@@ -4,11 +4,10 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createCapabilityClaim, claimToAuditMetadata, hashCapabilityClaim } from "@aoc/protocol/contracts/capability-claims";
 import { runtimeContextToCapabilityClaimPorts, type RuntimeContext } from "./context";
-
+import type { ExecutionGrantInput } from "./runtime-input-contracts";
+export type { ExecutionGrantInput } from "./runtime-input-contracts";
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 export const generateExecutionGrantToken = () => randomBytes(32).toString("base64url");
-
-export type ExecutionGrantInput = { workspaceId: string; approvalRequestId?: string; decisionId?: string; projectId?: string | null; actorUserId?: string | null; actorAgentId?: string | null; action: string; requestedPermission: string; resourceType?: string | null; resourceId?: string | null; issuedByUserId?: string | null; ttlMs?: number; metadata?: Record<string, unknown>; grantToken?: string };
 
 // PRIVILEGED_ACCESS: Execution grants span approval request, actor, and resource tables that cross user-level RLS boundaries; single-use atomic status transitions require service role.
 // AUDIT_REF: service-role-risk-register.md
