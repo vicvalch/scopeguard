@@ -18,6 +18,7 @@ import { CopilotRequestContract, CopilotResponseContract } from "@/lib/contracts
 import { runInference } from "@/lib/ai/providers/router";
 import { InferenceError } from "@/lib/ai/inference/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { loadRuntimeConversationState, updateRuntimeConversationState } from "@/lib/runtime-conversation-state";
 
 // Resolves the caller's workspace from their project (if given) or first membership.
 // Used only on the human-user path where no workspace header is supplied.
@@ -43,6 +44,8 @@ async function resolveWorkspaceIdForUser(userId: string, projectId: string | und
 type CopilotRequest = {
   message?: string;
   projectId?: string;
+  sessionKey?: string;
+  activeDomain?: string;
   projectName?: string;
   companyId?: string;
   role?: UserRole;
@@ -51,6 +54,7 @@ type CopilotRequest = {
 
 type CopilotResponse = {
   answer: string;
+  runtimeResponse?: { observation: string; interpretation: string; supportingEvidence: string[]; confidence: string; suggestedActions: string[]; followUps: string[]; trustNotes: string[] };
   diagnosis?: string;
   immediateAction?: string;
   reinforcement?: string;
@@ -189,6 +193,8 @@ export async function POST(request: Request) {
   }
 
   const methodology = payload.methodology ?? "Hybrid";
+  const conversationSessionKey = payload.sessionKey?.trim() || "default";
+  const activeDomain = payload.activeDomain?.trim() || "operational_memory";
   const subscription = await getCompanySubscription(user.companyId);
 
   const allMemory = await readProjectMemory(user.companyId);
@@ -213,6 +219,12 @@ export async function POST(request: Request) {
 
   const continuitySignals = toOperationalSignals(runtimeContext);
   const continuity = await buildContinuityContext(user.companyId, selectedProject?.id ?? null);
+  const scopedConversationState = loadRuntimeConversationState({
+    companyId: user.companyId,
+    workspaceId: isAgentCall ? workspaceIdHeader! : await resolveWorkspaceIdForUser(user.id, payload.projectId?.trim()),
+    projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+    sessionKey: conversationSessionKey,
+  });
 
   const system = `You are PMFreak, an AI Project Manager with operational realism and delivery accountability.
 Preserve PM-native operational tone: experienced, calm under pressure, politically aware, delivery-focused.
@@ -402,5 +414,53 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
     });
   }
 
+
+  const evidenceRefs = [
+    "execution-risk",
+    "stakeholders",
+    "interventions",
+    "coordination",
+    continuity.unresolved.length ? "operational-memory" : "operational-memory:low",
+  ];
+
+  const updatedConversationState = updateRuntimeConversationState({
+    companyId: user.companyId,
+    workspaceId: isAgentCall ? workspaceIdHeader! : await resolveWorkspaceIdForUser(user.id, payload.projectId?.trim()),
+    projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+    sessionKey: conversationSessionKey,
+    activeDomain,
+    message: payload.message,
+    evidenceRefs,
+  });
+
+  const trustNotes: string[] = [];
+  if (!continuity.unresolved.length) trustNotes.push("Operational memory is currently sparse; guidance is based on live runtime signals.");
+  if (!continuitySignals.length) trustNotes.push("Cross-signal confidence is limited because runtime context currently has weak evidence density.");
+  if (["scope", "lessons"].includes(activeDomain)) trustNotes.push("Selected domain currently carries simulated placeholder reasoning.");
+
+  const confidence = verification.confidenceScore >= 75 ? "High" : verification.confidenceScore >= 50 ? "Moderate" : "Low";
+  const followUps = [
+    "Show dependency chain for unresolved blockers",
+    "Review unresolved blocker evidence",
+    "Compare this pattern with previous escalation cycles",
+    "Generate an executive explanation with decision asks",
+  ];
+
+  result.runtimeResponse = {
+    observation: result.diagnosis ?? "Operational deterioration pattern detected.",
+    interpretation: result.reinforcement ?? "Current trajectory suggests governance and dependency pressure are compounding.",
+    supportingEvidence: [
+      ...continuitySignals.slice(0, 2),
+      ...continuity.unresolved.slice(0, 2).map((item) => `${item.memoryType}: ${item.memoryText}`),
+      `Evidence sources: ${updatedConversationState.recentEvidence.join(", ")}`,
+    ],
+    confidence: `${confidence} confidence (${verification.confidenceScore}/100 verification score).`,
+    suggestedActions: [
+      result.immediateAction ?? "Assign accountable owner for top-risk delivery item today.",
+      result.nextStep ?? "Run targeted dependency review within 24h.",
+    ],
+    followUps,
+    trustNotes,
+  };
   return Response.json({ ...result, verificationScore: verification.confidenceScore });
 }
