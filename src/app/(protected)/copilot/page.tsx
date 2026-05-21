@@ -15,6 +15,7 @@ type IngestionMetadata = {
 
 type CopilotResponse = {
   answer: string;
+  runtimeResponse?: { observation: string; interpretation: string; supportingEvidence: string[]; confidence: string; suggestedActions: string[]; followUps: string[]; trustNotes: string[] };
   cards: CopilotCard[];
   plan: "free" | "pro" | "enterprise";
   aiPowered: boolean;
@@ -74,6 +75,7 @@ type CoordinationSnapshot = {
 };
 
 const MEMORY_DOMAINS = ["stakeholder_intelligence","delivery_intelligence","risk_intelligence","pmo_governance","team_health","executive_context","operational_memory"] as const;
+const SESSION_KEY = "copilot-shell-v1";
 
 const FIRST_SESSION_PROMPTS = {
   operational: [
@@ -215,6 +217,8 @@ export default function CopilotPage() {
           projectId: selectedProject?.id,
           projectName: selectedProject?.projectName,
           methodology,
+          activeDomain: memoryDomain,
+          sessionKey: SESSION_KEY,
         }),
       });
       const payload = (await response.json()) as CopilotResponse & { error?: string };
@@ -328,6 +332,7 @@ export default function CopilotPage() {
                   <p>{msg.text}</p>
                   {msg.role === "assistant" && msg.state === "streaming" ? <p className="mt-2 text-[11px] text-cyan-200 animate-pulse">typing operational guidance…</p> : null}
                   {msg.role === "assistant" && msg.state === "error" ? <p className="mt-2 text-[11px] text-rose-200">degraded AI state — conversation memory retained</p> : null}
+                  {msg.role === "assistant" && msg.response?.runtimeResponse ? <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-slate-200"><p><span className="text-slate-400">Observation:</span> {msg.response.runtimeResponse.observation}</p><p><span className="text-slate-400">Interpretation:</span> {msg.response.runtimeResponse.interpretation}</p><p><span className="text-slate-400">Confidence:</span> {msg.response.runtimeResponse.confidence}</p><ul className="list-disc pl-4 text-slate-300">{msg.response.runtimeResponse.supportingEvidence.map((item) => <li key={item}>{item}</li>)}</ul>{msg.response.runtimeResponse.trustNotes.length ? <p className="text-amber-200">Trust notes: {msg.response.runtimeResponse.trustNotes.join(" ")}</p> : null}</div> : null}
                 </article>
               ))}
               {loading ? <p className="text-sm text-slate-300 animate-pulse">Thinking: {thinkingState === "triaging" ? "triaging operational signals" : thinkingState === "reasoning" ? "running PM reasoning pass" : "validating intervention quality"}…</p> : null}
