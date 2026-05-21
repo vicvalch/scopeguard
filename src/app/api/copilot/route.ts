@@ -6,7 +6,7 @@ import { canUsePortfolioMemory } from "@/lib/plan-access";
 import { buildPmNativeResponse } from "@/lib/pm-response-shaping";
 import { readProjectMemory, type StoredProjectAnalysis } from "@/lib/project-memory";
 import { getRuntimeAuthorityView } from "@/lib/aoc/runtime-observability";
-import { appendOperationalMemory, buildContinuityContext, extractOperationalMemoryCandidates } from "@/lib/operational-memory-v1";
+import { appendOperationalMemory, extractOperationalMemoryCandidates } from "@/lib/operational-memory-v1";
 import { enforceRuntimeAuthorization } from "@/aoc/runtime-consumer";
 import { consumeExecutionGrant } from "@/aoc/runtime-consumer";
 import { buildAuthorityLineage, consumeDelegatedCapability, explainDelegationChain } from "@/aoc/runtime-consumer";
@@ -21,6 +21,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadRuntimeConversationState, updateRuntimeConversationState } from "@/lib/runtime-conversation-state";
 import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";
 import { ingestConversationIntoVault } from "@/lib/vault/conversation-ingestion";
+import { retrieveOperationalContinuity, buildContinuityContext as buildRuntimeContinuityContext } from "@/lib/vault/continuity-retrieval";
 import { buildInterventionSnapshot } from "@/lib/intervention-engine";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
@@ -228,7 +229,19 @@ export async function POST(request: Request) {
     .join("\n\n");
 
   const continuitySignals = toOperationalSignals(runtimeContext);
-  const continuity = await buildContinuityContext(user.companyId, selectedProject?.id ?? null);
+  const continuity = await retrieveOperationalContinuity({
+    companyId: user.companyId,
+    workspaceId: resolvedWorkspaceId ?? "",
+    projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+    sessionKey: conversationSessionKey,
+    actorUserId: user.id,
+    activeDomain: ["delivery", "risk", "governance", "stakeholder", "financial", "timeline", "general"].includes(activeDomain) ? activeDomain as "delivery" | "risk" | "governance" | "stakeholder" | "financial" | "timeline" | "general" : "general",
+    currentMessage: payload.message,
+    maxNutrients: 50,
+    maxEvidence: 8,
+    includeResolved: false,
+  });
+  const boundedContinuityContext = buildRuntimeContinuityContext(continuity.continuitySignals, 8);
   let scopedConversationState = null;
   let continuityPersistenceDegraded = false;
   try {
@@ -304,7 +317,7 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
         { role: "system", content: system },
         {
           role: "user",
-          content: `User role: ${payload.role ?? user.role}\nProject selected: ${payload.projectName ?? selectedProject?.projectName ?? "Not specified"}\nKnown project memory:\n${contextSummary || "No memory available."}\n\nOperational continuity signals:\n${continuitySignals.length ? continuitySignals.map((s) => `- ${s}`).join("\n") : "- No reliable continuity signal extracted."}\n\nPersisted unresolved operational memory:\n${continuity.unresolved.map((item) => `- [${item.memoryType}] ${item.memoryText} (source: ${item.sourceType}:${item.sourceReference})`).join("\n") || "- No unresolved memory yet."}\n\nAOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser message: ${payload.message}`,
+          content: `User role: ${payload.role ?? user.role}\nProject selected: ${payload.projectName ?? selectedProject?.projectName ?? "Not specified"}\nKnown project memory:\n${contextSummary || "No memory available."}\n\nRecent Operational Continuity:\n${boundedContinuityContext.continuitySignals.slice(0, 4).map((signal) => `- ${signal.type.replaceAll("_signal", "").replaceAll("_", " ")} (${signal.urgency}): ${signal.evidenceExcerpt}`).join("\n") || "- No scoped continuity signals available."}\n\nContinuity summary:\n${boundedContinuityContext.continuitySummary.map((line) => `- ${line}`).join("\n") || "- No continuity summary available."}\n\nOperational continuity signals:\n${continuitySignals.length ? continuitySignals.map((s) => `- ${s}`).join("\n") : "- No reliable continuity signal extracted."}\n\nAOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser message: ${payload.message}`,
         },
       ],
       responseFormat: { type: "json_object" },
@@ -352,7 +365,7 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
     projectName: selectedProject?.projectName ?? payload.projectName ?? null,
     knownRisks: selectedProject?.risks ?? [],
     knownDependencies: selectedProject?.dependencies ?? [],
-    unresolvedMemory: continuity.unresolved.map((item) => item.memoryText),
+    unresolvedMemory: boundedContinuityContext.unresolvedBlockers.map((item) => item.evidenceExcerpt),
     userMessage: payload.message,
   };
 
@@ -437,7 +450,7 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
     "stakeholders",
     "interventions",
     "coordination",
-    continuity.unresolved.length ? "operational-memory" : "operational-memory:low",
+    boundedContinuityContext.unresolvedBlockers.length ? "operational-memory" : "operational-memory:low",
   ];
 
   let updatedConversationState = scopedConversationState;
@@ -457,7 +470,7 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
   }
 
   const trustNotes: string[] = [];
-  if (!continuity.unresolved.length) trustNotes.push("Operational memory is currently sparse; guidance is based on live runtime signals.");
+  if (!boundedContinuityContext.unresolvedBlockers.length) trustNotes.push("Operational memory is currently sparse; guidance is based on live runtime signals.");
   if (!continuitySignals.length) trustNotes.push("Cross-signal confidence is limited because runtime context currently has weak evidence density.");
   if (["scope", "lessons"].includes(activeDomain)) trustNotes.push("Selected domain currently carries simulated placeholder reasoning.");
   if (continuityPersistenceDegraded) trustNotes.push("Continuity persistence is degraded; response used live runtime context only.");
@@ -475,7 +488,7 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
     interpretation: result.reinforcement ?? "Current trajectory suggests governance and dependency pressure are compounding.",
     supportingEvidence: [
       ...continuitySignals.slice(0, 2),
-      ...continuity.unresolved.slice(0, 2).map((item) => `${item.memoryType}: ${item.memoryText}`),
+      ...boundedContinuityContext.continuitySignals.slice(0, 2).map((item) => `${item.type}: ${item.evidenceExcerpt}`),
       `Evidence sources: ${(updatedConversationState?.recentEvidence ?? evidenceRefs).join(", ")}`,
     ],
     confidence: `${confidence} confidence (${verification.confidenceScore}/100 verification score).`,
