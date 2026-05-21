@@ -21,7 +21,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadRuntimeConversationState, updateRuntimeConversationState } from "@/lib/runtime-conversation-state";
 import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";
 import { ingestConversationIntoVault } from "@/lib/vault/conversation-ingestion";
-import { retrieveOperationalContinuity, buildContinuityContext as buildRuntimeContinuityContext } from "@/lib/vault/continuity-retrieval";
+import { retrieveOperationalContinuity as retrieveOperationalContinuityLegacy, buildContinuityContext as buildRuntimeContinuityContext } from "@/lib/vault/continuity-retrieval";
+import { retrieveOperationalContinuity as retrieveOperationalContinuityEngine } from "@/lib/operational-continuity/retrieval-engine";
 import { detectLearnedExecutionPatterns } from "@/lib/vault/learned-execution-patterns";
 import { retrieveInterventionHistory, buildInterventionMemorySummary, extractOperationalInterventions, persistOperationalIntervention } from "@/lib/vault/intervention-memory";
 import { buildOperationalConfidenceProfile, calculateInterventionEfficacy, calculateStakeholderResponsiveness, buildInterventionEfficacySummary } from "@/lib/vault/intervention-efficacy";
@@ -235,7 +236,40 @@ export async function POST(request: Request) {
     .join("\n\n");
 
   const continuitySignals = toOperationalSignals(runtimeContext);
-  const continuity = await retrieveOperationalContinuity({
+  let continuityRetrievalStatus: "retrieved" | "empty" | "degraded" = "empty";
+  let continuityRetrievalItemCount = 0;
+  let continuityRetrievalTopTypes: string[] = [];
+  let continuityRetrievalConfidence: "none" | "low" | "medium" | "high" = "none";
+  let continuityRetrievalTrustNote: string | null = null;
+  try {
+    const continuityRetrieval = await retrieveOperationalContinuityEngine({
+      companyId: user.companyId,
+      workspaceId: resolvedWorkspaceId ?? null,
+      projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+      sessionKey: conversationSessionKey,
+      activeDomain,
+      limit: 18,
+      includeSessionMemory: true,
+      includeVaultNutrients: true,
+    });
+    continuityRetrievalItemCount = continuityRetrieval.items.length;
+    continuityRetrievalTopTypes = Array.from(new Set(continuityRetrieval.items.map((item) => item.type))).slice(0, 4);
+    const topScore = continuityRetrieval.items[0]?.score ?? 0;
+    continuityRetrievalConfidence = topScore >= 75 ? "high" : topScore >= 50 ? "medium" : topScore > 0 ? "low" : "none";
+    continuityRetrievalStatus = continuityRetrievalItemCount ? "retrieved" : "empty";
+  } catch (error) {
+    continuityRetrievalStatus = "degraded";
+    continuityRetrievalConfidence = "none";
+    continuityRetrievalTrustNote = "Operational continuity retrieval is degraded; response used live runtime context only.";
+    console.warn("[copilot] operational_continuity_retrieval_failed", {
+      companyId: user.companyId,
+      workspaceId: resolvedWorkspaceId,
+      projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  const continuity = await retrieveOperationalContinuityLegacy({
     companyId: user.companyId,
     workspaceId: resolvedWorkspaceId ?? "",
     projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
@@ -657,5 +691,5 @@ AOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser messag
   } else {
     result.operationalPlans = [];
   }
-  return Response.json({ ...result, verificationScore: verification.confidenceScore });
+  return Response.json({ ...result, verificationScore: verification.confidenceScore, continuityRetrieval: { status: continuityRetrievalStatus, itemCount: continuityRetrievalItemCount, topTypes: continuityRetrievalTopTypes, confidence: continuityRetrievalConfidence } });
 }
