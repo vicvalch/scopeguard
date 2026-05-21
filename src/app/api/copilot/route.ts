@@ -26,6 +26,7 @@ import { detectLearnedExecutionPatterns } from "@/lib/vault/learned-execution-pa
 import { retrieveInterventionHistory, buildInterventionMemorySummary, extractOperationalInterventions, persistOperationalIntervention } from "@/lib/vault/intervention-memory";
 import { buildOperationalConfidenceProfile, calculateInterventionEfficacy, calculateStakeholderResponsiveness, buildInterventionEfficacySummary } from "@/lib/vault/intervention-efficacy";
 import { buildAdaptiveOperationalConfidence } from "@/lib/vault/adaptive-confidence";
+import { prioritizeOperationalMemory } from "@/lib/vault/memory-prioritization";
 import { buildInterventionSnapshot } from "@/lib/intervention-engine";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
@@ -261,6 +262,7 @@ export async function POST(request: Request) {
   const boundedInterventionSummary = buildInterventionMemorySummary(interventionHistory).slice(0, 4);
   let boundedOperationalConfidenceSummary = ["Operational confidence is degraded; deterministic efficacy scoring unavailable."];
   let boundedAdaptiveConfidenceSummary = ["confidence trajectory degrading", "operational drift elevated"];
+  let boundedPrioritizedMemorySummary = ["Operational prioritization unavailable; using continuity and execution defaults."];
   try {
     const [efficacy, stakeholders, confidence] = await Promise.all([
       calculateInterventionEfficacy({ workspaceId: resolvedWorkspaceId ?? "", projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null, scoringWindowDays: 30, recentOnly: true, limit: 40 }),
@@ -282,6 +284,17 @@ export async function POST(request: Request) {
       ...buildInterventionEfficacySummary({ efficacy, stakeholders, confidence }).slice(0, 2),
     ].slice(0, 4);
     boundedAdaptiveConfidenceSummary = adaptiveConfidence.summaries.slice(0, 4);
+    const prioritizedMemory = await prioritizeOperationalMemory({
+      workspaceId: resolvedWorkspaceId ?? "",
+      projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+      continuitySignals: continuity.continuitySignals,
+      interventionHistory,
+      adaptiveConfidence: adaptiveConfidence.adaptive,
+      learnedPatterns: learnedExecutionPatterns,
+      efficacy,
+      stakeholders,
+    });
+    boundedPrioritizedMemorySummary = prioritizedMemory.summaries.slice(0, 4);
   } catch (error) {
     console.warn("[copilot] intervention_efficacy_scoring_failed", {
       companyId: user.companyId,
@@ -368,6 +381,9 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
           content: `User role: ${payload.role ?? user.role}\nProject selected: ${payload.projectName ?? selectedProject?.projectName ?? "Not specified"}\nKnown project memory:\n${contextSummary || "No memory available."}\n\nRecent Operational Continuity:\n${boundedContinuityContext.continuitySignals.slice(0, 4).map((signal) => `- ${signal.type.replaceAll("_signal", "").replaceAll("_", " ")} (${signal.urgency}): ${signal.evidenceExcerpt}`).join("\n") || "- No scoped continuity signals available."}\n\nContinuity summary:\n${boundedContinuityContext.continuitySummary.map((line) => `- ${line}`).join("\n") || "- No continuity summary available."}\n\nOperational continuity signals:\n${continuitySignals.length ? continuitySignals.map((s) => `- ${s}`).join("\n") : "- No reliable continuity signal extracted."}\n\nExecution Pattern Signals:\n${executionPatternSignals}\n\nExecution pattern summary:\n${executionPatternSummary}\n\nOperational Confidence:\n${boundedOperationalConfidenceSummary.map((line) => `- ${line}`).join("\n")}\n\n
 Adaptive Operational Confidence:
 ${boundedAdaptiveConfidenceSummary.map((line) => `- ${line}`).join("\n")}
+
+Operational Priority Signals:
+${boundedPrioritizedMemorySummary.map((line) => `- ${line}`).join("\n")}
 
 AOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser message: ${payload.message}`,
         },
