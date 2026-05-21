@@ -282,7 +282,7 @@ export async function POST(request: Request) {
     includeResolved: false,
   });
   const boundedContinuityContext = buildRuntimeContinuityContext(continuity.continuitySignals, 8);
-  const learnedExecutionPatterns = await detectLearnedExecutionPatterns({
+  let learnedExecutionPatterns = await detectLearnedExecutionPatterns({
     companyId: user.companyId,
     workspaceId: resolvedWorkspaceId ?? "",
     projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
@@ -291,6 +291,14 @@ export async function POST(request: Request) {
     includeResolved: false,
     maxPatterns: 8,
   });
+  if (learnedExecutionPatterns.status === "degraded") {
+    console.warn("[copilot] execution_pattern_detection_degraded", {
+      companyId: user.companyId,
+      workspaceId: resolvedWorkspaceId,
+      projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+      reason: learnedExecutionPatterns.degradationReason ?? "unknown",
+    });
+  }
   const executionPatternSignals = learnedExecutionPatterns.patterns.slice(0, 4).map((pattern) => `- ${pattern.patternType.replaceAll("_", " ")} (${pattern.severity}): ${pattern.explanation}`).join("\n") || "- No recurring execution pattern detected.";
   const executionPatternSummary = learnedExecutionPatterns.summary.slice(0, 4).map((line) => `- ${line}`).join("\n") || "- No compact execution pattern summary available.";
   const interventionHistory = await retrieveInterventionHistory({ workspaceId: resolvedWorkspaceId ?? "", projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null, unresolvedOnly: false, recentOnlyDays: 30, limit: 18 });
@@ -610,6 +618,7 @@ AOC runtime authority context:\n${JSON.stringify(runtimeContext)}\n\nUser messag
   if (!continuitySignals.length) trustNotes.push("Cross-signal confidence is limited because runtime context currently has weak evidence density.");
   if (["scope", "lessons"].includes(activeDomain)) trustNotes.push("Selected domain currently carries simulated placeholder reasoning.");
   if (continuityPersistenceDegraded) trustNotes.push("Continuity persistence is degraded; response used live runtime context only.");
+  if (learnedExecutionPatterns.status === "degraded") trustNotes.push("Execution pattern detection is degraded; response used live continuity signals only.");
 
   const confidence = verification.confidenceScore >= 75 ? "High" : verification.confidenceScore >= 50 ? "Moderate" : "Low";
   const followUps = [
