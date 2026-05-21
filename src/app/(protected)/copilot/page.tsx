@@ -16,6 +16,7 @@ type IngestionMetadata = {
 type CopilotResponse = {
   answer: string;
   runtimeResponse?: { observation: string; interpretation: string; supportingEvidence: string[]; confidence: string; suggestedActions: string[]; followUps: string[]; trustNotes: string[] };
+  operationalPlans?: Array<{ id: string; title: string; status: string; severity: string; confidence: string; supportingEvidence: string[]; operationalSequence: Array<{ id: string; action: string; priority: number; ownerSuggestion?: string; status: string }> }>;
   cards: CopilotCard[];
   plan: "free" | "pro" | "enterprise";
   aiPowered: boolean;
@@ -74,7 +75,7 @@ type CoordinationSnapshot = {
   commentary: string[];
 };
 
-const MEMORY_DOMAINS = ["stakeholder_intelligence","delivery_intelligence","risk_intelligence","pmo_governance","team_health","executive_context","operational_memory"] as const;
+const MEMORY_DOMAINS = ["stakeholder_intelligence","delivery_intelligence","risk_intelligence","pmo_governance","team_health","executive_context","operational_memory","operational_plans"] as const;
 const SESSION_KEY = "copilot-shell-v1";
 
 const FIRST_SESSION_PROMPTS = {
@@ -333,6 +334,17 @@ export default function CopilotPage() {
                   {msg.role === "assistant" && msg.state === "streaming" ? <p className="mt-2 text-[11px] text-cyan-200 animate-pulse">typing operational guidance…</p> : null}
                   {msg.role === "assistant" && msg.state === "error" ? <p className="mt-2 text-[11px] text-rose-200">degraded AI state — conversation memory retained</p> : null}
                   {msg.role === "assistant" && msg.response?.runtimeResponse ? <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-slate-200"><p><span className="text-slate-400">Observation:</span> {msg.response.runtimeResponse.observation}</p><p><span className="text-slate-400">Interpretation:</span> {msg.response.runtimeResponse.interpretation}</p><p><span className="text-slate-400">Confidence:</span> {msg.response.runtimeResponse.confidence}</p><ul className="list-disc pl-4 text-slate-300">{msg.response.runtimeResponse.supportingEvidence.map((item) => <li key={item}>{item}</li>)}</ul>{msg.response.runtimeResponse.trustNotes.length ? <p className="text-amber-200">Trust notes: {msg.response.runtimeResponse.trustNotes.join(" ")}</p> : null}</div> : null}
+                  {msg.role === "assistant" && msg.response?.operationalPlans?.length ? (
+                    <div className="mt-3 space-y-2 rounded-xl border border-cyan-300/20 bg-cyan-400/5 p-3 text-xs">
+                      <p className="font-semibold text-cyan-100">Operational Plans</p>
+                      {msg.response.operationalPlans.map((plan) => (
+                        <div key={plan.id} className="rounded-lg border border-cyan-200/15 p-2 text-slate-200">
+                          <p>{plan.title} · {plan.status} · {plan.severity} · {plan.confidence}</p>
+                          <ul className="list-disc pl-4">{plan.operationalSequence.slice(0, 3).sort((a, b) => a.priority - b.priority).map((step) => <li key={step.id}>P{step.priority}: {step.action} {step.ownerSuggestion ? `(owner: ${step.ownerSuggestion})` : ""}</li>)}</ul>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </article>
               ))}
               {loading ? <p className="text-sm text-slate-300 animate-pulse">Thinking: {thinkingState === "triaging" ? "triaging operational signals" : thinkingState === "reasoning" ? "running PM reasoning pass" : "validating intervention quality"}…</p> : null}
