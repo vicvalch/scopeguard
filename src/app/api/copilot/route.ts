@@ -23,6 +23,7 @@ import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";
 import { ingestConversationIntoVault } from "@/lib/vault/conversation-ingestion";
 import { retrieveOperationalContinuity, buildContinuityContext as buildRuntimeContinuityContext } from "@/lib/vault/continuity-retrieval";
 import { detectLearnedExecutionPatterns } from "@/lib/vault/learned-execution-patterns";
+import { retrieveInterventionHistory, buildInterventionMemorySummary, extractOperationalInterventions, persistOperationalIntervention } from "@/lib/vault/intervention-memory";
 import { buildInterventionSnapshot } from "@/lib/intervention-engine";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
@@ -254,6 +255,8 @@ export async function POST(request: Request) {
   });
   const executionPatternSignals = learnedExecutionPatterns.patterns.slice(0, 4).map((pattern) => `- ${pattern.patternType.replaceAll("_", " ")} (${pattern.severity}): ${pattern.explanation}`).join("\n") || "- No recurring execution pattern detected.";
   const executionPatternSummary = learnedExecutionPatterns.summary.slice(0, 4).map((line) => `- ${line}`).join("\n") || "- No compact execution pattern summary available.";
+  const interventionHistory = await retrieveInterventionHistory({ workspaceId: resolvedWorkspaceId ?? "", projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null, unresolvedOnly: false, recentOnlyDays: 30, limit: 18 });
+  const boundedInterventionSummary = buildInterventionMemorySummary(interventionHistory).slice(0, 4);
   let scopedConversationState = null;
   let continuityPersistenceDegraded = false;
   try {
@@ -358,6 +361,24 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
   }
 
   if (!content) return Response.json({ error: "AI returned empty response." }, { status: 502 });
+
+  const extractedInterventions = extractOperationalInterventions(content);
+  const traceId = runtimeContext && typeof runtimeContext === "object" && "decisionId" in runtimeContext ? String((runtimeContext as { decisionId?: string }).decisionId ?? "") : null;
+  await Promise.all(extractedInterventions.slice(0, 6).map((item) => persistOperationalIntervention({
+    companyId: user.companyId,
+    workspaceId: resolvedWorkspaceId ?? "",
+    projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+    source: "copilot",
+    interventionType: item.interventionType,
+    operationalDomain: item.operationalDomain,
+    severity: item.severity,
+    interventionText: item.interventionText,
+    targetStakeholders: item.targetStakeholders,
+    relatedPatterns: learnedExecutionPatterns.patterns.slice(0, 3).map((pattern) => pattern.patternType),
+    relatedNutrients: boundedContinuityContext.continuitySignals.slice(0, 4).map((signal) => signal.nutrientId),
+    runtimeDecisionId: null,
+    lineage: { sessionKey: conversationSessionKey, correlationId: payload.projectId ?? null, executionTraceId: traceId },
+  })));
 
   let parsed: Partial<CopilotResponse> = {};
   try {
