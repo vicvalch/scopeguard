@@ -20,6 +20,7 @@ import { InferenceError } from "@/lib/ai/inference/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadRuntimeConversationState, updateRuntimeConversationState } from "@/lib/runtime-conversation-state";
 import { readProjectMemorySnapshot } from "@/lib/memory/organization-memory";
+import { ingestConversationIntoVault } from "@/lib/vault/conversation-ingestion";
 import { buildInterventionSnapshot } from "@/lib/intervention-engine";
 import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
@@ -75,6 +76,7 @@ type CopilotResponse = {
   plan: SubscriptionPlan;
   aiPowered: boolean;
   methodology: "PMI" | "Agile" | "Hybrid" | "General PMO";
+  conversationIngestion?: { status: "skipped" | "ingested" | "failed"; reason?: string; nutrientsCreated: number; nutrientTypes: string[]; signalCount: number };
 };
 
 const safeList = (items: string[], limit = 8) => items.map((item) => item.trim()).filter(Boolean).slice(0, limit);
@@ -484,6 +486,39 @@ Methodology mode: ${methodology}. ${getMethodologyGuide(methodology)}`;
     followUps,
     trustNotes,
   };
+  const ingestionSourceRef = `copilot:${conversationSessionKey}:${new Date().toISOString()}`;
+  const ingestion = await ingestConversationIntoVault({
+    companyId: user.companyId,
+    workspaceId: resolvedWorkspaceId,
+    projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+    sessionKey: conversationSessionKey,
+    activeDomain,
+    message: payload.message,
+    runtimeResponse: result.runtimeResponse,
+    conversationState: updatedConversationState,
+    sourceRef: ingestionSourceRef,
+    actorUserId: user.id,
+  });
+
+  result.conversationIngestion = {
+    status: ingestion.status,
+    reason: ingestion.reason,
+    nutrientsCreated: ingestion.nutrientsCreated,
+    nutrientTypes: ingestion.nutrientTypes,
+    signalCount: ingestion.signalCount,
+  };
+
+  if (ingestion.status === "failed") {
+    result.runtimeResponse.trustNotes.push("Conversation signal ingestion is degraded; learning update was not persisted.");
+    console.warn("[copilot] conversation_ingestion_failed", {
+      companyId: user.companyId,
+      workspaceId: resolvedWorkspaceId,
+      projectId: selectedProject?.id ?? payload.projectId?.trim() ?? null,
+      sessionKey: conversationSessionKey,
+      reason: ingestion.reason ?? "unknown",
+    });
+  }
+
   if (selectedProject?.id) {
     const snapshot = await readProjectMemorySnapshot(selectedProject.id);
     const interventionSnapshot = buildInterventionSnapshot(selectedProject.id, snapshot);
