@@ -1,4 +1,5 @@
 import { registerInProcessAuthorityDependencies } from "@/aoc/enterprise/runtime/authority-provider";
+import type { RuntimeAgentAccessInput, RuntimeAgentScopeInput } from "@/aoc/enterprise/runtime/runtime-contracts";
 import { authorizeRuntimeAction } from "@/lib/aoc/enterprise/authorization";
 import { enforceRuntimeAuthorization } from "@/lib/aoc/enterprise/runtime";
 import { consumeExecutionGrant, issueExecutionGrant, validateExecutionGrant } from "@/lib/security/execution-grants";
@@ -22,9 +23,9 @@ export function ensureInProcessAuthorityDependenciesRegistered() {
     evaluateDelegatedAccess,
     resolveAuthorityChain,
     validateDelegatedCapability,
-    evaluateAgentAccess,
-    requireAgentScope,
-    grantAgentScope,
+    evaluateAgentAccess: (input: RuntimeAgentAccessInput) => evaluateAgentAccess(input as any),
+    requireAgentScope: (input: RuntimeAgentScopeInput) => requireAgentScope(input as any),
+    grantAgentScope: (input: RuntimeAgentScopeInput) => grantAgentScope(input as any),
     requireWorkspaceMembership,
     requireWorkspaceRole,
     requireProjectAccess,

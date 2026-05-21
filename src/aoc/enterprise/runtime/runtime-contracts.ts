@@ -9,7 +9,7 @@ export type RuntimeAuthUserContext = { id: string; [key: string]: unknown };
 export type RuntimeGovernanceEvaluationInput = {
   workspaceId?: string | null;
   actorType: "user" | "system" | "ai_agent";
-  action: string;
+  action?: string | null;
   requestedPermission?: string | null;
   projectId?: string | null;
   resourceType?: string | null;
@@ -59,13 +59,44 @@ export type RuntimeEnterpriseDecision = {
 
 export type RuntimeEnforcementResult = { decision: unknown; response: Response | null };
 
-// TRANSITIONAL: kept intentionally broad during Runtime Contracts Extraction.
-// Future PRs will narrow this once all adapters consume canonical contracts.
-export type RuntimeAgentAccessInput = any;
+// TRANSITIONAL: compatibility-safe canonical runtime agent access envelope.
+// Optional fields intentionally preserve broad adapter/consumer interoperability.
+export type RuntimeAgentAccessInput = {
+  workspaceId: string;
+  agentId?: string | null;
+  actorAgentId?: string | null;
+  actorUserId?: string | null;
+  actorType?: "user" | "system" | "ai_agent";
+  action?: string | null;
+  requestedPermission?: RuntimePermission | string | null;
+  permission?: RuntimePermission | string | null;
+  projectId?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  routeId?: string | null;
+  metadata?: Record<string, unknown>;
+};
 
-// TRANSITIONAL: kept intentionally broad during Runtime Contracts Extraction.
-// Future PRs will narrow this once all adapters consume canonical contracts.
-export type RuntimeAgentScopeInput = any;
+// TRANSITIONAL: compatibility-safe canonical runtime agent scope envelope.
+// Optional fields intentionally preserve broad adapter/consumer interoperability.
+export type RuntimeAgentScopeInput = {
+  workspaceId: string;
+  agentId?: string | null;
+  actorAgentId?: string | null;
+  actorUserId?: string | null;
+  scope?: string | null;
+  scopes?: string[];
+  action?: string | null;
+  requestedPermission?: RuntimePermission | string | null;
+  permission?: RuntimePermission | string | null;
+  projectId?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  routeId?: string | null;
+  metadata?: Record<string, unknown>;
+  expiresAt?: string | null;
+  grantedByUserId?: string | null;
+};
 
 export type RuntimeAuthorityProviderKind = "in_process" | "external_sdk" | "remote_service" | "federated";
 export type RuntimeAuthorityProviderMetadata = { authorityProviderKind: RuntimeAuthorityProviderKind; authorityProviderId: string; authoritySource: string; delegatedTo?: string; failClosed: boolean; runtimeVersion?: string; reason?: string };
