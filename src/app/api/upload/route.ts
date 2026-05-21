@@ -238,7 +238,7 @@ export async function POST(request: Request) {
     resourceType: "document",
   });
   if (governance.response) {
-    console.warn("[security] upload_project_access_denied", { requestId, ...governance.decision });
+    console.warn("[security] upload_project_access_denied", { requestId, decision: governance.decision });
     console.warn("[upload] upload_failed", { requestId, reason: "governance_denied", projectId });
     return errorResponse(403, "Invalid project context.", "INVALID_PROJECT");
   }

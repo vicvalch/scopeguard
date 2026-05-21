@@ -79,3 +79,34 @@ test("transitional any compatibility remains intentionally allowed", () => {
   const content = readFileSync(runtimeContractsPath, "utf8");
   assert.match(content, /TRANSITIONAL: kept intentionally broad during Runtime Contracts Extraction\./);
 });
+
+
+test("RuntimeGovernanceEvaluationInput is structurally narrowed and compatibility-safe", () => {
+  const content = readFileSync(runtimeContractsPath, "utf8");
+  assert.match(content, /export type RuntimeGovernanceEvaluationInput = \{/);
+  assert.doesNotMatch(content, /export type RuntimeGovernanceEvaluationInput = any;/);
+  assert.match(content, /workspaceId\?: string \| null;/);
+  assert.match(content, /actorType: "user" \| "system" \| "ai_agent";/);
+  assert.match(content, /action: string;/);
+  assert.match(content, /metadata\?: Record<string, unknown>;/);
+  assert.match(content, /requestedPermission\?: string \| null;/);
+  assert.match(content, /projectId\?: string \| null;/);
+  assert.match(content, /resourceType\?: string \| null;/);
+  assert.match(content, /resourceId\?: string \| null;/);
+  assert.match(content, /actorUserId\?: string \| null;/);
+  assert.match(content, /actorAgentId\?: string \| null;/);
+  assert.match(content, /routeId: string;/);
+});
+
+test("RuntimeGovernanceEvaluationInput supports canonical actor types", () => {
+  const content = readFileSync(runtimeContractsPath, "utf8");
+  assert.match(content, /"user"/);
+  assert.match(content, /"system"/);
+  assert.match(content, /"ai_agent"/);
+});
+
+test("runtime wrappers stay wired to canonical governance input contracts", () => {
+  const content = readFileSync(authorityPortPath, "utf8");
+  assert.match(content, /authorizeAction\(input: RuntimeGovernanceEvaluationInput\)/);
+  assert.match(content, /enforceAuthorization\(input: RuntimeGovernanceEvaluationInput\)/);
+});
