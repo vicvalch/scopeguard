@@ -1,26 +1,43 @@
 # PMFreak Operational Readiness Trial Domain Foundation
 
 ## Philosophy
-The trial domain is modeled as a governed operational lifecycle engine, not a UI trial flag. State is deterministic, tenant-scoped, validation-first, and prepared for event-driven orchestration.
+The trial domain is modeled as a governed operational activation runtime, not a UI trial flag. State is deterministic, tenant-scoped, validation-first, and prepared for event-driven orchestration.
 
 ## Canonical Entities
-- `TrialState`: authoritative tenant/workspace/user scoped runtime state.
-- `TrialPlan`: capability and usage envelope.
-- `TrialUsage`: operational consumption metrics and windowed snapshots.
+- `TrialState`: authoritative tenant/workspace/user scoped runtime state with lifecycle lineage metadata.
+- `TrialPlan`: capability and usage envelope with normalized capability semantics.
+- `TrialUsage`: operational consumption metrics plus provider-agnostic extensibility primitives for future metering lineage.
 - `OperationalCredits`: abstract consumption currency for orchestration intensity.
-- `ActivationState`: onboarding maturity progression and future orchestration hooks.
+- `ActivationState`: activation posture and future behavioral signal attachment points.
 
-## Lifecycle Semantics
-Trial lifecycle is computed from expiration, credit depletion, and conversion milestones. Runtime can shift to `expiring`, `expired`, `restricted`, or `converted` via pure deterministic evaluation.
+## Activation Transition Philosophy
+Activation progression is no longer modeled as a linear index progression. The canonical transition map (`ALLOWED_ACTIVATION_TRANSITIONS`) provides deterministic allowed-next, re-entry, and recovery semantics that are lightweight today and graph-compatible tomorrow.
 
-## Operational Credits Semantics
-Credits represent governed operational throughput rather than raw tokens. This abstraction supports future monetization, AI cost attribution, and multi-provider reconciliation without exposing provider-specific internals.
+This deliberately avoids full state-machine framework complexity while enabling future branching onboarding, collaborative onboarding, enterprise path divergence, and safe reactivation flows.
 
-## Activation & Readiness
-Activation stage progression is ordered and monotonic for orchestration integrity. Upgrade readiness is derived from semantic operational engagement (usage intensity and synthesis depth), not simplistic day counters.
+## Lifecycle Lineage Philosophy
+Lifecycle state now supports transition lineage fields (`lastTransition`, `lifecycleEvents`, `transitionReason`, `transitionTimestamp`, `transitionActor`, `transitionMetadata`) to prepare for future replay, audit timeline reconstruction, and orchestration triggering.
 
-## Tenant Scope and Isolation
-All major entities carry `companyId`, `workspaceId`, and `userId` to ensure multi-workspace enterprise isolation and delegated operational access support.
+The current model remains persistence-agnostic and side-effect free: no event bus and no event sourcing commitment yet.
 
-## Extensibility Strategy
-Contracts and schemas isolate future persistence/metering/billing/gating engines. The domain supports Supabase persistence adapters, event streams, capability enforcement policies, and enterprise governance overlays.
+## Behavioral Signal Philosophy
+Behavioral and activation intelligence are introduced as semantic optional structures (`behavioralSignals`, `activationSignals`, `continuityIndicators`, `engagementIndicators`, `operationalComplexitySignals`, `upgradeIntentSignals`).
+
+These structures intentionally remain provider-independent and scoring-engine-neutral, allowing future operational intelligence engines to evolve without contract breaks.
+
+## Normalized Capability Rationale
+Capabilities are normalized from legacy string arrays to governed records (`key`, `enabled`, optional `scope`, optional `metadata`).
+
+This enables future scoped permissions, enterprise governance overlays, delegated runtime access, activation gating, and packaging-layer enforcement while retaining backward compatibility through defensive normalization.
+
+## Replay/Audit Compatibility
+Lifecycle metadata and extensible usage structures are deterministic and validation-gated, making them compatible with future replay systems and audit-grade runtime introspection.
+
+## Orchestration Evolution Strategy
+The current foundation intentionally stays lightweight:
+- deterministic parsing,
+- pure transition helpers,
+- side-effect-free utilities,
+- strict governance checks.
+
+This keeps Prompt 2 (Operational Usage Metering Engine) implementation-ready without rewriting foundational domain contracts.
