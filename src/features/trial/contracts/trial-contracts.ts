@@ -1,4 +1,5 @@
-import type { TrialPlan, TrialState, TrialUsage } from '../types/trial-types';
+import type { ActivationStage } from '../enums/activation-stage';
+import type { TrialPlan, TrialState, TrialUsage, NormalizedCapability } from '../types/trial-types';
 
 export interface TrialRepositoryContract {
   getByScope(input: { companyId: string; workspaceId: string; userId: string }): Promise<TrialState | null>;
@@ -6,11 +7,12 @@ export interface TrialRepositoryContract {
 }
 
 export interface ActivationProgressionContract {
-  canAdvance(from: TrialState['activationStage'], to: TrialState['activationStage']): boolean;
+  canAdvance(from: ActivationStage, to: ActivationStage): boolean;
 }
 
 export interface OperationalCapabilityResolverContract {
-  hasCapability(plan: TrialPlan, capability: string): boolean;
+  hasCapability(plan: TrialPlan, capability: string, scope?: string): boolean;
+  resolveCapabilities(plan: TrialPlan): NormalizedCapability[];
 }
 
 export interface UsageSemanticsContract {

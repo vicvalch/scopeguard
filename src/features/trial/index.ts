@@ -8,3 +8,5 @@ export * from './domain/trial-domain';
 export * from './services/trial-service';
 export * from './state/trial-state-factory';
 export * from './utils/trial-utils';
+
+export * from './domain/activation-transitions';
