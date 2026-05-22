@@ -100,3 +100,5 @@ export * from "./predictive-intelligence";
 export * from "./critical-path-intelligence";
 
 export * from "./autonomous-intervention";
+
+export * from "./intervention-learning";
