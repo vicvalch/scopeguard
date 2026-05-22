@@ -48,7 +48,8 @@
     "check:continuity-retrieval": "node scripts/check-operational-continuity-retrieval.mjs",
     "check:cross-domain-correlation": "node scripts/check-cross-domain-correlation.mjs",
     "check:predictive-intelligence": "node scripts/check-predictive-operational-intelligence.mjs",
-    "check:critical-path-intelligence": "node scripts/check-critical-path-intelligence.mjs"
+    "check:critical-path-intelligence": "node scripts/check-critical-path-intelligence.mjs",
+    "check:autonomous-intervention": "node scripts/check-autonomous-intervention-runtime.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
