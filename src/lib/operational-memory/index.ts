@@ -95,3 +95,6 @@ export * from "./continuity-retrieval";
 export * from "./cross-domain-correlation";
 
 export * from "./predictive-intelligence";
+
+
+export * from "./critical-path-intelligence";
