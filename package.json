@@ -50,7 +50,8 @@
     "check:predictive-intelligence": "node scripts/check-predictive-operational-intelligence.mjs",
     "check:critical-path-intelligence": "node scripts/check-critical-path-intelligence.mjs",
     "check:autonomous-intervention": "node scripts/check-autonomous-intervention-runtime.mjs",
-    "check:intervention-learning": "node scripts/check-intervention-learning-engine.mjs"
+    "check:intervention-learning": "node scripts/check-intervention-learning-engine.mjs",
+    "check:executive-command-runtime": "node scripts/check-executive-command-runtime.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
