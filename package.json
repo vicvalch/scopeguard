@@ -53,7 +53,9 @@
     "check:intervention-learning": "node scripts/check-intervention-learning-engine.mjs",
     "check:executive-command-runtime": "node scripts/check-executive-command-runtime.mjs",
     "check:organizational-digital-twin": "node scripts/check-organizational-digital-twin.mjs",
-    "check:realtime-operational-telemetry": "node scripts/check-realtime-operational-telemetry.mjs"
+    "check:realtime-operational-telemetry": "node scripts/check-realtime-operational-telemetry.mjs",
+    "check:external-connector-runtime": "node scripts/check-external-connector-runtime.mjs",
+    "check:package-json": "node -e \"JSON.parse(require(\\\"fs\\\").readFileSync(\\\"package.json\\\",\\\"utf8\\\"));console.log(\\\"package.json valid\\\")\""
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
