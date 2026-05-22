@@ -40,12 +40,8 @@
     "check:executive-command-runtime": "node scripts/check-executive-command-runtime.mjs",
     "check:organizational-digital-twin": "node scripts/check-organizational-digital-twin.mjs",
     "check:operational-war-room-ui": "node scripts/check-operational-war-room-ui.mjs",
-    "check:runtime-hardening": "node scripts/check-runtime-hardening.mjs",
-    "check:enterprise-ux": "node scripts/check-enterprise-ux.mjs",
-    "check:production-runtime": "node scripts/check-production-runtime.mjs",
-    "check:live-federation-runtime": "node scripts/check-live-federation-runtime.mjs",
+    "check:external-connector-runtime": "node scripts/check-external-connector-runtime.mjs",
     "check:live-federation-ingestion": "node scripts/check-live-federation-ingestion.mjs",
-    "check:trial-domain-foundation": "node scripts/check-trial-domain-foundation.mjs",
     "check:scope-governance-agent": "node scripts/check-scope-governance-agent.mjs"
   },
   "dependencies": {
