@@ -124,9 +124,18 @@ export type TrialState = TenantScope & {
     reason: string | null;
     tags: string[];
   };
+  metering?: TrialOperationalMeteringState;
   intelligence?: {
     engagementScore?: number;
     conversionSignals?: string[];
     riskFlags?: string[];
   };
+};
+
+export type TrialOperationalMeteringState = {
+  lastMeteringEventId?: string;
+  runtimeCorrelationCount: number;
+  replayProtectedEvents: number;
+  categoryUsage: Record<string, number>;
+  allowanceSignals: { softExhausted: boolean; hardExhausted: boolean };
 };
