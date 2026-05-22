@@ -46,7 +46,8 @@
     "check:runtime-normalization": "node scripts/check-runtime-normalization.mjs",
     "check:trust-contracts": "node scripts/check-trust-contracts.mjs",
     "check:continuity-retrieval": "node scripts/check-operational-continuity-retrieval.mjs",
-    "check:cross-domain-correlation": "node scripts/check-cross-domain-correlation.mjs"
+    "check:cross-domain-correlation": "node scripts/check-cross-domain-correlation.mjs",
+    "check:predictive-intelligence": "node scripts/check-predictive-operational-intelligence.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
