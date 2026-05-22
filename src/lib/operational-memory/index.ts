@@ -91,3 +91,5 @@ export {
 } from "./runtime-memory-diagnostics";
 
 export * from "./continuity-retrieval";
+
+export * from "./cross-domain-correlation";
