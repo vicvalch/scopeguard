@@ -4,7 +4,7 @@ import { getRuntimeAuthorityPort } from "./authority-provider";
 export { buildAuthorityLineage, explainDelegationChain };
 export type { DelegationConstraints, DelegationDecision, DelegationInput };
 
-export async function resolveAuthorityChain(input: any) { return getRuntimeAuthorityPort().resolveAuthorityChain(input); }
+export async function resolveAuthorityChain(input: DelegationInput) { return getRuntimeAuthorityPort().resolveAuthorityChain(input); }
 export async function evaluateDelegatedAccess(input: DelegationInput) { return getRuntimeAuthorityPort().evaluateDelegatedAccess(input); }
 export async function issueDelegatedCapability(input: DelegationInput) { return getRuntimeAuthorityPort().issueDelegatedCapability(input); }
 export async function validateDelegatedCapability(input: DelegationInput) { return getRuntimeAuthorityPort().validateDelegatedCapability(input); }
