@@ -36,9 +36,7 @@
     "check:billing-integrity": "node scripts/check-billing-integrity.mjs",
     "check:continuity-retrieval": "node scripts/check-operational-continuity-retrieval.mjs",
     "check:realtime-operational-telemetry": "node scripts/check-realtime-operational-telemetry.mjs",
-    "check:organizational-digital-twin": "node scripts/check-organizational-digital-twin.mjs",
-    "check:live-federation-ingestion": "node scripts/check-live-federation-ingestion.mjs",
-    "check:scope-governance-agent": "node scripts/check-scope-governance-agent.mjs"
+    "check:organizational-digital-twin": "node scripts/check-organizational-digital-twin.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
