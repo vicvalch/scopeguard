@@ -89,3 +89,5 @@ export {
   type PressureDiagnostic,
   type ContinuityGapDiagnostic,
 } from "./runtime-memory-diagnostics";
+
+export * from "./continuity-retrieval";
