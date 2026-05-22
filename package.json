@@ -37,7 +37,8 @@
     "test:launch-smoke": "node scripts/run-launch-smoke-tests.mjs",
     "diag:runtime": "node scripts/runtime-diagnostics-report.mjs",
     "check:launch-readiness": "node scripts/check-launch-readiness.mjs",
-    "smoke-test:vault": "node scripts/smoke-test-vault-digestion.mjs"
+    "smoke-test:vault": "node scripts/smoke-test-vault-digestion.mjs",
+    "check:operational-memory": "node scripts/check-operational-memory-runtime.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
