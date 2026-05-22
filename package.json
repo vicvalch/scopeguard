@@ -39,7 +39,12 @@
     "check:launch-readiness": "node scripts/check-launch-readiness.mjs",
     "smoke-test:vault": "node scripts/smoke-test-vault-digestion.mjs",
     "check:operational-memory": "node scripts/check-operational-memory-runtime.mjs",
-    "check:nutrient-bridge": "node scripts/check-nutrient-operational-bridge.mjs"
+    "check:nutrient-bridge": "node scripts/check-nutrient-operational-bridge.mjs",
+    "check:runtime-contracts": "node scripts/check-runtime-contracts.mjs",
+    "check:governance-typing": "node scripts/check-governance-typing.mjs",
+    "check:sdk-boundaries": "node scripts/check-sdk-boundaries.mjs",
+    "check:runtime-normalization": "node scripts/check-runtime-normalization.mjs",
+    "check:trust-contracts": "node scripts/check-trust-contracts.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
