@@ -56,7 +56,8 @@
     "check:realtime-operational-telemetry": "node scripts/check-realtime-operational-telemetry.mjs",
     "check:external-connector-runtime": "node scripts/check-external-connector-runtime.mjs",
     "check:package-json": "node -e \"JSON.parse(require(\\\"fs\\\").readFileSync(\\\"package.json\\\",\\\"utf8\\\"));console.log(\\\"package.json valid\\\")\"",
-    "check:runtime-hardening": "node scripts/check-runtime-hardening.mjs"
+    "check:runtime-hardening": "node scripts/check-runtime-hardening.mjs",
+    "check:enterprise-ux": "node scripts/check-enterprise-ux.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
