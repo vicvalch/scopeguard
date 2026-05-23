@@ -5,6 +5,8 @@ import { buildOperationalMeteringEvent } from '../events/metering-events';
 import { createMeteringRuntimeState, createUsageSnapshot, hashMeteringRuntimeState, type MeteringRuntimeState, type MeteringStateTransition } from '../state/metering-state';
 import { detectMeteringAnomalies } from '../guards/metering-guards';
 import { createOperationalTelemetryEvent } from '../telemetry/telemetry';
+import { createCapabilitySnapshotHash } from '../../activation/utils/deterministic';
+import { evaluateQuotaPosture } from '../../activation/utils/quota-posture';
 
 export const registerOperationalUsage = (state: MeteringRuntimeState, input: {
   companyId: string; workspaceId: string; userId: string; runtimeCorrelationId: string; category: OperationCategory;
@@ -26,7 +28,7 @@ export const registerOperationalUsage = (state: MeteringRuntimeState, input: {
       policyId: policy.id,
       policyVersion: policy.version,
       runtimeVersion: input.runtimeVersion ?? 'runtime-v1',
-      capabilitySnapshotHash: JSON.stringify(input.capabilityKeys ?? []),
+      capabilitySnapshotHash: createCapabilitySnapshotHash((input.capabilityKeys ?? []).map((key) => ({ key, enabled: true }))),
       quotaProfileId: state.quotaProfile.id,
       quotaProfileVersion: input.quotaProfileVersion ?? state.quotaProfile.version,
       lifecycleContextVersion: input.lifecycleContextVersion ?? 'lifecycle-v1',
@@ -35,7 +37,7 @@ export const registerOperationalUsage = (state: MeteringRuntimeState, input: {
   const anomalies = detectMeteringAnomalies(state, event);
   if (state.dedupeHashes.has(event.replaySafeHash)) return { state, event, deduped: true, anomalies };
   const fromStateHash = hashMeteringRuntimeState(state);
-  const nextState: MeteringRuntimeState = {
+  const baseNextState: MeteringRuntimeState = {
     ...state,
     dedupeHashes: new Set([...state.dedupeHashes, event.replaySafeHash]),
     events: [...state.events, event],
@@ -62,7 +64,7 @@ export const registerOperationalUsage = (state: MeteringRuntimeState, input: {
   const transition: MeteringStateTransition = {
     transitionId: `transition-${event.eventId}`,
     fromStateHash,
-    toStateHash: hashMeteringRuntimeState(nextState),
+    toStateHash: hashMeteringRuntimeState({ ...baseNextState, transitions: [...state.transitions] }),
     eventId: event.eventId,
     transitionType: 'usage_registered',
     occurredAt: event.occurredAt,
@@ -71,7 +73,10 @@ export const registerOperationalUsage = (state: MeteringRuntimeState, input: {
     integritySignals: { immutableInputPreserved: true, replaySafe: true, deterministicCursorAdvance: true },
     metadata: { policyId: policy.id },
   };
-  nextState.transitions = [...state.transitions, transition];
+  const nextState: MeteringRuntimeState = {
+    ...baseNextState,
+    transitions: [...state.transitions, transition],
+  };
   return { state: nextState, event, transition, deduped: false, anomalies, telemetry: createOperationalTelemetryEvent(event, { anomalies, evaluated }) };
 };
 
@@ -82,5 +87,14 @@ export const consumeOperationalCredits = (state: MeteringRuntimeState, amount: n
 export const reserveOperationalCredits = (state: MeteringRuntimeState, amount: number) => ({ ...state, credits: { ...state.credits, reserved: state.credits.reserved + amount, available: Math.max(0, state.credits.available - amount) } });
 export const replenishOperationalCredits = (state: MeteringRuntimeState, amount: number) => ({ ...state, credits: { ...state.credits, available: state.credits.available + amount, hardDepleted: false } });
 export const validateOperationalAllowance = (state: MeteringRuntimeState, expectedConsumption: number) => ({ allowed: state.credits.available >= expectedConsumption, softExhausted: state.credits.available <= state.credits.softThreshold, hardExhausted: state.credits.available <= 0 });
+export const evaluateOperationalQuotaPosture = (state: MeteringRuntimeState) =>
+  evaluateQuotaPosture({
+    available: state.credits.available,
+    consumed: state.credits.consumed,
+    softLimit: state.quotaProfile.softLimit,
+    hardLimit: state.quotaProfile.hardLimit,
+    burstAllowance: state.quotaProfile.burstAllowance,
+    temporaryExpansion: state.quotaProfile.temporaryExpansion,
+  });
 export const generateUsageSnapshot = (state: MeteringRuntimeState, input: { companyId: string; workspaceId: string; window: { windowId: string; windowType: 'rolling' | 'fixed' | 'replenishment'; startsAt: string; endsAt: string; resetAt: string }; lastEventId: string | null; generatedAt: string; }) => createUsageSnapshot(state, input);
 export const createOperationalMeteringService = (startingCredits: number) => createMeteringRuntimeState(startingCredits);
