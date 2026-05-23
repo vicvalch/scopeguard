@@ -59,6 +59,7 @@
     "check:runtime-hardening": "node scripts/check-runtime-hardening.mjs",
     "check:enterprise-ux": "node scripts/check-enterprise-ux.mjs",
     "check:production-runtime": "node scripts/check-production-runtime.mjs",
+    "check:live-federation-runtime": "node scripts/check-live-federation-runtime.mjs"
     "check:trial-domain-foundation": "node scripts/check-trial-domain-foundation.mjs"
   },
   "dependencies": {
