@@ -56,6 +56,54 @@ export type OperationalMeteringEvent = {
   lineageMetadata: LineageMetadata;
   telemetryMetadata: TelemetryMetadata;
   attribution: OperationalUsageAttribution;
+  versionContext?: MeteringVersionContext;
+};
+
+export type MeteringVersionContext = {
+  meteringContractVersion: string;
+  policyId: string;
+  policyVersion: string;
+  runtimeVersion: string;
+  capabilitySnapshotHash: string;
+  quotaProfileId?: string;
+  quotaProfileVersion?: string;
+  lifecycleContextVersion?: string;
+};
+
+export type OperationalQuotaProfile = {
+  id: string;
+  version: string;
+  scope: 'workspace' | 'company' | 'trial' | 'enterprise' | 'pmo';
+  quotaType: 'hard' | 'soft' | 'hybrid';
+  hardLimit: number | null;
+  softLimit: number | null;
+  burstAllowance: number;
+  reservedAllowance: number;
+  sponsorFundedAllowance: number;
+  temporaryExpansion: number;
+  resetPolicy: 'rolling' | 'fixed' | 'manual';
+  enforcementMode: 'advisory' | 'strict';
+  metadata?: Record<string, unknown>;
+};
+
+export type LifecycleConsumptionContext = {
+  trialStatus?: string;
+  activationStage?: string;
+  upgradeReadiness?: string;
+  softExhausted?: boolean;
+  hardExhausted?: boolean;
+  onboardingCritical?: boolean;
+  enterpriseCandidate?: boolean;
+  sponsorProtected?: boolean;
+  conversionCritical?: boolean;
+  metadata?: Record<string, unknown>;
+};
+
+export type LifecycleConsumptionModifier = {
+  multiplier: number;
+  sponsorCreditOffset: number;
+  reasonCodes: string[];
+  contextVersion: string;
 };
 
 export type OperationalUsageSnapshot = {
