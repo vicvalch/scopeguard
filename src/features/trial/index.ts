@@ -24,3 +24,5 @@ export * from './metering/services/metering-service';
 export * from './metering/state/metering-state';
 export * from './metering/telemetry/telemetry';
 export * from './metering/utils/replay-safe';
+
+export * from './activation/index';
