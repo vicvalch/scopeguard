@@ -55,11 +55,11 @@
     "check:organizational-digital-twin": "node scripts/check-organizational-digital-twin.mjs",
     "check:realtime-operational-telemetry": "node scripts/check-realtime-operational-telemetry.mjs",
     "check:external-connector-runtime": "node scripts/check-external-connector-runtime.mjs",
-    "check:package-json": "node -e \"JSON.parse(require(\\\"fs\\\").readFileSync(\\\"package.json\\\",\\\"utf8\\\"));console.log(\\\"package.json valid\\\")\"",
+    "check:package-json": "node scripts/check-package-json.mjs",
     "check:runtime-hardening": "node scripts/check-runtime-hardening.mjs",
     "check:enterprise-ux": "node scripts/check-enterprise-ux.mjs",
     "check:production-runtime": "node scripts/check-production-runtime.mjs",
-    "check:live-federation-runtime": "node scripts/check-live-federation-runtime.mjs"
+    "check:live-federation-runtime": "node scripts/check-live-federation-runtime.mjs",
     "check:trial-domain-foundation": "node scripts/check-trial-domain-foundation.mjs"
   },
   "dependencies": {
