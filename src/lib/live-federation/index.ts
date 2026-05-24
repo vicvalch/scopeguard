@@ -180,3 +180,16 @@ export {
   retrieveConnectorRecoveryRecommendations,
   retrieveLiveFederationSnapshot,
 } from "./live-federation-manager.js";
+
+
+export {
+  ingestFederatedEvent,
+  validateFederatedIngress,
+  normalizeFederatedEvent,
+  routeOperationalSignal,
+  persistOperationalIngress,
+} from "./ingestion/live-ingestion-runtime.js";
+
+export { validateIngressReplay, registerIngressNonce, rejectReplayIngress } from "./ingestion/ingress-replay-protection.js";
+export { computeOperationalPulse, evaluatePulseHealth, detectPulseAnomalies } from "./ingestion/operational-pulse.js";
+export { evaluateEventSurvivability } from "./ingestion/event-survivability.js";
