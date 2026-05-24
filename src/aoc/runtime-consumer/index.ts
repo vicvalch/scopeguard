@@ -11,3 +11,5 @@ export * from "./runtime-agent-access";
 export * from "./runtime-capabilities";
 export * from "./runtime-audit";
 export * from "./runtime-request";
+
+export * from "./runtime-federated-ingestion";
