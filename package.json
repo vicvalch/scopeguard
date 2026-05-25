@@ -61,7 +61,8 @@
     "check:production-runtime": "node scripts/check-production-runtime.mjs",
     "check:live-federation-runtime": "node scripts/check-live-federation-runtime.mjs",
     "check:trial-domain-foundation": "node scripts/check-trial-domain-foundation.mjs",
-    "check:live-federation-ingestion": "node scripts/check-live-federation-ingestion.mjs"
+    "check:live-federation-ingestion": "node scripts/check-live-federation-ingestion.mjs",
+    "check:cost-governance-agent": "npx tsx scripts/check-cost-governance-agent.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
