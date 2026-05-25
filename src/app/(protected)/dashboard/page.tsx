@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { ModuleShell } from "@/components/pmfreak/module-shell";
 import { FirstUserTelemetryEvent } from "@/components/pmfreak/telemetry/first-user-client-events";
+import { getAuthUser } from "@/lib/auth";
+import { runDashboardApiRuntime } from "@/lib/dashboard/api-runtime/index.ts";
+import { runDashboardConsumptionRuntime } from "@/lib/dashboard/consumption/index.ts";
 
 export default async function DashboardPage({
   searchParams,
@@ -9,6 +12,12 @@ export default async function DashboardPage({
 }) {
   const params = await searchParams;
   const currentProjectId = params.projectId;
+
+  const user = await getAuthUser();
+  const apiResponse = user
+    ? runDashboardApiRuntime({ tenantId: user.companyId, userId: user.id, includeMetadata: true })
+    : null;
+  const dashboardViewModel = runDashboardConsumptionRuntime({ apiResponse });
   const withProjectScope = (href: string) =>
     currentProjectId ? `${href}?projectId=${currentProjectId}` : href;
 
@@ -53,6 +62,49 @@ export default async function DashboardPage({
               <p className="mt-2 text-sm text-slate-300">{text}</p>
             </Link>
           ))}
+        </section>
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-5 space-y-3">
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">Portfolio Dashboard</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center">
+              <p className="text-2xl font-bold text-cyan-200">{dashboardViewModel.healthScore}</p>
+              <p className="mt-1 text-xs text-slate-400">Health Score</p>
+              {dashboardViewModel.healthLabel && (
+                <p className="mt-1 text-xs text-cyan-300">{dashboardViewModel.healthLabel}</p>
+              )}
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center">
+              <p className="text-2xl font-bold text-cyan-200">{dashboardViewModel.risksCount}</p>
+              <p className="mt-1 text-xs text-slate-400">Risks</p>
+              {dashboardViewModel.criticalRisksCount > 0 && (
+                <p className="mt-1 text-xs text-red-400">{dashboardViewModel.criticalRisksCount} critical</p>
+              )}
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center">
+              <p className="text-2xl font-bold text-cyan-200">{dashboardViewModel.decisionsCount}</p>
+              <p className="mt-1 text-xs text-slate-400">Decisions</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-3 text-center">
+              <p className="text-2xl font-bold text-cyan-200">{dashboardViewModel.interventionsCount}</p>
+              <p className="mt-1 text-xs text-slate-400">Interventions</p>
+            </div>
+          </div>
+          {dashboardViewModel.executiveSummary && (
+            <p className="text-sm text-slate-200">{dashboardViewModel.executiveSummary}</p>
+          )}
+          {dashboardViewModel.portfolioRecommendation && (
+            <p className="text-sm text-cyan-100 border-l-2 border-cyan-400 pl-3">{dashboardViewModel.portfolioRecommendation}</p>
+          )}
+          {dashboardViewModel.warnings.length > 0 && (
+            <ul className="space-y-1">
+              {dashboardViewModel.warnings.map((w, i) => (
+                <li key={i} className="text-xs text-yellow-300">{w}</li>
+              ))}
+            </ul>
+          )}
+          {dashboardViewModel.alertsCount > 0 && (
+            <p className="text-xs text-slate-400">{dashboardViewModel.alertsCount} alert{dashboardViewModel.alertsCount !== 1 ? "s" : ""} active</p>
+          )}
         </section>
       </ModuleShell>
     </>
