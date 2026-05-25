@@ -52,6 +52,7 @@
     "check:autonomous-intervention": "node scripts/check-autonomous-intervention-runtime.mjs",
     "check:intervention-learning": "node scripts/check-intervention-learning-engine.mjs",
     "check:executive-command-runtime": "node scripts/check-executive-command-runtime.mjs",
+    "check:executive-decision-simulation-runtime": "npx tsx scripts/check-executive-decision-simulation-runtime.mjs",
     "check:organizational-digital-twin": "node scripts/check-organizational-digital-twin.mjs",
     "check:realtime-operational-telemetry": "node scripts/check-realtime-operational-telemetry.mjs",
     "check:external-connector-runtime": "node scripts/check-external-connector-runtime.mjs",
