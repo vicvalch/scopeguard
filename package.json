@@ -65,7 +65,8 @@
     "check:live-federation-ingestion": "node scripts/check-live-federation-ingestion.mjs",
     "check:cost-governance-agent": "npx tsx scripts/check-cost-governance-agent.mjs",
     "check:quality-governance-agent": "npx tsx scripts/check-quality-governance-agent.mjs",
-    "check:executive-dashboard-aggregation-runtime": "npx tsx scripts/check-executive-dashboard-aggregation-runtime.mjs"
+    "check:executive-dashboard-aggregation-runtime": "npx tsx scripts/check-executive-dashboard-aggregation-runtime.mjs",
+    "check:dashboard-runtime-integration": "npx tsx scripts/check-dashboard-runtime-integration.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
