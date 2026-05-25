@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ContextScopeBar } from "./ContextScopeBar";
 import { OperationalEventFeed } from "./OperationalEventFeed";
 import { ShellMetric } from "./ShellMetric";
+import { computeCapabilityRevealState, computeNavigationRail } from "@/features/runtime/capability-reveal/capability-reveal-selectors";
 
 type UserProject = { id: string; name: string };
 
@@ -14,19 +15,6 @@ type OperationalShellProps = {
   user: { fullName: string; role: string; companyName: string };
 };
 
-const PRIMARY_NAV = [
-  { label: "Command Center", href: "/command-center",   accent: "from-cyan-300/20 to-fuchsia-300/10", active: "border-cyan-200/30 bg-cyan-300/[0.07] text-cyan-100",     idle: "text-slate-300" },
-  { label: "Projects",       href: "/projects",          accent: "from-emerald-300/20 to-teal-300/10", active: "border-emerald-200/30 bg-emerald-300/[0.07] text-emerald-100", idle: "text-slate-300" },
-  { label: "Risk Center",    href: "/change-detection",  accent: "from-amber-300/20 to-red-300/10",    active: "border-amber-200/30 bg-amber-300/[0.07] text-amber-100",    idle: "text-slate-300" },
-  { label: "Stakeholders",   href: "/stakeholder-intel", accent: "from-violet-300/20 to-indigo-300/10",active: "border-violet-200/30 bg-violet-300/[0.07] text-violet-100",  idle: "text-slate-300" },
-  { label: "Meetings",       href: "/meetings",          accent: "from-sky-300/20 to-blue-300/10",     active: "border-sky-200/30 bg-sky-300/[0.07] text-sky-100",          idle: "text-slate-300" },
-  { label: "PMO Overview",   href: "/executive",         accent: "from-slate-200/20 to-zinc-300/10",   active: "border-slate-200/30 bg-slate-200/[0.07] text-slate-100",    idle: "text-slate-300" },
-];
-
-const SETUP_NAV = [
-  { label: "Activate Context", href: "/command-center", accent: "from-cyan-300/20 to-blue-300/10",  active: "border-cyan-200/30 bg-cyan-300/[0.07] text-cyan-100",      idle: "text-slate-300" },
-  { label: "Projects",         href: "/projects",       accent: "from-emerald-300/20 to-teal-300/10", active: "border-emerald-200/30 bg-emerald-300/[0.07] text-emerald-100", idle: "text-slate-300" },
-];
 
 export function OperationalShell({ children, user }: OperationalShellProps) {
   const pathname = usePathname();
@@ -103,12 +91,25 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
   }, [projectsLoading]);
 
   const hasProjects = projects.length > 0;
+  const revealState = useMemo(() => computeCapabilityRevealState({
+    planTier: "free",
+    role: user.role,
+    onboardingCompleted: true,
+    hasProject: hasProjects,
+    firstRun: false,
+    evidenceSignals: hasProjects ? 2 : 0,
+    operationalMemorySignals: hasProjects ? 1 : 0,
+    continuitySignals: hasProjects ? 1 : 0,
+    canUseAdvancedAi: true,
+    canUsePortfolioMemory: true,
+    canUseGovernanceDirectives: user.role === "admin" || user.role === "owner",
+  }), [hasProjects, user.role]);
   const scopeLabel = useMemo(
     () => projects.find((p) => p.id === projectId)?.name ?? "Portfolio scope",
     [projectId, projects]
   );
   const navHref = (href: string) => (projectId ? `${href}?projectId=${projectId}` : href);
-  const navItems = hasProjects ? PRIMARY_NAV : SETUP_NAV;
+  const navItems = computeNavigationRail(revealState);
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100">
@@ -140,6 +141,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
                   {hasProjects ? "Operational Intelligence" : "Setup Your Context"}
                 </h2>
                 <p className="mt-0.5 text-[11px] text-zinc-500">{user.companyName}</p>
+                <p className="mt-1 text-[10px] text-cyan-300/80">Stage: {revealState.stage} · Evidence: {revealState.evidenceDensity}</p>
 
                 <div className="mt-2.5">
                   {hasProjects ? (
