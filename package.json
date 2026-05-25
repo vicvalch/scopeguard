@@ -66,7 +66,8 @@
     "check:cost-governance-agent": "npx tsx scripts/check-cost-governance-agent.mjs",
     "check:quality-governance-agent": "npx tsx scripts/check-quality-governance-agent.mjs",
     "check:executive-dashboard-aggregation-runtime": "npx tsx scripts/check-executive-dashboard-aggregation-runtime.mjs",
-    "check:dashboard-runtime-integration": "npx tsx scripts/check-dashboard-runtime-integration.mjs"
+    "check:dashboard-runtime-integration": "npx tsx scripts/check-dashboard-runtime-integration.mjs",
+    "check:dashboard-api-runtime": "npx tsx scripts/check-dashboard-api-runtime.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
