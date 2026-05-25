@@ -5,6 +5,8 @@ import { ensureUserWorkspace } from "@/lib/workspaces";
 import { CommandCenterClient } from "@/features/command-center/command-center-client";
 import { GuidedEmptyState } from "@/components/pmfreak/onboarding/GuidedEmptyState";
 import { resolveActiveProject } from "@/lib/resolve-active-project";
+import { getCompanySubscription } from "@/lib/billing";
+import { getPlanCapabilities } from "@/lib/feature-gates";
 
 export default async function CommandCenterPage({
   searchParams,
@@ -16,6 +18,8 @@ export default async function CommandCenterPage({
   const supabase = await createSupabaseServerClient();
   const params = await searchParams;
   const fromOnboarding = params.from === "onboarding";
+  const subscription = await getCompanySubscription(user.companyId);
+  const capabilities = getPlanCapabilities(subscription.plan);
 
   const { data: projects } = await supabase
     .from("projects")
@@ -215,6 +219,12 @@ export default async function CommandCenterPage({
       projectName={resolution.project!.name}
       workspaceId={workspace.workspaceId}
       projects={projectList}
+      role={user.role}
+      onboardingCompleted={user.onboardingCompleted}
+      planTier={subscription.plan}
+      canUseAdvancedAi={capabilities.advanced_ai_actions}
+      canUsePortfolioMemory={capabilities.organizational_memory}
+      canUseGovernanceDirectives={capabilities.governance_directives}
     />
   );
 }

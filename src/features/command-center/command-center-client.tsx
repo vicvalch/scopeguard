@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { computeCapabilityRevealState } from "@/features/runtime/capability-reveal/capability-reveal-selectors";
 
 type AnyRecord = Record<string, unknown>;
 type UserProject = { id: string; name: string };
@@ -52,7 +53,7 @@ function statusTone(status: DomainStatus) {
   return "text-slate-300 border-white/10 bg-white/[0.04]";
 }
 
-export function CommandCenterClient({ firstRun = false, projectId, projectName, workspaceId, projects }: { firstRun?: boolean; projectId: string; projectName: string; workspaceId: string; projects: UserProject[]; }) {
+export function CommandCenterClient({ firstRun = false, projectId, projectName, workspaceId, projects, role, onboardingCompleted, planTier, canUseAdvancedAi, canUsePortfolioMemory, canUseGovernanceDirectives }: { firstRun?: boolean; projectId: string; projectName: string; workspaceId: string; projects: UserProject[]; role: string; onboardingCompleted: boolean; planTier: "free" | "pro" | "pmo"; canUseAdvancedAi: boolean; canUsePortfolioMemory: boolean; canUseGovernanceDirectives: boolean; }) {
   const router = useRouter();
   const swrOptions = { refreshInterval: 20000, revalidateOnFocus: true, dedupingInterval: 3000 };
   const key = (path: string): [string, string, string] => [path, projectId, workspaceId];
@@ -71,23 +72,41 @@ export function CommandCenterClient({ firstRun = false, projectId, projectName, 
   const [draftPrompt, setDraftPrompt] = useState("");
   const [interactionState, setInteractionState] = useState<"idle" | "drafted">("idle");
 
-  const hasEvidence = useMemo(() => {
+  const evidenceSignals = useMemo(() => {
     const queueLen = (coordination.data?.coordination?.operational_priority_queue?.actions ?? coordination.data?.operational_priority_queue?.actions ?? []).length;
-    return Boolean(risk.data || stakeholders.data || interventions.data || coordination.data || liveOps.data) && queueLen + (liveOps.data?.timeline?.events?.length ?? 0) > 0;
+    const timelineEvents = liveOps.data?.timeline?.events?.length ?? 0;
+    const endpointSignals = [risk.data, stakeholders.data, interventions.data, coordination.data, liveOps.data].filter(Boolean).length;
+    return queueLen + timelineEvents + endpointSignals;
   }, [coordination.data, interventions.data, liveOps.data, risk.data, stakeholders.data]);
+
+  const revealState = useMemo(() => computeCapabilityRevealState({
+    planTier,
+    role,
+    onboardingCompleted,
+    hasProject: Boolean(projectId),
+    firstRun,
+    evidenceSignals,
+    operationalMemorySignals: liveOps.data?.timeline?.events?.length ?? 0,
+    continuitySignals: (coordination.data?.coordination?.operational_priority_queue?.actions ?? coordination.data?.operational_priority_queue?.actions ?? []).length,
+    canUseAdvancedAi,
+    canUsePortfolioMemory,
+    canUseGovernanceDirectives,
+  }), [canUseAdvancedAi, canUseGovernanceDirectives, canUsePortfolioMemory, coordination.data, evidenceSignals, firstRun, liveOps.data?.timeline?.events?.length, onboardingCompleted, planTier, projectId, role]);
+
+  const hasEvidence = revealState.evidenceDensity === "moderate" || revealState.evidenceDensity === "high";
 
   const domains: DomainAgent[] = [
     { id: "core", label: "PMFreak Core", role: "Central operational cognition runtime", status: hasEvidence ? "active" : "watching" },
-    { id: "pmo", label: "PMO", role: "Governance, escalation and execution assurance", status: "watching", route: "/executive" },
+    { id: "pmo", label: "PMO", role: "Governance, escalation and execution assurance", status: revealState.unlockedDomains.includes("governance") ? "active" : "watching", route: "/executive" },
     { id: "projects", label: "Projects", role: "Project-scoped operational contexts", status: "active", route: "/projects" },
-    { id: "risks", label: "Risks", role: "Detects delivery risk and dependency propagation", status: risk.data ? "active" : "needs-data", route: "/change-detection" },
-    { id: "stakeholders", label: "Stakeholders", role: "Monitors alignment drift and pressure", status: stakeholders.data ? "active" : "needs-data", route: "/stakeholder-intel" },
-    { id: "scope", label: "Scope", role: "Tracks scope pressure and variance", status: "simulated" },
-    { id: "delivery", label: "Delivery", role: "Execution cadence and blocker dynamics", status: interventions.data ? "active" : "watching" },
-    { id: "coordination", label: "Coordination", role: "Detects collapse risk and handoff failure", status: coordination.data ? "active" : "needs-data" },
-    { id: "interventions", label: "Interventions", role: "Recommends stabilizing interventions", status: interventions.data ? "watching" : "needs-data" },
-    { id: "lessons", label: "Lessons Learned", role: "Extracts reusable operational patterns", status: "simulated" },
-    { id: "executive", label: "Executive", role: "Executive synthesis and reporting", status: "watching", route: "/executive" },
+    { id: "risks", label: "Risks", role: "Detects delivery risk and dependency propagation", status: revealState.unlockedDomains.includes("risks") && risk.data ? "active" : (revealState.unlockedDomains.includes("risks") ? "watching" : "needs-data"), route: "/change-detection" },
+    { id: "stakeholders", label: "Stakeholders", role: "Monitors alignment drift and pressure", status: revealState.unlockedDomains.includes("stakeholders") && stakeholders.data ? "active" : (revealState.unlockedDomains.includes("stakeholders") ? "watching" : "needs-data"), route: "/stakeholder-intel" },
+    { id: "scope", label: "Scope", role: "Tracks scope pressure and variance", status: revealState.unlockedDomains.includes("scope") ? "watching" : "simulated" },
+    { id: "delivery", label: "Delivery", role: "Execution cadence and blocker dynamics", status: revealState.unlockedDomains.includes("delivery") && interventions.data ? "active" : "watching" },
+    { id: "coordination", label: "Coordination", role: "Detects collapse risk and handoff failure", status: revealState.unlockedDomains.includes("coordination") && coordination.data ? "active" : (revealState.unlockedDomains.includes("coordination") ? "watching" : "needs-data") },
+    { id: "interventions", label: "Interventions", role: "Recommends stabilizing interventions", status: revealState.unlockedDomains.includes("interventions") ? (interventions.data ? "watching" : "needs-data") : "needs-data" },
+    { id: "lessons", label: "Lessons Learned", role: "Extracts reusable operational patterns", status: revealState.unlockedDomains.includes("lessons") ? "watching" : "simulated" },
+    { id: "executive", label: "Executive", role: "Executive synthesis and reporting", status: revealState.unlockedDomains.includes("executive") ? "active" : "watching", route: "/executive" },
     { id: "vault", label: "Vault", role: "Operational evidence intake", status: "watching", route: "/upload" },
     { id: "memory", label: "Memory", role: "Semantic operational memory", status: "watching", route: "/operational-memory" },
   ];
@@ -151,6 +170,8 @@ export function CommandCenterClient({ firstRun = false, projectId, projectName, 
             <p className="mt-2 text-lg font-medium text-slate-100">{firstRun ? "Your project context is active." : "Operational cognition is online."}</p>
             <p className="mt-2 text-sm text-slate-300">{firstRun ? "PMFreak will begin learning from blockers, meetings, stakeholders, risks, and decisions as they enter the Vault." : briefing}</p>
             {firstRun && <p className="mt-2 text-xs text-slate-400">The runtime gets smarter as the Vault receives operational nutrients. Start by adding context; deeper intelligence requires evidence.</p>}
+            <p className="mt-2 text-xs text-cyan-200">Reveal stage: {revealState.stage} · Evidence: {revealState.evidenceDensity} · Continuity: {revealState.continuityMaturity}</p>
+            <ul className="mt-2 space-y-1">{revealState.educationalHints.slice(0,2).map((h)=> <li key={h} className="text-xs text-slate-400">• {h}</li>)}</ul>
           </div>
 
           <div>
