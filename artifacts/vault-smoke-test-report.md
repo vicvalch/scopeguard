@@ -1,8 +1,8 @@
 # Vault Digestive System — Smoke Test Report
 
-**Generated:** 2026-05-23T02:54:31.821Z
+**Generated:** 2026-05-25T21:48:57.724Z
 **Dataset:** LATAM Enterprise PM — 5 projects across 51 operational artifacts
-**Elapsed:** 48ms
+**Elapsed:** 50ms
 
 ## 1. Digestive Overview
 
@@ -137,6 +137,7 @@ No systematic missed signals detected.
 - **[proj-hsa-15576]** decayed_actionable: High-severity signal decayed below 50% freshness — may need reinforcement
 - **[proj-hsa-15576]** decayed_actionable: High-severity signal decayed below 50% freshness — may need reinforcement
 - **[proj-hsa-15576]** decayed_actionable: High-severity signal decayed below 50% freshness — may need reinforcement
+- **[proj-muc-13098]** decayed_actionable: High-severity signal decayed below 50% freshness — may need reinforcement
 - **[proj-muc-13098]** decayed_actionable: High-severity signal decayed below 50% freshness — may need reinforcement
 - **[proj-muc-13098]** decayed_actionable: High-severity signal decayed below 50% freshness — may need reinforcement
 - **[proj-muc-13098]** decayed_actionable: High-severity signal decayed below 50% freshness — may need reinforcement
