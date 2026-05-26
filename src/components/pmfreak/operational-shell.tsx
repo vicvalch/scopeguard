@@ -192,14 +192,14 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
               </div>
               <p className="text-[11px] leading-relaxed text-slate-400">
                 {hasProjects
-                  ? "Copilot is monitoring signals across projects, stakeholders, risks, and meetings."
-                  : "Copilot is ready. Activate an operational context to begin continuous monitoring."}
+                  ? "Workspace intelligence is monitoring signals across projects, stakeholders, risks, and meetings."
+                  : "Workspace intelligence is ready. Activate an operational context to begin continuous monitoring."}
               </p>
               <Link
-                href="/copilot"
+                href="/workspace"
                 className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-indigo-300/25 bg-indigo-300/[0.06] px-3 py-1.5 text-[11px] font-medium text-indigo-200 transition-all hover:border-indigo-300/40 hover:bg-indigo-300/[0.10]"
               >
-                Open Copilot
+                Open Workspace
                 <span className="opacity-60">→</span>
               </Link>
             </div>
