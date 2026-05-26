@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveActiveProject } from "@/lib/resolve-active-project";
 import { buildExecutiveSynthesis, type ExecutiveSynthesisSnapshot } from "@/lib/executive-synthesis";
 import Link from "next/link";
+import { WorkspaceContextBanner } from "@/components/pmfreak/workspace/workspace-context-banner";
 
 async function safelyBuildSynthesis(
   companyId: string,
@@ -45,8 +46,8 @@ export default async function ExecutivePage({
     return (
       <main className="space-y-5 pb-8">
         <header className="rounded-3xl border border-white/8 bg-white/[0.03] p-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-indigo-400">PMFreak Executive Layer</p>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-100">Executive Operational Intelligence</h1>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-indigo-400">Executive Insight Lens</p>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-100">Derived Executive Operational Intelligence</h1>
         </header>
         <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.05] p-6">
           <p className="text-sm font-semibold text-amber-200">Project not found in this workspace</p>
@@ -111,10 +112,11 @@ export default async function ExecutivePage({
 
   return (
     <main className="space-y-6 pb-8">
+      <WorkspaceContextBanner lens="Executive Insight Lens" />
       <header className="rounded-2xl border border-slate-700 bg-white p-6">
-        <p className="text-xs uppercase tracking-[0.25em] text-slate-400">PMFreak Executive Layer</p>
+        <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Executive Insight Lens</p>
         <h1 className="mt-2 text-3xl font-semibold text-white">Executive Operational Intelligence</h1>
-        <p className="mt-2 text-sm text-slate-300">Deterministic cross-domain synthesis for intervention and escalation governance.</p>
+        <p className="mt-2 text-sm text-slate-300">Derived analytical lens over workspace intelligence for intervention and escalation governance.</p>
         <p className="mt-1 text-xs text-slate-500">{scopeLabel}</p>
       </header>
 

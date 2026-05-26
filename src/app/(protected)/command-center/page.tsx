@@ -7,6 +7,7 @@ import { GuidedEmptyState } from "@/components/pmfreak/onboarding/GuidedEmptySta
 import { resolveActiveProject } from "@/lib/resolve-active-project";
 import { getCompanySubscription } from "@/lib/billing";
 import { getPlanCapabilities } from "@/lib/feature-gates";
+import { WorkspaceContextBanner } from "@/components/pmfreak/workspace/workspace-context-banner";
 
 export default async function CommandCenterPage({
   searchParams,
@@ -30,42 +31,13 @@ export default async function CommandCenterPage({
   if ((projects ?? []).length === 0) {
     return (
       <div className="space-y-5 pb-10">
-        {/* Activation header */}
-        <section className="relative overflow-hidden rounded-3xl border border-indigo-400/25 bg-gradient-to-br from-indigo-400/[0.07] via-white/[0.03] to-transparent p-8 shadow-[0_24px_60px_-30px_rgba(99,102,241,0.3)]">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.1),transparent_60%)]" />
-          <div className="relative">
-            {/* Pulse badge */}
-            <div className="mb-5 flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-50" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-400" />
-              </span>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-indigo-400">
-                PMFreak — Awaiting Operational Context
-              </p>
-            </div>
-
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">
-              Activate your first operational context
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400">
-              PMFreak needs one real initiative to begin sensing execution risk, stakeholder dynamics,
-              meeting debt, and follow-up pressure. Your Command Center activates once context exists.
-            </p>
-
-            {/* Context activation form */}
-            <form
-              action={activateContextAction}
-              className="mt-8 space-y-5 rounded-2xl border border-white/8 bg-white/[0.04] p-6"
-            >
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  Operational context
-                </p>
-                <p className="mt-0.5 text-[11px] text-slate-600">
-                  PMFreak agents activate as soon as this context is saved.
-                </p>
-              </div>
+        <WorkspaceContextBanner lens="Execution Coordination Lens" />
+        <section className="rounded-3xl border border-indigo-400/25 bg-indigo-400/[0.06] p-8">
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">Execution Coordination Lens</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300">
+            This lens is generated from workspace context. Add a project to unlock execution coordination telemetry in this view.
+          </p>
+          <form action={activateContextAction} className="mt-8 space-y-5 rounded-2xl border border-white/8 bg-white/[0.04] p-6">
 
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1.5">
@@ -143,13 +115,10 @@ export default async function CommandCenterPage({
               </div>
 
               <div className="flex items-center gap-3 pt-1">
-                <button
-                  type="submit"
-                  className="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-6 py-2.5 text-sm font-semibold text-slate-100 shadow-[0_0_24px_-8px_rgba(99,102,241,0.5)] transition hover:bg-indigo-500/30"
-                >
-                  Activate PMFreak Agents
+                <button type="submit" className="rounded-xl border border-indigo-400/50 bg-indigo-500/20 px-6 py-2.5 text-sm font-semibold text-slate-100 shadow-[0_0_24px_-8px_rgba(99,102,241,0.5)] transition hover:bg-indigo-500/30">
+                  Add project context
                 </button>
-                <p className="text-[11px] text-slate-600">Context can be refined after activation</p>
+                <p className="text-[11px] text-slate-500">You can keep refining workspace context after save.</p>
               </div>
             </form>
           </div>
@@ -213,18 +182,21 @@ export default async function CommandCenterPage({
   }
 
   return (
-    <CommandCenterClient
-      firstRun={fromOnboarding}
-      projectId={resolution.project!.id}
-      projectName={resolution.project!.name}
-      workspaceId={workspace.workspaceId}
-      projects={projectList}
-      role={user.role}
-      onboardingCompleted={user.onboardingCompleted}
-      planTier={subscription.plan}
-      canUseAdvancedAi={capabilities.advanced_ai_actions}
-      canUsePortfolioMemory={capabilities.organizational_memory}
-      canUseGovernanceDirectives={capabilities.governance_directives}
-    />
+    <div className="space-y-4">
+      <WorkspaceContextBanner lens="Execution Coordination Lens" />
+      <CommandCenterClient
+        firstRun={fromOnboarding}
+        projectId={resolution.project!.id}
+        projectName={resolution.project!.name}
+        workspaceId={workspace.workspaceId}
+        projects={projectList}
+        role={user.role}
+        onboardingCompleted={user.onboardingCompleted}
+        planTier={subscription.plan}
+        canUseAdvancedAi={capabilities.advanced_ai_actions}
+        canUsePortfolioMemory={capabilities.organizational_memory}
+        canUseGovernanceDirectives={capabilities.governance_directives}
+      />
+    </div>
   );
 }
