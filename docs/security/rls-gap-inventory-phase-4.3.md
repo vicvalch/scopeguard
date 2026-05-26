@@ -23,17 +23,21 @@ Honest snapshot as of 2026-05-12.
 - **Route-enforced**: Yes.
 - **Cross-tenant risk**: Low/medium (service-role path still privileged).
 
-## onboarding_analyses
-- **DB-enforced**: Company-id based RLS (legacy tenant primitive).
-- **Route-enforced**: Partial; onboarding endpoints still consume company metadata.
-- **Risk**: Medium; not fully workspace-native.
+## onboarding_analyses (updated)
+- **DB-enforced**: Yes — workspace_id-based RLS (migrated from company_id in 20260516000000).
+- **Route-enforced**: Yes.
+- **Cross-tenant risk**: Low (workspace membership chain enforced at DB level).
 
 ## security_events
 - **DB-enforced**: Yes for read; client writes revoked; service-role writes only.
 - **Route-enforced**: N/A for writes (centralized server telemetry).
 - **Risk**: Medium due to central service-role writer concentration.
 
-## governance_audit_events
-- **DB-enforced**: Company-id based.
-- **Route-enforced**: Partial.
-- **Risk**: Medium (legacy tenant model + incomplete workspace normalization).
+## governance_audit_events (updated)
+- **DB-enforced**: Yes — workspace_id-based SELECT (with company_id fallback for legacy rows).
+                       INSERT: service-role only (no authenticated INSERT policy).
+- **Route-enforced**: N/A for writes (service-role telemetry).
+- **Cross-tenant risk**: Low for new rows; medium for legacy rows (company_id fallback).
+
+Note: workspace_id column added in 20260516000000_workspace_native_rls.sql.
+Legacy rows (workspace_id IS NULL) fall back to company_id check.
