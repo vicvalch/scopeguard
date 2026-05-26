@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolvePostAuthRedirectPath } from "@/lib/auth-redirect";
+import { resolvePostAuthDestination } from "@/lib/auth/resolve-post-auth-destination";
+import { isSafeContinuationRoute } from "@/lib/auth/validate-continuation-route";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -16,6 +17,16 @@ export async function GET(request: Request) {
     }
   }
 
-  const redirectPath = next?.startsWith("/") ? next : await resolvePostAuthRedirectPath(supabase);
-  return NextResponse.redirect(new URL(redirectPath, request.url));
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const decision = resolvePostAuthDestination({
+    isAuthenticated: Boolean(user),
+    onboardingCompleted: user?.user_metadata?.onboarding_completed === true,
+    requestedRoute: next,
+    isRequestedRouteSafe: Boolean(next && isSafeContinuationRoute(next)),
+  });
+
+  return NextResponse.redirect(new URL(decision.destination, request.url));
 }

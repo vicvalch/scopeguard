@@ -1,7 +1,5 @@
-import { requireAuthUser } from "@/lib/auth";
-import { GettingStartedFlow } from "@/components/pmfreak/activation/getting-started-flow";
+import { redirect } from "next/navigation";
 
-export default async function GettingStartedPage() {
-  await requireAuthUser();
-  return <GettingStartedFlow />;
+export default function GettingStartedPage() {
+  redirect("/workspace/setup");
 }
