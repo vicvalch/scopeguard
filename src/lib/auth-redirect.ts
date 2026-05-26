@@ -1,15 +1,18 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { resolvePostAuthDestination } from "@/lib/auth/resolve-post-auth-destination";
 
-const isOnboardingComplete = (user: User | null) => user?.user_metadata?.onboarding_completed === true;
+const toRedirectPath = (user: User | null) =>
+  resolvePostAuthDestination({
+    isAuthenticated: Boolean(user),
+    onboardingCompleted: user?.user_metadata?.onboarding_completed === true,
+  }).destination;
 
-export const getPostAuthRedirectPath = (user: User | null) => {
-  return isOnboardingComplete(user) ? "/projects" : "/getting-started";
-};
+export const getPostAuthRedirectPath = (user: User | null) => toRedirectPath(user);
 
 export const resolvePostAuthRedirectPath = async (supabase: SupabaseClient) => {
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return getPostAuthRedirectPath(user);
+  return toRedirectPath(user);
 };

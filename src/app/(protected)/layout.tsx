@@ -6,12 +6,13 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { isFounderOrInternalUser } from "@/lib/auth";
 import { ensureUserWorkspace } from "@/lib/workspaces";
+import { resolvePostAuthDestination } from "@/lib/auth/resolve-post-auth-destination";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const continuity = await assertRuntimeAuthContinuity();
   if (!continuity.ok) {
-    const redirectTarget = encodeURIComponent("/projects");
-    redirect(`/login?next=${redirectTarget}`);
+    const decision = resolvePostAuthDestination({ isAuthenticated: false, onboardingCompleted: false });
+    redirect(`${decision.destination}?next=${encodeURIComponent("/workspace")}`);
   }
 
   const user = await requireAuthUser();
@@ -23,13 +24,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     const supabase = createSupabaseServiceRoleClient({ routeId: "(protected)/layout", operation: "service_role_query", reason: "existing_privileged_flow", systemActor: "system" });
     const { data: memberships } = await supabase.from("workspace_memberships").select("workspace_id").eq("user_id", user.id).limit(20);
     const workspaceIds = (memberships ?? []).map((m) => m.workspace_id);
-    const { data: activeTrial } = await supabase
-      .from("trial_licenses")
-      .select("id, invite_id, workspace_id, trial_status, trial_end_at")
-      .in("workspace_id", workspaceIds.length ? workspaceIds : ["00000000-0000-0000-0000-000000000000"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: activeTrial } = await supabase.from("trial_licenses").select("id, invite_id, workspace_id, trial_status, trial_end_at").in("workspace_id", workspaceIds.length ? workspaceIds : ["00000000-0000-0000-0000-000000000000"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (activeTrial?.id) {
       await supabase.rpc("execute_sql", { query: `update trial_licenses set trial_status='expired' where id='${activeTrial.id}' and trial_status='active' and trial_end_at < now();` });
