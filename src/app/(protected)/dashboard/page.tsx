@@ -4,6 +4,8 @@ import { FirstUserTelemetryEvent } from "@/components/pmfreak/telemetry/first-us
 import { getAuthUser } from "@/lib/auth";
 import { runDashboardApiRuntime } from "@/lib/dashboard/api-runtime/index.ts";
 import { runDashboardConsumptionRuntime } from "@/lib/dashboard/consumption/index.ts";
+import { runDashboardActionCenter } from "@/lib/dashboard/action-center/index.ts";
+import { ExecutiveDashboardActionCenter } from "@/components/dashboard/action-center";
 
 export default async function DashboardPage({
   searchParams,
@@ -18,6 +20,7 @@ export default async function DashboardPage({
     ? runDashboardApiRuntime({ tenantId: user.companyId, userId: user.id, includeMetadata: true })
     : null;
   const dashboardViewModel = runDashboardConsumptionRuntime({ apiResponse });
+  const actionCenterReport = runDashboardActionCenter({ dashboardViewModel });
   const withProjectScope = (href: string) =>
     currentProjectId ? `${href}?projectId=${currentProjectId}` : href;
 
@@ -106,6 +109,7 @@ export default async function DashboardPage({
             <p className="text-xs text-slate-400">{dashboardViewModel.alertsCount} alert{dashboardViewModel.alertsCount !== 1 ? "s" : ""} active</p>
           )}
         </section>
+        <ExecutiveDashboardActionCenter report={actionCenterReport} />
       </ModuleShell>
     </>
   );
