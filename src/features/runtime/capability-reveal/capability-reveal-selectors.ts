@@ -1,4 +1,5 @@
 import type { Plan } from "@/lib/feature-gates";
+import { NAVIGATION_HIERARCHY } from "@/lib/workspace/navigation-hierarchy";
 import type {
   CapabilityDomain,
   CapabilityRevealInput,
@@ -12,12 +13,10 @@ import type {
 import { REVEAL_DOMAIN_ORDER, ROLE_DOMAIN_PRIORITIES } from "./capability-reveal-contract";
 
 const NAV_STYLE = {
-  command: { accent: "from-cyan-300/20 to-fuchsia-300/10", active: "border-cyan-200/30 bg-cyan-300/[0.07] text-cyan-100", idle: "text-slate-300" },
-  project: { accent: "from-emerald-300/20 to-teal-300/10", active: "border-emerald-200/30 bg-emerald-300/[0.07] text-emerald-100", idle: "text-slate-300" },
-  risk: { accent: "from-amber-300/20 to-red-300/10", active: "border-amber-200/30 bg-amber-300/[0.07] text-amber-100", idle: "text-slate-300" },
-  stakeholder: { accent: "from-violet-300/20 to-indigo-300/10", active: "border-violet-200/30 bg-violet-300/[0.07] text-violet-100", idle: "text-slate-300" },
-  meeting: { accent: "from-sky-300/20 to-blue-300/10", active: "border-sky-200/30 bg-sky-300/[0.07] text-sky-100", idle: "text-slate-300" },
-  executive: { accent: "from-slate-200/20 to-zinc-300/10", active: "border-slate-200/30 bg-slate-200/[0.07] text-slate-100", idle: "text-slate-300" },
+  primary: { accent: "from-indigo-300/25 to-cyan-300/15", active: "border-indigo-100/70 bg-indigo-300/[0.16] text-white shadow-[0_0_24px_rgba(129,140,248,0.28)]", idle: "text-indigo-100/90" },
+  lens: { accent: "from-cyan-300/20 to-fuchsia-300/10", active: "border-cyan-200/30 bg-cyan-300/[0.07] text-cyan-100", idle: "text-slate-300" },
+  utility: { accent: "from-emerald-300/20 to-teal-300/10", active: "border-emerald-200/30 bg-emerald-300/[0.07] text-emerald-100", idle: "text-slate-300" },
+  advanced: { accent: "from-slate-300/15 to-zinc-300/10", active: "border-slate-200/30 bg-slate-200/[0.07] text-slate-100", idle: "text-slate-300" },
 } as const;
 
 export const computeRoleProfile = (role: string): RoleProfile => {
@@ -27,21 +26,19 @@ export const computeRoleProfile = (role: string): RoleProfile => {
   if (normalized.includes("ops") || normalized.includes("operation")) return "ops";
   return "pm";
 };
-
+// ... unchanged functions
 export const computeEvidenceDensity = (input: Pick<CapabilityRevealInput, "evidenceSignals" | "hasProject">): EvidenceDensity => {
   if (!input.hasProject) return "none";
   if (input.evidenceSignals <= 0) return "low";
   if (input.evidenceSignals < 5) return "moderate";
   return "high";
 };
-
 export const computeContinuityMaturity = (input: Pick<CapabilityRevealInput, "operationalMemorySignals" | "continuitySignals">): ContinuityMaturity => {
   const score = input.operationalMemorySignals + input.continuitySignals;
   if (score >= 8) return "stable";
   if (score >= 3) return "developing";
   return "emerging";
 };
-
 const computeStage = (input: CapabilityRevealInput, evidence: EvidenceDensity, continuity: ContinuityMaturity): CapabilityRevealStage => {
   if (!input.onboardingCompleted || !input.hasProject) return "activation";
   if (input.firstRun || evidence === "low") return "awareness";
@@ -50,25 +47,15 @@ const computeStage = (input: CapabilityRevealInput, evidence: EvidenceDensity, c
   if (evidence === "high" && continuity === "stable" && input.canUseAdvancedAi && input.canUsePortfolioMemory) return "organizational";
   return "guidance";
 };
-
 export const computeUnlockedDomains = (stage: CapabilityRevealStage, role: RoleProfile, planTier: Plan): CapabilityDomain[] => {
   const baseByStage: Record<CapabilityRevealStage, CapabilityDomain[]> = {
-    activation: ["core", "projects", "vault"],
-    awareness: ["core", "projects", "vault", "memory"],
-    guidance: ["core", "projects", "vault", "memory", "risks", "stakeholders", "delivery", "coordination"],
-    governance: ["core", "projects", "vault", "memory", "risks", "stakeholders", "delivery", "coordination", "interventions", "executive"],
-    constraint: REVEAL_DOMAIN_ORDER.filter((d) => d !== "lessons"),
-    organizational: REVEAL_DOMAIN_ORDER,
+    activation: ["core", "projects", "vault"], awareness: ["core", "projects", "vault", "memory"], guidance: ["core", "projects", "vault", "memory", "risks", "stakeholders", "delivery", "coordination"], governance: ["core", "projects", "vault", "memory", "risks", "stakeholders", "delivery", "coordination", "interventions", "executive"], constraint: REVEAL_DOMAIN_ORDER.filter((d) => d !== "lessons"), organizational: REVEAL_DOMAIN_ORDER,
   };
   const base = new Set(baseByStage[stage]);
   for (const d of ROLE_DOMAIN_PRIORITIES[role] ?? []) base.add(d);
-  if (planTier === "pmo") {
-    base.add("governance");
-    base.add("executive");
-  }
+  if (planTier === "pmo") { base.add("governance"); base.add("executive"); }
   return REVEAL_DOMAIN_ORDER.filter((d) => base.has(d));
 };
-
 export const computeRevealHints = (input: { stage: CapabilityRevealStage; evidenceDensity: EvidenceDensity; continuityMaturity: ContinuityMaturity; blockedDomains: CapabilityDomain[]; }): string[] => {
   const hints: string[] = [];
   if (input.evidenceDensity === "none" || input.evidenceDensity === "low") hints.push("Upload project evidence to activate governance continuity reasoning.");
@@ -78,7 +65,6 @@ export const computeRevealHints = (input: { stage: CapabilityRevealStage; eviden
   if (input.blockedDomains.includes("lessons")) hints.push("Lessons Learned activates when recurrent execution patterns stabilize.");
   return hints;
 };
-
 export const computeCapabilityRevealState = (input: CapabilityRevealInput): CapabilityRevealState => {
   const roleProfile = computeRoleProfile(input.role);
   const evidenceDensity = computeEvidenceDensity(input);
@@ -86,44 +72,17 @@ export const computeCapabilityRevealState = (input: CapabilityRevealInput): Capa
   const stage = computeStage(input, evidenceDensity, continuityMaturity);
   const unlockedDomains = computeUnlockedDomains(stage, roleProfile, input.planTier);
   const blockedDomains = REVEAL_DOMAIN_ORDER.filter((d) => !unlockedDomains.includes(d));
-  const revealReasons = [
-    `plan:${input.planTier}`,
-    `role:${roleProfile}`,
-    `stage:${stage}`,
-    `evidence:${evidenceDensity}`,
-    `continuity:${continuityMaturity}`,
-  ];
-
-  return {
-    stage,
-    planTier: input.planTier,
-    roleProfile,
-    hasProject: input.hasProject,
-    evidenceDensity,
-    continuityMaturity,
-    unlockedDomains,
-    blockedDomains,
-    revealReasons,
-    educationalHints: computeRevealHints({ stage, evidenceDensity, continuityMaturity, blockedDomains }),
-  };
+  return { stage, planTier: input.planTier, roleProfile, hasProject: input.hasProject, evidenceDensity, continuityMaturity, unlockedDomains, blockedDomains, revealReasons: [`plan:${input.planTier}`, `role:${roleProfile}`, `stage:${stage}`, `evidence:${evidenceDensity}`, `continuity:${continuityMaturity}`], educationalHints: computeRevealHints({ stage, evidenceDensity, continuityMaturity, blockedDomains }) };
 };
 
 export const computeNavigationRail = (state: CapabilityRevealState): NavigationRailItem[] => {
-  if (state.stage === "activation") {
-    return [
-      { label: "Execution Lens", href: "/command-center", ...NAV_STYLE.command },
-      { label: "Projects", href: "/projects", ...NAV_STYLE.project },
-    ];
-  }
-
-  const items: NavigationRailItem[] = [
-    { label: "Execution Lens", href: "/command-center", ...NAV_STYLE.command },
-    { label: "Projects", href: "/projects", ...NAV_STYLE.project },
-  ];
-
-  if (state.unlockedDomains.includes("risks")) items.push({ label: "Risk Center", href: "/change-detection", ...NAV_STYLE.risk });
-  if (state.unlockedDomains.includes("stakeholders")) items.push({ label: "Stakeholders", href: "/stakeholder-intel", ...NAV_STYLE.stakeholder });
-  items.push({ label: "Meetings", href: "/meetings", ...NAV_STYLE.meeting });
-  if (state.unlockedDomains.includes("executive") || state.roleProfile !== "pm") items.push({ label: "Executive Lens", href: "/executive", ...NAV_STYLE.executive });
-  return items;
+  return NAVIGATION_HIERARCHY.filter((node) => {
+    if (node.tier !== "advanced") return node.visibleByDefault;
+    if (!node.requiresCapability) return true;
+    return state.unlockedDomains.includes(node.requiresCapability as CapabilityDomain);
+  }).map((node) => ({
+    label: node.label,
+    href: node.href,
+    ...(node.tier === "primary" ? NAV_STYLE.primary : node.tier === "lens" ? NAV_STYLE.lens : node.tier === "utility" ? NAV_STYLE.utility : NAV_STYLE.advanced),
+  }));
 };

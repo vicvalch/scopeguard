@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ContextScopeBar } from "./ContextScopeBar";
 import { OperationalEventFeed } from "./OperationalEventFeed";
 import { ShellMetric } from "./ShellMetric";
+import { AdvancedDrawer } from "./navigation/advanced-drawer";
+import { DERIVED_LENS_METADATA } from "@/lib/workspace/derived-lens-metadata";
 import { computeCapabilityRevealState, computeNavigationRail } from "@/features/runtime/capability-reveal/capability-reveal-selectors";
 
 type UserProject = { id: string; name: string };
@@ -110,6 +112,11 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
   );
   const navHref = (href: string) => (projectId ? `${href}?projectId=${projectId}` : href);
   const navItems = computeNavigationRail(revealState);
+  const primaryNav = navItems.filter((item) => item.href === "/workspace");
+  const lensNav = navItems.filter((item) => ["/dashboard", "/command-center", "/executive", "/portfolio"].includes(item.href));
+  const utilityNav = navItems.filter((item) => ["/projects", "/input-hub", "/team"].includes(item.href));
+  const advancedNav = navItems.filter((item) => ![...primaryNav, ...lensNav, ...utilityNav].some((base) => base.href === item.href));
+  const activeLens = DERIVED_LENS_METADATA.find((lens) => pathname.startsWith(lens.route) && ["summary", "execution", "executive", "portfolio"].includes(lens.lensType));
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100">
@@ -160,9 +167,10 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
             </div>
 
             {/* Primary navigation */}
-            <nav aria-label="Primary navigation" className="space-y-1">
-              <p className="mb-1.5 px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Navigation</p>
-              {navItems.map((item) => {
+            <nav aria-label="Primary navigation" className="space-y-3">
+              <div className="space-y-1">
+                <p className="mb-1.5 px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-600">Workspace</p>
+              {primaryNav.map((item) => {
                 const isActive = pathname.startsWith(item.href);
                 return (
                   <Link
@@ -179,6 +187,20 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
                   </Link>
                 );
               })}
+              </div>
+              <div className="space-y-1">
+                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Lenses</p>
+                {lensNav.map((item) => (
+                  <Link key={item.href} href={navHref(item.href)} className={`block rounded-lg border px-3 py-2 text-xs ${pathname.startsWith(item.href) ? item.active : `border-white/[0.05] bg-white/[0.01] ${item.idle}`}`}>{item.label}</Link>
+                ))}
+              </div>
+              <div className="space-y-1">
+                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Utilities</p>
+                {utilityNav.map((item) => (
+                  <Link key={item.href} href={navHref(item.href)} className={`block rounded-lg border px-3 py-2 text-xs ${pathname.startsWith(item.href) ? item.active : `border-white/[0.05] bg-white/[0.01] ${item.idle}`}`}>{item.label}</Link>
+                ))}
+              </div>
+              <AdvancedDrawer items={advancedNav} pathname={pathname} navHref={navHref} />
             </nav>
 
             {/* AI Assistant */}
@@ -220,10 +242,10 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
                   Activate your first operational context to unlock AI telemetry, risk sensing, and stakeholder signals.
                 </p>
                 <Link
-                  href="/command-center"
+                  href="/workspace"
                   className="mt-2 inline-flex text-[11px] font-medium text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
                 >
-                  Activate in Command Center →
+                  Start in Workspace →
                 </Link>
               </div>
             )}
@@ -295,7 +317,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
               <span className="text-[10px] text-zinc-600">{user.companyName}</span>
             </div>
             <div className="flex snap-x gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {navItems.map((item) => (
+              {[...primaryNav, ...lensNav, ...utilityNav].map((item) => (
                 <Link
                   key={item.href}
                   href={navHref(item.href)}
@@ -323,6 +345,9 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
           />
 
           {/* Page content */}
+          {activeLens && (
+            <p className="px-1 text-[11px] text-slate-500">Workspace / {activeLens.title.replace(" Lens","").replace("Operational ","").replace(" Coordination","").replace(" Insight","").replace(" Intelligence","")}</p>
+          )}
           <main className="min-w-0">{children}</main>
         </div>
       </div>
