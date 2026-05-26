@@ -36,12 +36,12 @@ test('proxy does not hijack valid onboarded protected navigation', () => {
 });
 
 test('proxy enforces setup access for onboarding incomplete users', () => {
-  assert.match(proxy, /!onboardingCompleted && isProtected && !isSetupRoute/);
+  assert.match(proxy, /requiresOnboardingCompletion\(pathname\) && !onboardingCompleted/);
   assert.match(proxy, /new URL\("\/workspace\/setup", request\.url\)/);
 });
 
 test('proxy redirects onboarding-complete users away from setup routes', () => {
-  assert.match(proxy, /onboardingCompleted && isSetupRoute/);
+  assert.match(proxy, /isSetupRoute\(pathname\) && onboardingCompleted/);
   assert.match(proxy, /new URL\("\/workspace", request\.url\)/);
 });
 
@@ -55,4 +55,12 @@ test('continuation validator maintains auth recursion protections', () => {
   assert.match(validator, /"\/login"/);
   assert.match(validator, /"\/auth"/);
   assert.match(validator, /ALLOWED_PREFIXES/);
+});
+
+
+test('proxy uses central route policy registry helpers', () => {
+  assert.match(proxy, /getRouteAccessPolicy/);
+  assert.match(proxy, /isProtectedPageRoute/);
+  assert.match(proxy, /isAuthRoute/);
+  assert.match(proxy, /isSetupRoute/);
 });
