@@ -68,7 +68,8 @@
     "check:executive-dashboard-aggregation-runtime": "npx tsx scripts/check-executive-dashboard-aggregation-runtime.mjs",
     "check:dashboard-runtime-integration": "npx tsx scripts/check-dashboard-runtime-integration.mjs",
     "check:dashboard-api-runtime": "npx tsx scripts/check-dashboard-api-runtime.mjs",
-    "check:dashboard-consumption-runtime": "npx tsx scripts/check-dashboard-consumption-runtime.mjs"
+    "check:dashboard-consumption-runtime": "npx tsx scripts/check-dashboard-consumption-runtime.mjs",
+    "check:persistent-snapshot-store-runtime": "npx tsx scripts/check-persistent-snapshot-store-runtime.mjs"
   },
   "dependencies": {
     "@aoc-enterprise/runtime": "file:src/aoc/enterprise",
