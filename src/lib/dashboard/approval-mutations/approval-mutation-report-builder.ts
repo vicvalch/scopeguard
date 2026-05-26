@@ -1,0 +1,37 @@
+import type { DashboardApprovalRequest } from '../approval-workflow/index.ts'
+import type { DashboardTaskLifecycleEvent, DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
+import type {
+  DashboardApprovalMutationAuthorizationResult,
+  DashboardApprovalMutationRequest,
+  DashboardApprovalMutationResult,
+  DashboardApprovalMutationStatus,
+} from './types.ts'
+
+export function buildApprovalMutationResult(input: {
+  mutation: DashboardApprovalMutationRequest
+  status: DashboardApprovalMutationStatus
+  approvalRequest?: DashboardApprovalRequest
+  lifecycle?: DashboardTaskLifecycleRecord
+  decision?: any
+  event?: DashboardTaskLifecycleEvent
+  authorization?: DashboardApprovalMutationAuthorizationResult
+  errors?: string[]
+  warnings?: string[]
+}): DashboardApprovalMutationResult {
+  const warnings = [...(input.warnings ?? [])]
+  if (input.status === 'accepted' && !input.lifecycle) warnings.push('Lifecycle was not available for mutation persistence.')
+
+  return {
+    status: input.status,
+    requestId: input.mutation.requestId,
+    envelopeId: input.mutation.envelopeId,
+    lifecycleId: input.lifecycle?.id ?? input.mutation.lifecycleId,
+    approvalStatus: input.approvalRequest?.status,
+    lifecycleStatus: input.lifecycle?.status,
+    decision: input.decision,
+    event: input.event,
+    authorization: input.authorization,
+    errors: input.errors ?? [],
+    warnings,
+  }
+}
