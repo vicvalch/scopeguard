@@ -111,19 +111,19 @@ export const computeCapabilityRevealState = (input: CapabilityRevealInput): Capa
 export const computeNavigationRail = (state: CapabilityRevealState): NavigationRailItem[] => {
   if (state.stage === "activation") {
     return [
-      { label: "Activate Context", href: "/command-center", ...NAV_STYLE.command },
+      { label: "Execution Lens", href: "/command-center", ...NAV_STYLE.command },
       { label: "Projects", href: "/projects", ...NAV_STYLE.project },
     ];
   }
 
   const items: NavigationRailItem[] = [
-    { label: "Command Center", href: "/command-center", ...NAV_STYLE.command },
+    { label: "Execution Lens", href: "/command-center", ...NAV_STYLE.command },
     { label: "Projects", href: "/projects", ...NAV_STYLE.project },
   ];
 
   if (state.unlockedDomains.includes("risks")) items.push({ label: "Risk Center", href: "/change-detection", ...NAV_STYLE.risk });
   if (state.unlockedDomains.includes("stakeholders")) items.push({ label: "Stakeholders", href: "/stakeholder-intel", ...NAV_STYLE.stakeholder });
   items.push({ label: "Meetings", href: "/meetings", ...NAV_STYLE.meeting });
-  if (state.unlockedDomains.includes("executive") || state.roleProfile !== "pm") items.push({ label: "PMO Overview", href: "/executive", ...NAV_STYLE.executive });
+  if (state.unlockedDomains.includes("executive") || state.roleProfile !== "pm") items.push({ label: "Executive Lens", href: "/executive", ...NAV_STYLE.executive });
   return items;
 };
