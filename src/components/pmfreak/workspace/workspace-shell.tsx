@@ -10,11 +10,12 @@ import {
   persistAwakeningState,
   type AwakeningState,
 } from "@/lib/workspace/awakening-state";
+import { CONFIDENCE_CHIP_LABELS, computeImprintConfidence } from "@/lib/workspace/imprint-confidence";
+import { loadImprintState, type PMOperationalImprint } from "@/lib/workspace/operational-imprint-profile";
 
-// Stable fallback ids — the shell doesn't receive companyId/workspaceId from above,
-// so we use a known session-level key. Scoping can be added once those props flow down.
 const COMPANY_ID = "global";
 const WORKSPACE_ID = "default";
+const USER_ID = "default";
 
 const GOVERNANCE_SECTIONS = ["Portfolio", "PMO", "Projects", "Stakeholders", "Scope", "Timeline", "Cost", "RAID", "Delivery", "Memory"];
 
@@ -28,9 +29,11 @@ const ACTIVE_CHIPS = [
 
 export function WorkspaceShell() {
   const [awakening, setAwakening] = useState<AwakeningState>(() => deriveAwakeningState(0));
+  const [imprintProfile, setImprintProfile] = useState<PMOperationalImprint | null>(null);
 
   useEffect(() => {
     setAwakening(loadAwakeningState(COMPANY_ID, WORKSPACE_ID));
+    setImprintProfile(loadImprintState(COMPANY_ID, WORKSPACE_ID, USER_ID).profile);
   }, []);
 
   const handleAwakeningAdvance = useCallback((next: AwakeningState) => {
@@ -44,6 +47,8 @@ export function WorkspaceShell() {
   const chipStyle = isDormant
     ? "rounded-full border border-zinc-600/30 bg-zinc-500/[0.08] px-3 py-1 text-xs text-zinc-500"
     : "rounded-full border border-emerald-300/30 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-100";
+  const imprintConfidence = imprintProfile ? computeImprintConfidence(imprintProfile) : null;
+  const showImprintChip = imprintConfidence && imprintConfidence !== "forming";
 
   return (
     <section className="grid min-h-[calc(100vh-10rem)] gap-6 lg:grid-cols-[240px_1fr_280px]">
@@ -66,6 +71,11 @@ export function WorkspaceShell() {
             {chips.map((chip) => (
               <span key={chip} className={chipStyle}>{chip}</span>
             ))}
+            {showImprintChip ? (
+              <span className="rounded-full border border-indigo-400/25 bg-indigo-400/[0.07] px-3 py-1 text-xs text-indigo-300/80">
+                {CONFIDENCE_CHIP_LABELS[imprintConfidence]}
+              </span>
+            ) : null}
           </div>
         </div>
         <WorkspaceConversationShell

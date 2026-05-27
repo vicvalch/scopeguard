@@ -29,9 +29,14 @@ test("workspace shell shows standby chip in dormant stage", () => {
 });
 
 test("ignition cues are present for dormant state", () => {
-  assert.match(conversationShell, /A delivery dependency is blocking execution/);
-  assert.match(conversationShell, /A stakeholder alignment issue is emerging/);
-  assert.match(conversationShell, /I need help clarifying project scope/);
+  // X.8: default ignition cues live in imprint-inference.ts and are fed dynamically via computeIgnitionCues
+  const imprintInference = read("src/lib/workspace/imprint-inference.ts");
+  assert.match(imprintInference, /A delivery dependency is blocking execution/);
+  assert.match(imprintInference, /A stakeholder alignment issue is emerging/);
+  assert.match(imprintInference, /I need help clarifying project scope/);
+  // Conversation shell must use the dynamic cues
+  assert.match(conversationShell, /computeIgnitionCues/);
+  assert.match(conversationShell, /ignitionCues\.map/);
 });
 
 // ─── 2. Meaningful prompt triggers initialization ─────────────────────────────
