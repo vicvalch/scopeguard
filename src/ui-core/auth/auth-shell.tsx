@@ -32,7 +32,7 @@ export function AuthShell({
 
           <div className="mt-10">
             <Image
-              src="/Cara.png"
+              src="/Brain-Transparente.png"
               alt="PMFreak"
               width={200}
               height={200}
