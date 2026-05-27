@@ -5,10 +5,13 @@ import { isSafeContinuationRoute } from "@/lib/auth/validate-continuation-route"
 import { debugAuthDecision } from "@/lib/auth/auth-decision-debug";
 
 export async function POST(request: Request) {
+  const requestUrl = new URL(request.url);
   const formData = await request.formData();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const requestedRoute = String(formData.get("next") ?? "").trim() || null;
+  const requestedRouteFromForm = String(formData.get("next") ?? "").trim();
+  const requestedRouteFromQuery = requestUrl.searchParams.get("next")?.trim() ?? "";
+  const requestedRoute = requestedRouteFromForm || requestedRouteFromQuery || null;
 
   if (!email || !password) {
     return NextResponse.redirect(new URL("/login?error=Email+and+password+are+required", request.url));
