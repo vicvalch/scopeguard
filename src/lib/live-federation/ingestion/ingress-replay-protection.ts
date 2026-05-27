@@ -16,8 +16,18 @@ export type IngressReplayValidation = {
   replayKey: string;
 };
 
+export type ReplayDetectionResult = {
+  isReplay: boolean;
+  replayKey: string;
+  reason?: string;
+};
+
 function buildReplayKey(workspaceId: string, connectorId: string, nonce: string): string {
   return `${workspaceId}:${connectorId}:${nonce}`;
+}
+
+export function buildReplayFingerprint(workspaceId: string, connectorId: string, nonce: string, payloadHash: string): string {
+  return `${buildReplayKey(workspaceId, connectorId, nonce)}:${payloadHash}`;
 }
 
 export function validateIngressReplay(workspaceId: string, connectorId: string, nonce: string, payloadHash: string): IngressReplayValidation {
@@ -35,6 +45,25 @@ export function validateIngressReplay(workspaceId: string, connectorId: string, 
     return rejectReplayIngress(replayKey, "connector spoof replay detected");
   }
   return rejectReplayIngress(replayKey, "duplicate webhook replay blocked");
+}
+
+export function detectReplayIngress(
+  workspaceId: string,
+  connectorId: string,
+  nonce: string,
+  payloadHash: string,
+  replaySet: ReadonlySet<string> = new Set(),
+): ReplayDetectionResult {
+  const replayKey = buildReplayKey(workspaceId, connectorId, nonce);
+  const fingerprint = buildReplayFingerprint(workspaceId, connectorId, nonce, payloadHash);
+  const validation = validateIngressReplay(workspaceId, connectorId, nonce, payloadHash);
+  const isReplay = !validation.accepted || replaySet.has(fingerprint);
+
+  return {
+    isReplay,
+    replayKey,
+    reason: validation.accepted ? (isReplay ? "replay fingerprint matched" : undefined) : validation.reason,
+  };
 }
 
 export function registerIngressNonce(workspaceId: string, connectorId: string, nonce: string, payloadHash: string): void {

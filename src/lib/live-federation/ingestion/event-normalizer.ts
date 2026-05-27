@@ -27,6 +27,8 @@ export type NormalizeInput = {
   replayKey: string;
 };
 
+export type NormalizedIngressEvent = FederatedOperationalEvent;
+
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
   if (value && typeof value === "object") {
@@ -63,4 +65,12 @@ export function normalizeFederatedEvent(input: NormalizeInput): FederatedOperati
     signalVector: [input.sourceSystem, eventType, severity, freshness],
     payload: input.rawPayload,
   };
+}
+
+export function normalizeIngressEvent(input: NormalizeInput): NormalizedIngressEvent {
+  return normalizeFederatedEvent(input);
+}
+
+export function normalizeEventBatch(inputs: NormalizeInput[]): NormalizedIngressEvent[] {
+  return inputs.map((input) => normalizeIngressEvent(input));
 }

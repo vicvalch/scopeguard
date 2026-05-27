@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { normalizeFederatedEvent, type FederatedOperationalEvent } from "./event-normalizer.js";
-import { registerIngressNonce, validateIngressReplay } from "./ingress-replay-protection.js";
-import { routeOperationalSignal, type RoutedSignal } from "./realtime-signal-router.js";
+import { normalizeFederatedEvent, type FederatedOperationalEvent } from "./event-normalizer";
+import { registerIngressNonce, validateIngressReplay } from "./ingress-replay-protection";
+import { routeOperationalSignal, type RoutedSignal } from "./realtime-signal-router";
 
 const ingressStore: FederatedOperationalEvent[] = [];
 

@@ -1,4 +1,4 @@
-import type { FederatedOperationalEvent } from "./event-normalizer.js";
+import type { FederatedOperationalEvent } from "./event-normalizer";
 
 export type EventSurvivabilityState = {
   survivable: boolean;
