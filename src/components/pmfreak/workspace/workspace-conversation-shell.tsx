@@ -7,6 +7,10 @@ import { WORKSPACE_DISPLAY } from "@/lib/workspace/display-semantics";
 import { deriveAwakeningState, type AwakeningState } from "@/lib/workspace/awakening-state";
 import { isMeaningfulOperationalContact } from "@/lib/workspace/first-contact-detector";
 import { computeImprintConfidence } from "@/lib/workspace/imprint-confidence";
+import { detectOperationalLanguage, type SupportedLanguage } from "@/lib/workspace/language/language-detection";
+import { resolveLanguagePreference } from "@/lib/workspace/language/language-preference";
+import { normalizeOperationalConcepts } from "@/lib/workspace/language/operational-concepts";
+import { buildLocalizedFirstContactFrame, getLocalizedIgnitionCues } from "@/lib/workspace/language/first-contact-language";
 import {
   computeAdaptiveClarifyingQuestion,
   computeIgnitionCues,
@@ -139,6 +143,7 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [methodology, setMethodology] = useState<"PMI" | "Agile" | "Hybrid" | "General PMO">("Hybrid");
   const [input, setInput] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState<SupportedLanguage>("en");
   const [memoryDomain, setMemoryDomain] = useState<(typeof MEMORY_DOMAINS)[number]>("operational_memory");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -236,6 +241,15 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
     const message = (preset ?? input).trim();
     if (!message || loading) return;
 
+    const detection = detectOperationalLanguage(message);
+    const preference = resolveLanguagePreference({
+      currentDetection: detection,
+      previousLanguage: preferredLanguage,
+      workspaceDefault: "en",
+    });
+    const normalizedConcepts = normalizeOperationalConcepts(message);
+    setPreferredLanguage(preference.preferredLanguage);
+
     // Advance awakening and observe imprint on meaningful operational signal
     if (isMeaningfulOperationalContact(message)) {
       const nextCount = awakening.interactionCount + 1;
@@ -254,6 +268,9 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
           validationState.feedbackBias,
           contradiction.hasContradiction,
           message.slice(0, 80),
+          preference.preferredLanguage,
+          normalizedConcepts.concepts,
+          normalizedConcepts.matchedAliases,
         );
         pendingTraceRef.current = trace;
         const nextVState = addTrace(validationState, trace);
@@ -288,6 +305,11 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
           methodology,
           activeDomain: memoryDomain,
           sessionKey: SESSION_KEY,
+          language: preference.preferredLanguage,
+          languageConfidence: detection.confidence,
+          mixedLanguage: detection.mixed,
+          operationalConcepts: normalizedConcepts.concepts,
+          matchedOperationalAliases: normalizedConcepts.matchedAliases,
         }),
       });
       const payload = (await response.json()) as CopilotResponse & { error?: string };
@@ -300,8 +322,12 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
         imprintState.profile,
         computeImprintConfidence(imprintState.profile),
       );
+      const firstContact = buildLocalizedFirstContactFrame({
+        language: preference.preferredLanguage,
+        concepts: normalizedConcepts.concepts,
+      });
       setActiveFollowUps([
-        payload.contextGapQuestions?.[0] || adaptiveClarifier,
+        payload.contextGapQuestions?.[0] || firstContact.clarifyingQuestion || adaptiveClarifier,
         "Draft my next sponsor update from this response.",
         selectedProject ? `What is the next highest-impact action for ${selectedProject.projectName}?` : "What should I escalate in the next 24 hours?",
       ]);
@@ -349,10 +375,10 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
   const isDormant = awakening.stage === "dormant";
   const stageChip = STAGE_CHIP[awakening.stage];
   const imprintConfidence = computeImprintConfidence(imprintState.profile);
-  const ignitionCues = useMemo(
-    () => computeIgnitionCues(imprintState.profile, imprintConfidence),
-    [imprintState.profile, imprintConfidence],
-  );
+  const ignitionCues = useMemo(() => {
+    const adaptive = computeIgnitionCues(imprintState.profile, imprintConfidence);
+    return imprintConfidence === "forming" ? getLocalizedIgnitionCues(preferredLanguage) : adaptive;
+  }, [imprintState.profile, imprintConfidence, preferredLanguage]);
 
   return (
     <main className="mx-auto grid min-h-[82vh] w-full gap-5 xl:grid-cols-[1fr_300px]">

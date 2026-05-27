@@ -2,6 +2,8 @@ import type { AwakeningState } from "./awakening-state";
 import type { ImprintConfidence } from "./imprint-confidence";
 import type { PMImprintState } from "./operational-imprint-profile";
 import type { RuntimeSignalSource, ValidationConfidence, ValidationTrace } from "./runtime-validation";
+import type { SupportedLanguage } from "./language/language-detection";
+import type { OperationalConcept } from "./language/operational-concepts";
 
 let traceCounter = 0;
 
@@ -39,6 +41,9 @@ export function buildValidationTrace(
   feedbackBias: number = 0,
   contradictionDetected: boolean = false,
   triggerSummary?: string,
+  language?: SupportedLanguage,
+  operationalConcepts?: OperationalConcept[],
+  matchedAliases?: string[],
 ): ValidationTrace {
   const base = awakeningScore(awakening) + imprintScore(imprintConfidence);
   const adjusted = base + feedbackBias * 2 - (contradictionDetected ? 2 : 0);
@@ -95,6 +100,9 @@ export function buildValidationTrace(
     continuitySignals,
     triggerSummary: triggerSummary ?? "Operational signal processed",
     outputBias: OUTPUT_BIAS[imprintState.profile.dominantFocus] ?? "Balanced operational guidance",
+    language,
+    operationalConcepts,
+    matchedAliases,
   };
 }
 

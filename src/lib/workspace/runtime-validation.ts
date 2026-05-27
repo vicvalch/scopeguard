@@ -10,6 +10,9 @@ export type RuntimeSignalSource =
   | "stakeholders"
   | "risk";
 
+import type { SupportedLanguage } from "./language/language-detection";
+import type { OperationalConcept } from "./language/operational-concepts";
+
 export type ValidationTrace = {
   traceId: string;
   timestamp: number;
@@ -20,6 +23,9 @@ export type ValidationTrace = {
   triggerSummary?: string;
   outputBias?: string;
   feedbackState?: "aligned" | "needs-recalibration";
+  language?: SupportedLanguage;
+  operationalConcepts?: OperationalConcept[];
+  matchedAliases?: string[];
 };
 
 export type ValidationFeedback = "aligned" | "needs-recalibration";
