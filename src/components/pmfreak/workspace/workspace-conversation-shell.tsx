@@ -2,9 +2,22 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AgentAwakeningPanel } from "@/components/pmfreak/workspace/agent-awakening-panel";
+import { ImprintSummary } from "@/components/pmfreak/workspace/imprint-summary";
 import { WORKSPACE_DISPLAY } from "@/lib/workspace/display-semantics";
 import { deriveAwakeningState, type AwakeningState } from "@/lib/workspace/awakening-state";
 import { isMeaningfulOperationalContact } from "@/lib/workspace/first-contact-detector";
+import { computeImprintConfidence } from "@/lib/workspace/imprint-confidence";
+import {
+  computeAdaptiveClarifyingQuestion,
+  computeIgnitionCues,
+  observeInteraction,
+} from "@/lib/workspace/imprint-inference";
+import {
+  emptyImprintState,
+  loadImprintState,
+  persistImprintState,
+  type PMImprintState,
+} from "@/lib/workspace/operational-imprint-profile";
 
 type ProjectOption = { id: string; projectName: string; uploadDate: string };
 type CopilotCard = { type: "Risks" | "Next Actions" | "Draft Email" | "RACI" | "Checklist"; title: string; items: string[] };
@@ -81,13 +94,9 @@ type CoordinationSnapshot = {
 
 const MEMORY_DOMAINS = ["stakeholder_intelligence","delivery_intelligence","risk_intelligence","pmo_governance","team_health","executive_context","operational_memory","operational_plans"] as const;
 const SESSION_KEY = "copilot-shell-v1";
-
-// Operational ignition cues shown in dormant state — not onboarding cards
-const IGNITION_CUES = [
-  "A delivery dependency is blocking execution",
-  "A stakeholder alignment issue is emerging",
-  "I need help clarifying project scope",
-] as const;
+const IMPRINT_COMPANY_ID = "global";
+const IMPRINT_WORKSPACE_ID = "default";
+const IMPRINT_USER_ID = "default";
 
 const QUICK_NUDGES = [
   "What is the single most important risk right now?",
@@ -126,6 +135,7 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
   const [activeFollowUps, setActiveFollowUps] = useState<string[]>(QUICK_NUDGES);
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [imprintState, setImprintState] = useState<PMImprintState>(() => emptyImprintState());
   const [ambientMemory, setAmbientMemory] = useState<AmbientMemory>({ blockers: [], recentDecisions: [], stakeholderPressure: [], criticalRisks: [], concerns: [] });
   const [executionRisk, setExecutionRisk] = useState<ExecutionRiskSnapshot | null>(null);
   const [stakeholderIntel, setStakeholderIntel] = useState<StakeholderRelationshipSnapshot | null>(null);
@@ -138,6 +148,10 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    setImprintState(loadImprintState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID));
+  }, []);
 
   useEffect(() => {
     void fetch("/api/copilot/context")
@@ -201,10 +215,13 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
     const message = (preset ?? input).trim();
     if (!message || loading) return;
 
-    // Advance awakening on meaningful operational signal
+    // Advance awakening and observe imprint on meaningful operational signal
     if (isMeaningfulOperationalContact(message)) {
       const nextCount = awakening.interactionCount + 1;
       onAwakeningAdvance(deriveAwakeningState(nextCount));
+      const nextImprint = observeInteraction(message, imprintState);
+      setImprintState(nextImprint);
+      persistImprintState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID, nextImprint);
     }
 
     messageIdRef.current += 1;
@@ -240,8 +257,12 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
       setThinkingState("validating");
       await streamAssistant(assistantMessageId, payload.answer);
       setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, text: payload.answer, response: payload, state: "complete" } : msg)));
+      const adaptiveClarifier = computeAdaptiveClarifyingQuestion(
+        imprintState.profile,
+        computeImprintConfidence(imprintState.profile),
+      );
       setActiveFollowUps([
-        payload.contextGapQuestions?.[0] || "Which dependency is now most likely to slip delivery this week?",
+        payload.contextGapQuestions?.[0] || adaptiveClarifier,
         "Draft my next sponsor update from this response.",
         selectedProject ? `What is the next highest-impact action for ${selectedProject.projectName}?` : "What should I escalate in the next 24 hours?",
       ]);
@@ -288,6 +309,11 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
 
   const isDormant = awakening.stage === "dormant";
   const stageChip = STAGE_CHIP[awakening.stage];
+  const imprintConfidence = computeImprintConfidence(imprintState.profile);
+  const ignitionCues = useMemo(
+    () => computeIgnitionCues(imprintState.profile, imprintConfidence),
+    [imprintState.profile, imprintConfidence],
+  );
 
   return (
     <main className="mx-auto grid min-h-[82vh] w-full gap-5 xl:grid-cols-[1fr_300px]">
@@ -323,7 +349,7 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
           <section className="mb-4 rounded-2xl border border-white/[0.06] bg-white/[0.01] p-5">
             <p className="text-[11px] text-slate-600">{WORKSPACE_DISPLAY.labels.dormantSignalHint}</p>
             <div className="mt-4 space-y-2">
-              {IGNITION_CUES.map((cue) => (
+              {ignitionCues.map((cue) => (
                 <button
                   key={cue}
                   type="button"
@@ -433,7 +459,20 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
         </div>
 
         {/* Agent awakening panel */}
-        <AgentAwakeningPanel state={awakening} />
+        <AgentAwakeningPanel
+          state={awakening}
+          imprintProfile={imprintState.profile}
+          imprintConfidence={imprintConfidence}
+        />
+
+        {/* Imprint transparency surface — visible after stable confidence */}
+        <ImprintSummary
+          profile={imprintState.profile}
+          companyId={IMPRINT_COMPANY_ID}
+          workspaceId={IMPRINT_WORKSPACE_ID}
+          userId={IMPRINT_USER_ID}
+          onReset={() => setImprintState(emptyImprintState())}
+        />
 
         <details className="rounded-2xl border border-white/10 bg-white/15 p-3 text-xs text-slate-200">
           <summary className="cursor-pointer font-semibold text-slate-100">Top action queue</summary>

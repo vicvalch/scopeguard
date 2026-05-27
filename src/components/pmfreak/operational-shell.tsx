@@ -16,6 +16,9 @@ import {
   loadAwakeningState,
   type AwakeningState,
 } from "@/lib/workspace/awakening-state";
+import { computeImprintConfidence } from "@/lib/workspace/imprint-confidence";
+import { loadImprintState } from "@/lib/workspace/operational-imprint-profile";
+import type { PMOperationalImprint } from "@/lib/workspace/operational-imprint-profile";
 
 type UserProject = { id: string; name: string };
 
@@ -29,6 +32,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [awakening, setAwakening] = useState<AwakeningState>(() => deriveAwakeningState(0));
+  const [imprintFocus, setImprintFocus] = useState<PMOperationalImprint["dominantFocus"] | null>(null);
   const [projects, setProjects] = useState<UserProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const initializedRef = useRef(false);
@@ -70,6 +74,11 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
   // Hydrate awakening state from localStorage and keep in sync with workspace events
   useEffect(() => {
     setAwakening(loadAwakeningState("global", "default"));
+    const imprintState = loadImprintState("global", "default", "default");
+    const confidence = computeImprintConfidence(imprintState.profile);
+    if (confidence !== "forming") {
+      setImprintFocus(imprintState.profile.dominantFocus);
+    }
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<AwakeningState>).detail;
       if (detail) setAwakening(detail);
@@ -132,7 +141,17 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
   const navHref = (href: string) => (projectId ? `${href}?projectId=${projectId}` : href);
   const navItems = computeNavigationRail(revealState);
   const primaryNav = navItems.filter((item) => item.href === "/workspace");
-  const lensNav = navItems.filter((item) => ["/dashboard", "/command-center", "/executive", "/portfolio"].includes(item.href));
+  const LENS_ORDER_BY_FOCUS: Record<PMOperationalImprint["dominantFocus"], string[]> = {
+    delivery: ["/dashboard", "/command-center", "/executive", "/portfolio"],
+    stakeholders: ["/dashboard", "/executive", "/command-center", "/portfolio"],
+    governance: ["/dashboard", "/executive", "/command-center", "/portfolio"],
+    risk: ["/dashboard", "/executive", "/command-center", "/portfolio"],
+  };
+  const lensHrefs = ["/dashboard", "/command-center", "/executive", "/portfolio"];
+  const lensOrder = imprintFocus ? LENS_ORDER_BY_FOCUS[imprintFocus] : lensHrefs;
+  const lensNav = navItems
+    .filter((item) => lensHrefs.includes(item.href))
+    .sort((a, b) => lensOrder.indexOf(a.href) - lensOrder.indexOf(b.href));
   const utilityNav = navItems.filter((item) => ["/projects", "/input-hub", "/team"].includes(item.href));
   const advancedNav = navItems.filter((item) => ![...primaryNav, ...lensNav, ...utilityNav].some((base) => base.href === item.href));
   const activeLens = DERIVED_LENS_METADATA.find((lens) => pathname.startsWith(lens.route) && ["summary", "execution", "executive", "portfolio"].includes(lens.lensType));

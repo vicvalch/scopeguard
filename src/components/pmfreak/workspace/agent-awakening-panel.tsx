@@ -1,4 +1,7 @@
 import type { AgentCluster, AwakeningState } from "@/lib/workspace/awakening-state";
+import { deriveImprintReflection } from "@/lib/workspace/imprint-confidence";
+import type { ImprintConfidence } from "@/lib/workspace/imprint-confidence";
+import type { PMOperationalImprint } from "@/lib/workspace/operational-imprint-profile";
 
 const CLUSTER_LABELS: Record<AgentCluster, string> = {
   context: "Context orientation",
@@ -19,9 +22,18 @@ const STAGE_SUMMARY: Record<AwakeningState["stage"], string> = {
   "fully-operational": "Full operational runtime active",
 };
 
-type Props = { state: AwakeningState };
+type Props = {
+  state: AwakeningState;
+  imprintProfile?: PMOperationalImprint;
+  imprintConfidence?: ImprintConfidence;
+};
 
-export function AgentAwakeningPanel({ state }: Props) {
+export function AgentAwakeningPanel({ state, imprintProfile, imprintConfidence }: Props) {
+  const reflection =
+    imprintProfile && imprintConfidence
+      ? deriveImprintReflection(imprintProfile, imprintConfidence)
+      : null;
+
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.01] p-3">
       <p className="mb-2 text-[9px] uppercase tracking-[0.28em] text-zinc-600">Agent Runtime</p>
@@ -38,6 +50,9 @@ export function AgentAwakeningPanel({ state }: Props) {
       ) : (
         <p className="text-[11px] text-zinc-700">Awaiting operational signal</p>
       )}
+      {reflection ? (
+        <p className="mt-2.5 text-[10px] text-indigo-400/70">{reflection}</p>
+      ) : null}
     </div>
   );
 }
