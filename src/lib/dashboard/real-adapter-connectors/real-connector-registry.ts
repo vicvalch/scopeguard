@@ -1,10 +1,10 @@
-import type { DashboardLiveConnectorRegistry } from '../live-adapter-connectors/index.ts'
-import { createAsanaDashboardConnector } from './asana-connector.ts'
-import { createAteneaDashboardConnector } from './atenea-connector-contract.ts'
-import { createJiraDashboardConnector } from './jira-connector.ts'
-import { createLinearDashboardConnector } from './linear-connector.ts'
-import type { AsanaClientContract, AsanaConnectorConfig, AteneaClientContract, AteneaConnectorConfig, DashboardConnectorClientHealth, JiraClientContract, JiraConnectorConfig, LinearClientContract, LinearConnectorConfig, WebhookClientContract, WebhookConnectorConfig } from './types.ts'
-import { createWebhookDashboardConnector } from './webhook-connector.ts'
+import type { DashboardLiveConnectorRegistry } from '../live-adapter-connectors/index'
+import { createAsanaDashboardConnector } from './asana-connector'
+import { createAteneaDashboardConnector } from './atenea-connector-contract'
+import { createJiraDashboardConnector } from './jira-connector'
+import { createLinearDashboardConnector } from './linear-connector'
+import type { AsanaClientContract, AsanaConnectorConfig, AteneaClientContract, AteneaConnectorConfig, DashboardConnectorClientHealth, JiraClientContract, JiraConnectorConfig, LinearClientContract, LinearConnectorConfig, WebhookClientContract, WebhookConnectorConfig } from './types'
+import { createWebhookDashboardConnector } from './webhook-connector'
 
 export interface RealDashboardConnectorRegistryInput {
   jira?: { client: JiraClientContract; config: JiraConnectorConfig }

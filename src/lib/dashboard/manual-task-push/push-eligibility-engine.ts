@@ -2,7 +2,7 @@ import type {
   DashboardManualPushRequest,
   DashboardManualPushEligibility,
   DashboardTaskProjection,
-} from './types.ts'
+} from './types'
 
 export function evaluateManualPushEligibility({
   projection,

@@ -1,4 +1,4 @@
-import type { DashboardApiRequest, DashboardApiError } from './types.ts'
+import type { DashboardApiRequest, DashboardApiError } from './types'
 
 export function validateDashboardApiRequest(input: unknown): {
   valid: boolean

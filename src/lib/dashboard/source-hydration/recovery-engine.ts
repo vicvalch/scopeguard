@@ -1,4 +1,4 @@
-import type { DashboardHydrationResult } from './types.ts'
+import type { DashboardHydrationResult } from './types'
 
 export function buildDashboardHydrationRecoveryPlan(result: DashboardHydrationResult): {
   recoveryRequired: boolean

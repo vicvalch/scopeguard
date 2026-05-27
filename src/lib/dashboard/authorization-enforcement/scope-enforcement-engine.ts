@@ -1,5 +1,5 @@
-import type { DashboardAuthorizationActor } from '../role-authorization/index.ts'
-import type { DashboardEnforcementDecisionStatus, DashboardScopeContext } from './types.ts'
+import type { DashboardAuthorizationActor } from '../role-authorization/index'
+import type { DashboardEnforcementDecisionStatus, DashboardScopeContext } from './types'
 
 export function enforceDashboardScope ({ actor, scope }: { actor?: DashboardAuthorizationActor; scope?: DashboardScopeContext }): { allowed: boolean; status: DashboardEnforcementDecisionStatus; errors: string[]; warnings: string[] } {
   if (!actor) return { allowed: false, status: 'unauthenticated', errors: ['Authentication is required.'], warnings: [] }

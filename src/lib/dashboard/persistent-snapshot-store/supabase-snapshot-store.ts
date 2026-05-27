@@ -1,7 +1,7 @@
-import type { DashboardSnapshotStore, DashboardSourceHydrationRequest, DashboardSourceSnapshot } from '../source-hydration/types.ts'
-import type { DashboardSourceSnapshotRecord } from './types.ts'
-import { mapRecordToSnapshot, mapSnapshotToRecord } from './snapshot-record-mapper.ts'
-import { DEFAULT_DASHBOARD_SNAPSHOT_TABLE } from './types.ts'
+import type { DashboardSnapshotStore, DashboardSourceHydrationRequest, DashboardSourceSnapshot } from '../source-hydration/types'
+import type { DashboardSourceSnapshotRecord } from './types'
+import { mapRecordToSnapshot, mapSnapshotToRecord } from './snapshot-record-mapper'
+import { DEFAULT_DASHBOARD_SNAPSHOT_TABLE } from './types'
 
 export function createSupabaseDashboardSnapshotStore(input: {
   supabaseClient: any

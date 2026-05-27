@@ -3,13 +3,13 @@ import type {
   DashboardApprovalDecisionType,
   DashboardApprovalRequest,
   DashboardApprovalStatus,
-} from '../approval-workflow/index.ts'
+} from '../approval-workflow/index'
 import type {
   DashboardTaskLifecycleEvent,
   DashboardTaskLifecycleRecord,
   DashboardTaskLifecycleStore,
-} from '../task-lifecycle/index.ts'
-import type { DashboardAuthorizationActor, DashboardAuthorizationDecision } from '../role-authorization/index.ts'
+} from '../task-lifecycle/index'
+import type { DashboardAuthorizationActor, DashboardAuthorizationDecision } from '../role-authorization/index'
 
 export type DashboardApprovalMutationDecision = 'approve' | 'reject' | 'request_changes' | 'defer'
 

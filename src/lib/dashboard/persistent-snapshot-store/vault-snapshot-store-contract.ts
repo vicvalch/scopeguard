@@ -3,7 +3,7 @@ import type {
   DashboardSourceHydrationRequest,
   DashboardSourceKind,
   DashboardSourceSnapshot,
-} from '../source-hydration/types.ts'
+} from '../source-hydration/types'
 
 export interface DashboardVaultSnapshotStoreContract {
   saveSnapshot(snapshot: DashboardSourceSnapshot): Promise<void>

@@ -1,4 +1,4 @@
-import type { DashboardAction, DashboardActionSLA } from './types.ts'
+import type { DashboardAction, DashboardActionSLA } from './types'
 
 export function assignDashboardActionSLA(action: DashboardAction): DashboardActionSLA {
   const base = action.priority === 'critical' ? { responseDueHours: 4, resolutionDueHours: 24, cadence: 'Daily checkpoint until resolved' }

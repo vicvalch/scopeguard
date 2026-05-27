@@ -1,6 +1,6 @@
-import type { DashboardTaskProjectionRequest, DashboardTaskProjectionReport } from './types.ts'
-import { projectDashboardActions } from './adapter-projection-engine.ts'
-import { buildDashboardTaskProjectionReport } from './adapter-report-builder.ts'
+import type { DashboardTaskProjectionRequest, DashboardTaskProjectionReport } from './types'
+import { projectDashboardActions } from './adapter-projection-engine'
+import { buildDashboardTaskProjectionReport } from './adapter-report-builder'
 
 export function runDashboardTaskAdapterRuntime(
   request: DashboardTaskProjectionRequest,

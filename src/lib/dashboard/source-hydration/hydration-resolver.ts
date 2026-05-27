@@ -1,5 +1,5 @@
-import { calculateAllSourceFreshness } from './freshness-engine.ts'
-import { validateDashboardSnapshots } from './snapshot-validator.ts'
+import { calculateAllSourceFreshness } from './freshness-engine'
+import { validateDashboardSnapshots } from './snapshot-validator'
 import {
   DASHBOARD_SOURCE_KINDS,
   type DashboardHydrationResult,
@@ -8,7 +8,7 @@ import {
   type DashboardSourceHydrationRequest,
   type DashboardSourceKind,
   type DashboardSourceSnapshot,
-} from './types.ts'
+} from './types'
 
 function computeCompleteness(
   validSnapshots: DashboardSourceSnapshot[],

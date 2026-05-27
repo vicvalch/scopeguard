@@ -1,2 +1,2 @@
-export * from "./cost/index.ts";
-export * from "./quality/index.ts";
+export * from "./cost/index";
+export * from "./quality/index";

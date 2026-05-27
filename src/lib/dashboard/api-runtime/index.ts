@@ -5,10 +5,10 @@ export type {
   DashboardApiResponse,
   DashboardApiError,
   DashboardSourceData,
-} from './types.ts'
+} from './types'
 
-export { validateDashboardApiRequest } from './request-validator.ts'
-export { resolveDashboardSourceData } from './source-data-resolver.ts'
-export { buildDashboardApiResponse, buildFallbackDTO } from './dashboard-api-response-builder.ts'
-export { buildDashboardApiErrorResponse } from './dashboard-api-error-handler.ts'
-export { runDashboardApiRuntime } from './dashboard-api-runtime.ts'
+export { validateDashboardApiRequest } from './request-validator'
+export { resolveDashboardSourceData } from './source-data-resolver'
+export { buildDashboardApiResponse, buildFallbackDTO } from './dashboard-api-response-builder'
+export { buildDashboardApiErrorResponse } from './dashboard-api-error-handler'
+export { runDashboardApiRuntime } from './dashboard-api-runtime'

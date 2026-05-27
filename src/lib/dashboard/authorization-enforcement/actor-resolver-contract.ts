@@ -1,5 +1,5 @@
-import type { DashboardAuthorizationActor } from '../role-authorization/index.ts'
-import type { DashboardActorResolver, DashboardActorResolverInput } from './types.ts'
+import type { DashboardAuthorizationActor } from '../role-authorization/index'
+import type { DashboardActorResolver, DashboardActorResolverInput } from './types'
 
 export function createStaticDashboardActorResolver (actor: DashboardAuthorizationActor | null): DashboardActorResolver {
   return async () => actor

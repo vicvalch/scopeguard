@@ -1,5 +1,5 @@
-import type { DashboardCachePolicy, DashboardCacheStatus } from './types.ts'
-import type { DashboardHydrationResult } from '../source-hydration/index.ts'
+import type { DashboardCachePolicy, DashboardCacheStatus } from './types'
+import type { DashboardHydrationResult } from '../source-hydration/index'
 
 export function evaluateDashboardCacheStatus(input: {
   hydration: DashboardHydrationResult

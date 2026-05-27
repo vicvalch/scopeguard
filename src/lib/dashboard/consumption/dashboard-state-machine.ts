@@ -2,7 +2,7 @@ import type {
   DashboardConsumptionInput,
   DashboardConsumptionStatus,
   DashboardViewModel,
-} from './types.ts'
+} from './types'
 
 export function deriveDashboardConsumptionStatus(
   input: DashboardConsumptionInput,

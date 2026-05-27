@@ -4,7 +4,7 @@ import type {
   DashboardSourceFreshness,
   DashboardSourceHydrationRequest,
   DashboardSourceKind,
-} from '../source-hydration/index.ts'
+} from '../source-hydration/index'
 
 export type DashboardCacheStatus =
   | 'usable'

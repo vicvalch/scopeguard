@@ -1,5 +1,5 @@
-import type { DashboardSourceKind } from '../source-hydration/index.ts'
-import type { DashboardSourceRefreshProvider } from './types.ts'
+import type { DashboardSourceKind } from '../source-hydration/index'
+import type { DashboardSourceRefreshProvider } from './types'
 
 export function createStaticDashboardSourceProvider(input: {
   sourceKind: DashboardSourceKind

@@ -2,13 +2,13 @@ import type {
   DashboardSourceKind,
   DashboardSourceHydrationRequest,
   DashboardSnapshotStore,
-} from '../source-hydration/index.ts'
+} from '../source-hydration/index'
 
 import type {
   DashboardRefreshAction,
   DashboardRefreshPlan,
   DashboardRefreshPriority,
-} from '../cache-refresh/index.ts'
+} from '../cache-refresh/index'
 
 export type DashboardRefreshWorkerTrigger =
   | 'manual'

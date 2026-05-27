@@ -1,5 +1,5 @@
-import type { DashboardApprovalDecision } from '../approval-workflow/index.ts'
-import type { DashboardApprovalDecisionView } from './types.ts'
+import type { DashboardApprovalDecision } from '../approval-workflow/index'
+import type { DashboardApprovalDecisionView } from './types'
 
 export function buildApprovalDecisionHistory(decisions: DashboardApprovalDecision[] = []): DashboardApprovalDecisionView[] {
   return decisions

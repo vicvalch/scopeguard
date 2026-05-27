@@ -1,8 +1,8 @@
-import type { DashboardLiveConnector } from '../live-adapter-connectors/index.ts'
-import type { DashboardProjectedTaskPayload } from '../task-adapters/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import { normalizeConnectorError } from './connector-error-normalizer.ts'
-import type { WebhookClientContract, WebhookConnectorConfig } from './types.ts'
+import type { DashboardLiveConnector } from '../live-adapter-connectors/index'
+import type { DashboardProjectedTaskPayload } from '../task-adapters/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import { normalizeConnectorError } from './connector-error-normalizer'
+import type { WebhookClientContract, WebhookConnectorConfig } from './types'
 
 export function buildWebhookPayload(input: { payload: DashboardProjectedTaskPayload; lifecycle: DashboardTaskLifecycleRecord }): any {
   return {

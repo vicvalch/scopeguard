@@ -1,8 +1,8 @@
-import { applyApprovalMutation } from './approval-mutation-engine.ts'
-import { buildApprovalMutationResult } from './approval-mutation-report-builder.ts'
-import { authorizeApprovalMutation } from './mutation-authorization-engine.ts'
-import { validateApprovalMutationRequest } from './mutation-request-validator.ts'
-import type { DashboardApprovalMutationApiResponse, DashboardApprovalMutationRuntimeInput } from './types.ts'
+import { applyApprovalMutation } from './approval-mutation-engine'
+import { buildApprovalMutationResult } from './approval-mutation-report-builder'
+import { authorizeApprovalMutation } from './mutation-authorization-engine'
+import { validateApprovalMutationRequest } from './mutation-request-validator'
+import type { DashboardApprovalMutationApiResponse, DashboardApprovalMutationRuntimeInput } from './types'
 
 export async function runDashboardApprovalMutationRuntime(input: DashboardApprovalMutationRuntimeInput): Promise<DashboardApprovalMutationApiResponse> {
   const now = input.now ?? new Date().toISOString()

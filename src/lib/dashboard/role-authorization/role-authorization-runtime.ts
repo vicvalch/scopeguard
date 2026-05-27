@@ -1,7 +1,7 @@
-import { authorizeApprovalQueueCard } from './queue-authorization-engine.ts'
-import { authorizeTaskLifecycle } from './lifecycle-authorization-engine.ts'
-import { buildDashboardRoleAuthorizationReport } from './authorization-report-builder.ts'
-import type { DashboardRoleAuthorizationInput, DashboardRoleAuthorizationReport } from './types.ts'
+import { authorizeApprovalQueueCard } from './queue-authorization-engine'
+import { authorizeTaskLifecycle } from './lifecycle-authorization-engine'
+import { buildDashboardRoleAuthorizationReport } from './authorization-report-builder'
+import type { DashboardRoleAuthorizationInput, DashboardRoleAuthorizationReport } from './types'
 
 export function runDashboardRoleAuthorization (input: DashboardRoleAuthorizationInput): DashboardRoleAuthorizationReport {
   const generatedAt = new Date().toISOString()

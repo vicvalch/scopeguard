@@ -1,10 +1,10 @@
-import { adaptPortfolioHealthPanel } from './portfolio-health-adapter.ts'
-import { adaptExecutiveSummaryCard } from './executive-summary-adapter.ts'
-import { adaptRiskTable } from './risk-table-adapter.ts'
-import { adaptDecisionWidget } from './decision-widget-adapter.ts'
-import { adaptInterventionQueue } from './intervention-queue-adapter.ts'
-import { adaptAlertPanel } from './alert-panel-adapter.ts'
-import type { DashboardRuntimeInput, PortfolioExecutiveDashboardDTO } from './types.ts'
+import { adaptPortfolioHealthPanel } from './portfolio-health-adapter'
+import { adaptExecutiveSummaryCard } from './executive-summary-adapter'
+import { adaptRiskTable } from './risk-table-adapter'
+import { adaptDecisionWidget } from './decision-widget-adapter'
+import { adaptInterventionQueue } from './intervention-queue-adapter'
+import { adaptAlertPanel } from './alert-panel-adapter'
+import type { DashboardRuntimeInput, PortfolioExecutiveDashboardDTO } from './types'
 
 export function buildPortfolioExecutiveDashboardDTO(
   input: DashboardRuntimeInput,

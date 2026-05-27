@@ -1,11 +1,11 @@
-import type { DashboardApprovalRequest } from '../approval-workflow/index.ts'
-import type { DashboardTaskLifecycleEvent, DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
+import type { DashboardApprovalRequest } from '../approval-workflow/index'
+import type { DashboardTaskLifecycleEvent, DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
 import type {
   DashboardApprovalMutationAuthorizationResult,
   DashboardApprovalMutationRequest,
   DashboardApprovalMutationResult,
   DashboardApprovalMutationStatus,
-} from './types.ts'
+} from './types'
 
 export function buildApprovalMutationResult(input: {
   mutation: DashboardApprovalMutationRequest

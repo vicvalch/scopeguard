@@ -3,9 +3,9 @@ import type {
   DashboardTaskAdapterKind,
   DashboardTaskProjection,
   DashboardTaskProjectionRequest,
-} from './types.ts'
-import { validateDashboardTaskProjection } from './adapter-validator.ts'
-import { buildDashboardTaskPayload } from './task-payload-builder.ts'
+} from './types'
+import { validateDashboardTaskProjection } from './adapter-validator'
+import { buildDashboardTaskPayload } from './task-payload-builder'
 
 export function projectDashboardActionToAdapter(input: {
   adapter: DashboardTaskAdapterKind

@@ -4,7 +4,7 @@ import type {
   DashboardSourceRefreshExecution,
   DashboardBackgroundRefreshReport,
   DashboardRefreshWorkerStatus,
-} from './types.ts'
+} from './types'
 
 export function buildDashboardBackgroundRefreshReport(input: {
   trigger: DashboardRefreshWorkerTrigger

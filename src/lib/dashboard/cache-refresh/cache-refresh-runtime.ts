@@ -1,9 +1,9 @@
-import { runDashboardSourceHydration } from '../source-hydration/index.ts'
-import { evaluateDashboardCacheStatus } from './cache-health-engine.ts'
-import { buildDashboardCacheMetadata } from './cache-metadata-engine.ts'
-import { isRefreshIntervalElapsed, resolveDashboardCachePolicy } from './cache-policy-engine.ts'
-import { buildDashboardRefreshPlan } from './refresh-planner.ts'
-import type { DashboardCacheRefreshInput, DashboardCacheRefreshResult } from './types.ts'
+import { runDashboardSourceHydration } from '../source-hydration/index'
+import { evaluateDashboardCacheStatus } from './cache-health-engine'
+import { buildDashboardCacheMetadata } from './cache-metadata-engine'
+import { isRefreshIntervalElapsed, resolveDashboardCachePolicy } from './cache-policy-engine'
+import { buildDashboardRefreshPlan } from './refresh-planner'
+import type { DashboardCacheRefreshInput, DashboardCacheRefreshResult } from './types'
 
 export async function runDashboardCacheRefresh(input: DashboardCacheRefreshInput): Promise<DashboardCacheRefreshResult> {
   const policy = resolveDashboardCachePolicy(input.policy)

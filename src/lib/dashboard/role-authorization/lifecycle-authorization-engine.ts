@@ -1,7 +1,7 @@
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import { buildDashboardAuthorizationContext } from './authorization-context-builder.ts'
-import { evaluateAuthorizationCapability } from './authorization-decision-engine.ts'
-import type { DashboardAuthorizationActor, DashboardAuthorizationCapability, DashboardAuthorizedActionAvailability, DashboardAuthorizationDecision } from './types.ts'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import { buildDashboardAuthorizationContext } from './authorization-context-builder'
+import { evaluateAuthorizationCapability } from './authorization-decision-engine'
+import type { DashboardAuthorizationActor, DashboardAuthorizationCapability, DashboardAuthorizedActionAvailability, DashboardAuthorizationDecision } from './types'
 
 const CAPS: DashboardAuthorizationCapability[] = ['view_queue_item', 'view_sensitive_item', 'trigger_manual_push', 'trigger_live_execution', 'retry_execution', 'cancel_lifecycle', 'view_audit_trail']
 const blankAvailability = (): DashboardAuthorizedActionAvailability => ({ canView: false, canViewSensitive: false, canApprove: false, canReject: false, canRequestChanges: false, canTriggerManualPush: false, canTriggerLiveExecution: false, canRetryExecution: false, canCancelLifecycle: false, canOverrideApproval: false, canViewAuditTrail: false, disabledReasons: {} })

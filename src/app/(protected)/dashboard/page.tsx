@@ -2,9 +2,9 @@ import Link from "next/link";
 import { ModuleShell } from "@/components/pmfreak/module-shell";
 import { FirstUserTelemetryEvent } from "@/components/pmfreak/telemetry/first-user-client-events";
 import { getAuthUser } from "@/lib/auth";
-import { runDashboardApiRuntime } from "@/lib/dashboard/api-runtime/index.ts";
-import { runDashboardConsumptionRuntime } from "@/lib/dashboard/consumption/index.ts";
-import { runDashboardActionCenter } from "@/lib/dashboard/action-center/index.ts";
+import { runDashboardApiRuntime } from "@/lib/dashboard/api-runtime";
+import { runDashboardConsumptionRuntime } from "@/lib/dashboard/consumption";
+import { runDashboardActionCenter } from "@/lib/dashboard/action-center";
 import { ExecutiveDashboardActionCenter } from "@/components/dashboard/action-center";
 import { WorkspaceContextBanner } from "@/components/pmfreak/workspace/workspace-context-banner";
 

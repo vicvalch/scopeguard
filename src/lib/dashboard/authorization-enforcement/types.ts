@@ -2,10 +2,10 @@ import type {
   DashboardAuthorizationActor,
   DashboardAuthorizationCapability,
   DashboardAuthorizationDecision,
-} from '../role-authorization/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import type { DashboardApprovalQueueCard } from '../approval-queue-ui/index.ts'
-import type { DashboardApprovalMutationRequest } from '../approval-mutations/index.ts'
+} from '../role-authorization/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import type { DashboardApprovalQueueCard } from '../approval-queue-ui/index'
+import type { DashboardApprovalMutationRequest } from '../approval-mutations/index'
 
 export type DashboardEnforcementDecisionStatus =
   | 'allowed'

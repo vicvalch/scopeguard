@@ -1,10 +1,10 @@
-import type { DashboardSourceHydrationRequest, DashboardSourceSnapshot } from '../source-hydration/types.ts'
-import { createPersistentDashboardSnapshotStore, getPersistentSnapshotStoreHealth } from './snapshot-store-factory.ts'
+import type { DashboardSourceHydrationRequest, DashboardSourceSnapshot } from '../source-hydration/types'
+import { createPersistentDashboardSnapshotStore, getPersistentSnapshotStoreHealth } from './snapshot-store-factory'
 import type {
   PersistentSnapshotStoreConfig,
   PersistentSnapshotStoreHealth,
   PersistentSnapshotStoreProvider,
-} from './types.ts'
+} from './types'
 
 export function runPersistentSnapshotStoreHealthCheck(config: PersistentSnapshotStoreConfig): PersistentSnapshotStoreHealth {
   return getPersistentSnapshotStoreHealth(config)

@@ -1,8 +1,8 @@
-import { assignDashboardActionOwnerLane } from './owner-lane-engine.ts'
-import { assignDashboardActionExecutionLane } from './execution-lane-engine.ts'
-import { assignDashboardActionSLA } from './sla-engine.ts'
-import { buildDashboardActionEscalationRoute } from './escalation-routing-engine.ts'
-import type { DashboardAction, DashboardActionPriority } from './types.ts'
+import { assignDashboardActionOwnerLane } from './owner-lane-engine'
+import { assignDashboardActionExecutionLane } from './execution-lane-engine'
+import { assignDashboardActionSLA } from './sla-engine'
+import { buildDashboardActionEscalationRoute } from './escalation-routing-engine'
+import type { DashboardAction, DashboardActionPriority } from './types'
 
 const rank: Record<DashboardActionPriority, number> = { critical: 0, high: 1, medium: 2, low: 3 }
 

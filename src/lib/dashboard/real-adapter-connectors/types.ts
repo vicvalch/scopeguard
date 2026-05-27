@@ -1,5 +1,5 @@
-import type { DashboardLiveConnector } from '../live-adapter-connectors/index.ts'
-import type { DashboardProjectedTaskPayload, DashboardTaskAdapterKind } from '../task-adapters/index.ts'
+import type { DashboardLiveConnector } from '../live-adapter-connectors/index'
+import type { DashboardProjectedTaskPayload, DashboardTaskAdapterKind } from '../task-adapters/index'
 
 export type { DashboardLiveConnector, DashboardProjectedTaskPayload, DashboardTaskAdapterKind }
 

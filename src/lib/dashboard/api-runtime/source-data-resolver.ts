@@ -1,4 +1,4 @@
-import type { DashboardApiRequest, DashboardSourceData } from './types.ts'
+import type { DashboardApiRequest, DashboardSourceData } from './types'
 
 export function resolveDashboardSourceData(
   _request: DashboardApiRequest,

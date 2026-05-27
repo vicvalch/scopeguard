@@ -1,8 +1,8 @@
-import { createInMemoryDashboardSnapshotStore } from '../source-hydration/snapshot-store.ts'
-import type { DashboardSnapshotStore } from '../source-hydration/types.ts'
-import { createSupabaseDashboardSnapshotStore } from './supabase-snapshot-store.ts'
-import type { PersistentSnapshotStoreConfig, PersistentSnapshotStoreHealth } from './types.ts'
-import { createVaultDashboardSnapshotStore } from './vault-snapshot-store-contract.ts'
+import { createInMemoryDashboardSnapshotStore } from '../source-hydration/snapshot-store'
+import type { DashboardSnapshotStore } from '../source-hydration/types'
+import { createSupabaseDashboardSnapshotStore } from './supabase-snapshot-store'
+import type { PersistentSnapshotStoreConfig, PersistentSnapshotStoreHealth } from './types'
+import { createVaultDashboardSnapshotStore } from './vault-snapshot-store-contract'
 
 export function createPersistentDashboardSnapshotStore(config: PersistentSnapshotStoreConfig): DashboardSnapshotStore {
   switch (config.provider) {

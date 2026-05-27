@@ -2,13 +2,13 @@ import {
   buildDashboardAuthorizationContext,
   evaluateAuthorizationCapability,
   resolveActorCapabilities,
-} from '../role-authorization/index.ts'
-import { mapEnforcementStatusToHttpStatus } from './enforcement-response-builder.ts'
-import { enforceDashboardScope } from './scope-enforcement-engine.ts'
+} from '../role-authorization/index'
+import { mapEnforcementStatusToHttpStatus } from './enforcement-response-builder'
+import { enforceDashboardScope } from './scope-enforcement-engine'
 import type {
   DashboardAuthorizationEnforcementRequest,
   DashboardAuthorizationEnforcementResult,
-} from './types.ts'
+} from './types'
 
 export function enforceDashboardCapabilities (request: DashboardAuthorizationEnforcementRequest): DashboardAuthorizationEnforcementResult {
   if (!request.actor) {

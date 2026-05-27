@@ -1,8 +1,8 @@
-import type { DashboardLiveConnector } from '../live-adapter-connectors/index.ts'
-import type { DashboardProjectedTaskPayload } from '../task-adapters/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import { normalizeConnectorError } from './connector-error-normalizer.ts'
-import type { AteneaClientContract, AteneaConnectorConfig } from './types.ts'
+import type { DashboardLiveConnector } from '../live-adapter-connectors/index'
+import type { DashboardProjectedTaskPayload } from '../task-adapters/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import { normalizeConnectorError } from './connector-error-normalizer'
+import type { AteneaClientContract, AteneaConnectorConfig } from './types'
 
 function inferRecordType(payload: DashboardProjectedTaskPayload, config: AteneaConnectorConfig) {
   if (config.defaultRecordType) return config.defaultRecordType

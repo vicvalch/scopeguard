@@ -1,6 +1,6 @@
 import type { DashboardAction } from '../action-center'
-import type { DashboardTaskAdapterKind, DashboardProjectedTaskPayload } from './types.ts'
-import { getDashboardTaskAdapterCapabilities } from './adapter-capability-engine.ts'
+import type { DashboardTaskAdapterKind, DashboardProjectedTaskPayload } from './types'
+import { getDashboardTaskAdapterCapabilities } from './adapter-capability-engine'
 
 const PRIORITY_MAP: Record<string, string> = {
   critical: 'highest',

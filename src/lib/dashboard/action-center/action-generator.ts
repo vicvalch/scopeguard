@@ -1,4 +1,4 @@
-import type { DashboardAction, DashboardActionCenterInput, DashboardActionType } from './types.ts'
+import type { DashboardAction, DashboardActionCenterInput, DashboardActionType } from './types'
 
 const mk = (id: string, type: DashboardActionType, title: string, description: string, source: string, sourceId?: string, signal: Record<string, any> = {}, affectedProjects: string[] = [], rationale = '', evidenceRequired: string[] = []): DashboardAction => ({
   id, type, title, description, priority: 'medium', status: 'proposed', ownerLane: 'project_manager', executionLane: 'portfolio_governance', affectedProjects, source, sourceId, sla: { responseDueHours: 24, resolutionDueHours: 120, cadence: 'Twice weekly follow-up' }, escalationRoute: { required: false }, evidenceRequired, rationale, signal,

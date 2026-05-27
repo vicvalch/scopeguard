@@ -1,8 +1,8 @@
-import type { DashboardApprovalDecision, DashboardApprovalRequest, DashboardApprovalStatus } from '../approval-workflow/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import { deriveApprovalActionAvailability } from './approval-action-engine.ts'
-import { buildApprovalDecisionHistory } from './approval-history-engine.ts'
-import type { DashboardApprovalQueueCard, DashboardApprovalQueueCardState, DashboardApprovalQueueSeverity } from './types.ts'
+import type { DashboardApprovalDecision, DashboardApprovalRequest, DashboardApprovalStatus } from '../approval-workflow/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import { deriveApprovalActionAvailability } from './approval-action-engine'
+import { buildApprovalDecisionHistory } from './approval-history-engine'
+import type { DashboardApprovalQueueCard, DashboardApprovalQueueCardState, DashboardApprovalQueueSeverity } from './types'
 
 function deriveState(lifecycle: DashboardTaskLifecycleRecord, approvalStatus: DashboardApprovalStatus): DashboardApprovalQueueCardState {
   if (lifecycle.status === 'execution_failed' && lifecycle.retryCount > 0) return 'retry_attention'

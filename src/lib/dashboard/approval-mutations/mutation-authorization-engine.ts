@@ -1,11 +1,11 @@
-import type { DashboardApprovalRequest } from '../approval-workflow/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import { buildDashboardAuthorizationContext, inferSensitiveItemType, evaluateAuthorizationCapability } from '../role-authorization/index.ts'
+import type { DashboardApprovalRequest } from '../approval-workflow/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import { buildDashboardAuthorizationContext, inferSensitiveItemType, evaluateAuthorizationCapability } from '../role-authorization/index'
 import type {
   DashboardApprovalMutationAuthorizationResult,
   DashboardApprovalMutationDecision,
   DashboardApprovalMutationRequest,
-} from './types.ts'
+} from './types'
 
 function mapDecisionToCapability(decision: DashboardApprovalMutationDecision): 'approve' | 'reject' | 'request_changes' {
   if (decision === 'approve') return 'approve'
@@ -37,7 +37,7 @@ export function authorizeApprovalMutation(input: {
           retryCount: 0,
           createdAt: approvalRequest.requestedAt,
           updatedAt: approvalRequest.requestedAt,
-        } as DashboardTaskLifecycleRecord),
+        } as unknown as DashboardTaskLifecycleRecord),
   })
 
   const capabilityDecision = evaluateAuthorizationCapability({ capability, context })

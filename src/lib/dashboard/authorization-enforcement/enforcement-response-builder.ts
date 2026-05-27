@@ -2,7 +2,7 @@ import type {
   DashboardAuthorizationApiError,
   DashboardAuthorizationEnforcementResult,
   DashboardEnforcementDecisionStatus,
-} from './types.ts'
+} from './types'
 
 export function mapEnforcementStatusToHttpStatus (status: DashboardEnforcementDecisionStatus): number {
   if (status === 'allowed') return 200

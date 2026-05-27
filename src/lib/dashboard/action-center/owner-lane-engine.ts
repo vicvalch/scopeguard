@@ -1,4 +1,4 @@
-import type { DashboardAction, DashboardActionOwnerLane } from './types.ts'
+import type { DashboardAction, DashboardActionOwnerLane } from './types'
 
 const OWNER_LANES = new Set<DashboardActionOwnerLane>([
   'project_manager','pmo_director','technical_lead','finance_lead','logistics_lead','executive_sponsor','client_owner','vendor_owner','system_runtime',

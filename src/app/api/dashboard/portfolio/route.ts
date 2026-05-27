@@ -1,5 +1,5 @@
 import { getAuthUser } from '@/lib/auth'
-import { runDashboardApiRuntime } from '@/lib/dashboard/api-runtime/index.ts'
+import { runDashboardApiRuntime } from '@/lib/dashboard/api-runtime'
 
 export async function GET() {
   const user = await getAuthUser()

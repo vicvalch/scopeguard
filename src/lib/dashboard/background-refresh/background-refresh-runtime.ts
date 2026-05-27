@@ -1,10 +1,10 @@
 import type {
   DashboardBackgroundRefreshRequest,
   DashboardBackgroundRefreshReport,
-} from './types.ts'
-import { planDashboardBackgroundRefresh } from './refresh-execution-planner.ts'
-import { executeDashboardRefreshActions } from './refresh-executor.ts'
-import { buildDashboardBackgroundRefreshReport } from './refresh-result-engine.ts'
+} from './types'
+import { planDashboardBackgroundRefresh } from './refresh-execution-planner'
+import { executeDashboardRefreshActions } from './refresh-executor'
+import { buildDashboardBackgroundRefreshReport } from './refresh-result-engine'
 
 export async function runDashboardBackgroundRefresh(
   request: DashboardBackgroundRefreshRequest,

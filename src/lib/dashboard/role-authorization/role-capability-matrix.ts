@@ -1,4 +1,4 @@
-import type { DashboardAuthorizationActor, DashboardAuthorizationCapability, DashboardActorRole } from './types.ts'
+import type { DashboardAuthorizationActor, DashboardAuthorizationCapability, DashboardActorRole } from './types'
 
 export const DASHBOARD_CAPABILITY_ORDER: DashboardAuthorizationCapability[] = [
   'view_queue_item','view_sensitive_item','approve','reject','request_changes','trigger_manual_push','trigger_live_execution','retry_execution','cancel_lifecycle','override_approval','view_audit_trail',
