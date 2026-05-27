@@ -7,12 +7,17 @@ import { redirect } from "next/navigation";
 import { isFounderOrInternalUser } from "@/lib/auth";
 import { ensureUserWorkspace } from "@/lib/workspaces";
 import { resolvePostAuthDestination } from "@/lib/auth/resolve-post-auth-destination";
+import { isSafeContinuationRoute } from "@/lib/auth/validate-continuation-route";
+import { headers } from "next/headers";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const continuity = await assertRuntimeAuthContinuity();
   if (!continuity.ok) {
+    const headersList = await headers();
+    const currentPath = headersList.get("x-pathname") ?? "/workspace";
+    const nextParam = isSafeContinuationRoute(currentPath) ? currentPath : "/workspace";
     const decision = resolvePostAuthDestination({ isAuthenticated: false, onboardingCompleted: false });
-    redirect(`${decision.destination}?next=${encodeURIComponent("/workspace")}`);
+    redirect(`${decision.destination}?next=${encodeURIComponent(nextParam)}`);
   }
 
   const user = await requireAuthUser();
