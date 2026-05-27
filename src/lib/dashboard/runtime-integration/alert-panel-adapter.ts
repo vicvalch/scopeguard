@@ -1,4 +1,4 @@
-import type { AlertPanelItemDTO } from './types.ts'
+import type { AlertPanelItemDTO } from './types'
 
 const MAX_ALERTS = 12
 

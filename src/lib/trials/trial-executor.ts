@@ -35,7 +35,7 @@ export async function executeTrialScenario(scenario: TrialScenario): Promise<Tri
     contradictionResult.hasContradiction,
     `trial:${scenario.category}`,
     languageDetection.language,
-    normalizedConcepts,
+    normalizedConcepts.concepts,
     [],
   );
 
@@ -44,7 +44,7 @@ export async function executeTrialScenario(scenario: TrialScenario): Promise<Tri
     pmfreakResponse,
     runtimeConfidence: trace.confidence,
     traceSummary: trace.reasoningPath,
-    normalizedConcepts: normalizedConcepts.map((concept) => concept.canonical),
+    normalizedConcepts: normalizedConcepts.concepts,
     language: languageDetection.language,
     imprintContext: imprint.profile.dominantFocus,
     contradiction: contradictionResult.hasContradiction ? "contradiction-detected" : "clear",

@@ -1,4 +1,4 @@
-import type { DashboardAction, DashboardActionExecutionLane } from './types.ts'
+import type { DashboardAction, DashboardActionExecutionLane } from './types'
 
 export function assignDashboardActionExecutionLane(action: DashboardAction): DashboardActionExecutionLane {
   switch (action.type) {

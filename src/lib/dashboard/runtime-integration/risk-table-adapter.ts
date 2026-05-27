@@ -1,4 +1,4 @@
-import type { DashboardSeverity, RiskTableRowDTO } from './types.ts'
+import type { DashboardSeverity, RiskTableRowDTO } from './types'
 
 const MAX_RISK_ROWS = 10
 

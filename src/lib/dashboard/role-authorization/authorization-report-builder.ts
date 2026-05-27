@@ -1,4 +1,4 @@
-import type { DashboardAuthorizationActor, DashboardRoleAuthorizationReport } from './types.ts'
+import type { DashboardAuthorizationActor, DashboardRoleAuthorizationReport } from './types'
 
 export function buildDashboardRoleAuthorizationReport ({ actor, generatedAt, cardAuthorizations, lifecycleAuthorizations }: { actor: DashboardAuthorizationActor; generatedAt: string; cardAuthorizations: DashboardRoleAuthorizationReport['cardAuthorizations']; lifecycleAuthorizations: DashboardRoleAuthorizationReport['lifecycleAuthorizations'] }): DashboardRoleAuthorizationReport {
   const totalCards = cardAuthorizations.length

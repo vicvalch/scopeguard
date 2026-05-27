@@ -3,7 +3,7 @@ import {
   type DashboardSnapshotStore,
   type DashboardSourceHydrationRequest,
   type DashboardSourceSnapshot,
-} from './types.ts'
+} from './types'
 
 export function buildDashboardSnapshotKey(input: {
   tenantId: string

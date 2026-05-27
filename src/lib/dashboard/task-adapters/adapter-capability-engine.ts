@@ -1,4 +1,4 @@
-import type { DashboardTaskAdapterKind, DashboardTaskAdapterCapability } from './types.ts'
+import type { DashboardTaskAdapterKind, DashboardTaskAdapterCapability } from './types'
 
 const CAPABILITY_MATRIX: Record<DashboardTaskAdapterKind, DashboardTaskAdapterCapability> = {
   jira: {

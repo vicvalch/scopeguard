@@ -1,12 +1,12 @@
-import { hydrateDashboardSourceData } from './hydration-resolver.ts'
-import { buildDashboardHydrationRecoveryPlan } from './recovery-engine.ts'
-import { validateDashboardSnapshots } from './snapshot-validator.ts'
+import { hydrateDashboardSourceData } from './hydration-resolver'
+import { buildDashboardHydrationRecoveryPlan } from './recovery-engine'
+import { validateDashboardSnapshots } from './snapshot-validator'
 import type {
   DashboardHydrationResult,
   DashboardSnapshotStore,
   DashboardSourceHydrationRequest,
   DashboardSourceSnapshot,
-} from './types.ts'
+} from './types'
 
 export async function runDashboardSourceHydration(input: {
   request: DashboardSourceHydrationRequest

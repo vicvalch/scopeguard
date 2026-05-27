@@ -1,8 +1,8 @@
-import type { DashboardApprovalDecision } from '../approval-workflow/index.ts'
-import { buildApprovalQueueCard } from './approval-card-builder.ts'
-import { groupApprovalCardsByApproverLane, groupApprovalCardsBySeverity } from './approval-grouping-engine.ts'
-import { buildApprovalQueueSummary } from './approval-summary-engine.ts'
-import type { DashboardApprovalQueueReport, DashboardApprovalQueueRuntimeInput } from './types.ts'
+import type { DashboardApprovalDecision } from '../approval-workflow/index'
+import { buildApprovalQueueCard } from './approval-card-builder'
+import { groupApprovalCardsByApproverLane, groupApprovalCardsBySeverity } from './approval-grouping-engine'
+import { buildApprovalQueueSummary } from './approval-summary-engine'
+import type { DashboardApprovalQueueReport, DashboardApprovalQueueRuntimeInput } from './types'
 
 export function runDashboardApprovalQueueRuntime(input: DashboardApprovalQueueRuntimeInput): DashboardApprovalQueueReport {
   const generatedAt = input.now ?? new Date().toISOString()

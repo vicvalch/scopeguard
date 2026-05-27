@@ -1,4 +1,4 @@
-import type { DashboardCardStatus, PortfolioHealthPanelDTO } from './types.ts'
+import type { DashboardCardStatus, PortfolioHealthPanelDTO } from './types'
 
 function resolveHealthStatus(score: number): DashboardCardStatus {
   if (score >= 80) return 'healthy'

@@ -2,7 +2,7 @@ import type {
   DashboardConsumptionInput,
   DashboardConsumptionError,
   DashboardViewModel,
-} from './types.ts'
+} from './types'
 
 function makeBaseViewModel(): DashboardViewModel {
   return {

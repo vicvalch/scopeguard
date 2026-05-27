@@ -1,4 +1,4 @@
-import type { DashboardApprovalQueueCard, DashboardApprovalQueueSummary } from './types.ts'
+import type { DashboardApprovalQueueCard, DashboardApprovalQueueSummary } from './types'
 
 export function buildApprovalQueueSummary(cards: DashboardApprovalQueueCard[]): DashboardApprovalQueueSummary {
   const summary: DashboardApprovalQueueSummary = {

@@ -4,8 +4,8 @@ import type {
   DashboardManualPushEnvelope,
   DashboardManualPushStatus,
   DashboardTaskProjection,
-} from './types.ts'
-import { filterEligibleManualPushProjections } from './push-eligibility-engine.ts'
+} from './types'
+import { filterEligibleManualPushProjections } from './push-eligibility-engine'
 
 export function buildManualPushEnvelope({
   projection,

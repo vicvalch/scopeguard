@@ -1,5 +1,5 @@
-import type { DashboardSourceKind, DashboardSourceSnapshot } from '../source-hydration/types.ts'
-import type { DashboardSourceSnapshotRecord } from './types.ts'
+import type { DashboardSourceKind, DashboardSourceSnapshot } from '../source-hydration/types'
+import type { DashboardSourceSnapshotRecord } from './types'
 
 export function mapSnapshotToRecord(snapshot: DashboardSourceSnapshot): DashboardSourceSnapshotRecord {
   return {

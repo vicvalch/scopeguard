@@ -3,7 +3,7 @@ import {
   type DashboardSourceFreshness,
   type DashboardSourceKind,
   type DashboardSourceSnapshot,
-} from './types.ts'
+} from './types'
 
 export function calculateSourceFreshness(
   snapshot: DashboardSourceSnapshot | null,

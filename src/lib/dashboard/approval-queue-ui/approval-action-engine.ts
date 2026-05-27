@@ -1,6 +1,6 @@
-import type { DashboardApprovalStatus } from '../approval-workflow/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import type { DashboardApprovalActionAvailability } from './types.ts'
+import type { DashboardApprovalStatus } from '../approval-workflow/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import type { DashboardApprovalActionAvailability } from './types'
 
 export function deriveApprovalActionAvailability({
   approvalStatus,

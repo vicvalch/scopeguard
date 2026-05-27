@@ -21,6 +21,9 @@ export async function executeLifecycleThroughConnector(input: {
     return { ...base, status: 'failed', message, retryable: false, error: message }
   }
 
+
+  if (!connector) return { ...base, status: 'failed', message: 'Connector unavailable after validation.', retryable: false, error: 'connector_unavailable' }
+
   try {
     const response = await connector.execute({ payload: payloadResolution.payload, lifecycle, mode, now })
     if (response.status === 'created') return { ...base, status: 'executed', externalTaskId: response.externalTaskId, message: response.message, retryable: Boolean(response.retryable) }

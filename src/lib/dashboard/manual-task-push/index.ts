@@ -9,10 +9,10 @@ export type {
   DashboardManualPushEnvelope,
   DashboardManualPushSimulation,
   DashboardManualPushReport,
-} from './types.ts'
+} from './types'
 
-export { evaluateManualPushEligibility, filterEligibleManualPushProjections } from './push-eligibility-engine.ts'
-export { buildManualPushEnvelope, buildManualPushEnvelopes } from './push-envelope-builder.ts'
-export { simulateManualTaskPush } from './push-simulation-engine.ts'
-export { buildManualTaskPushReport } from './push-report-builder.ts'
-export { runDashboardManualTaskPush } from './manual-task-push-runtime.ts'
+export { evaluateManualPushEligibility, filterEligibleManualPushProjections } from './push-eligibility-engine'
+export { buildManualPushEnvelope, buildManualPushEnvelopes } from './push-envelope-builder'
+export { simulateManualTaskPush } from './push-simulation-engine'
+export { buildManualTaskPushReport } from './push-report-builder'
+export { runDashboardManualTaskPush } from './manual-task-push-runtime'

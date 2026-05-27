@@ -1,7 +1,7 @@
-import type { DashboardApprovalApproverLane } from '../approval-workflow/index.ts'
-import type { DashboardApprovalQueueCard } from '../approval-queue-ui/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import type { DashboardAuthorizationActor, DashboardAuthorizationContext, DashboardSensitiveItemType } from './types.ts'
+import type { DashboardApprovalApproverLane } from '../approval-workflow/index'
+import type { DashboardApprovalQueueCard } from '../approval-queue-ui/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import type { DashboardAuthorizationActor, DashboardAuthorizationContext, DashboardSensitiveItemType } from './types'
 
 const FINANCIAL_PATTERNS = ['finance', 'financial', 'budget', 'payment', 'invoice', 'po']
 

@@ -2,7 +2,7 @@ import type {
   DashboardManualPushEnvelope,
   DashboardManualPushSimulation,
   DashboardManualPushStatus,
-} from './types.ts'
+} from './types'
 
 export function simulateManualTaskPush({
   envelopes,

@@ -17,7 +17,7 @@ export function resolveLanguagePreference(input: {
     return { preferredLanguage: currentDetection.language, source: "current-input", shouldMirrorUser: true };
   }
 
-  if (currentDetection.mixed && (currentDetection.confidence === "medium" || currentDetection.confidence === "high")) {
+  if (currentDetection.mixed && currentDetection.confidence === "medium") {
     return { preferredLanguage: currentDetection.language, source: "current-input", shouldMirrorUser: true };
   }
 

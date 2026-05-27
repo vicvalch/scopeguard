@@ -1,9 +1,9 @@
-import type { DashboardRefreshAction } from '../cache-refresh/index.ts'
-import type { DashboardSourceSnapshot } from '../source-hydration/index.ts'
+import type { DashboardRefreshAction } from '../cache-refresh/index'
+import type { DashboardSourceSnapshot } from '../source-hydration/index'
 import type {
   DashboardBackgroundRefreshRequest,
   DashboardSourceRefreshExecution,
-} from './types.ts'
+} from './types'
 
 export async function executeDashboardRefreshActions(input: {
   request: DashboardBackgroundRefreshRequest

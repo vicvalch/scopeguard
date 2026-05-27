@@ -1,4 +1,4 @@
-import type { DashboardSeverity, InterventionQueueItemDTO } from './types.ts'
+import type { DashboardSeverity, InterventionQueueItemDTO } from './types'
 
 const MAX_INTERVENTIONS = 15
 

@@ -1,5 +1,5 @@
 import type { DashboardAction } from '../action-center'
-import type { DashboardTaskAdapterKind } from './types.ts'
+import type { DashboardTaskAdapterKind } from './types'
 
 const KNOWN_ADAPTERS = new Set<DashboardTaskAdapterKind>([
   'jira', 'linear', 'asana', 'clickup', 'email_queue', 'atenea', 'internal_runtime',

@@ -1,5 +1,5 @@
-import type { DashboardApprovalDecisionType, DashboardApprovalDecision } from '../approval-workflow/index.ts'
-import type { DashboardApprovalMutationDecision, DashboardApprovalMutationRequest } from './types.ts'
+import type { DashboardApprovalDecisionType, DashboardApprovalDecision } from '../approval-workflow/index'
+import type { DashboardApprovalMutationDecision, DashboardApprovalMutationRequest } from './types'
 
 export function mapMutationToApprovalDecisionType(decision: DashboardApprovalMutationDecision): DashboardApprovalDecisionType {
   if (decision === 'approve') return 'approve'

@@ -1,9 +1,9 @@
-import { authorizeTaskLifecycle } from '../role-authorization/index.ts'
-import { mapEnforcementStatusToHttpStatus } from './enforcement-response-builder.ts'
-import { enforceDashboardScope } from './scope-enforcement-engine.ts'
-import type { DashboardAuthorizationActor } from '../role-authorization/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import type { DashboardAuthorizationEnforcementResult, DashboardScopeContext } from './types.ts'
+import { authorizeTaskLifecycle } from '../role-authorization/index'
+import { mapEnforcementStatusToHttpStatus } from './enforcement-response-builder'
+import { enforceDashboardScope } from './scope-enforcement-engine'
+import type { DashboardAuthorizationActor } from '../role-authorization/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import type { DashboardAuthorizationEnforcementResult, DashboardScopeContext } from './types'
 
 function enforceLifecycleCapability ({ actor, lifecycle, scope, resourceType, required, allowedFlag }: { actor?: DashboardAuthorizationActor; lifecycle?: DashboardTaskLifecycleRecord; scope?: DashboardScopeContext; resourceType: 'task_lifecycle' | 'live_execution'; required: 'trigger_live_execution' | 'retry_execution' | 'cancel_lifecycle'; allowedFlag: 'canTriggerLiveExecution' | 'canRetryExecution' | 'canCancelLifecycle' }): DashboardAuthorizationEnforcementResult {
   if (!actor) return { status: 'unauthenticated', allowed: false, resourceType, decisions: [], errors: ['Authentication is required.'], warnings: [], httpStatus: mapEnforcementStatusToHttpStatus('unauthenticated') }

@@ -1,4 +1,4 @@
-import type { DashboardRefreshAction, DashboardRefreshPriority } from './types.ts'
+import type { DashboardRefreshAction, DashboardRefreshPriority } from './types'
 
 const PRIORITY_ORDER: Record<DashboardRefreshPriority, number> = {
   critical: 0,

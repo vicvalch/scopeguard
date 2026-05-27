@@ -1,4 +1,4 @@
-import type { DashboardApprovalMutationDecision, DashboardApprovalMutationValidationResult } from './types.ts'
+import type { DashboardApprovalMutationDecision, DashboardApprovalMutationValidationResult } from './types'
 
 const MUTATION_DECISIONS: DashboardApprovalMutationDecision[] = ['approve', 'reject', 'request_changes', 'defer']
 

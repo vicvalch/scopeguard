@@ -1,7 +1,7 @@
-import type { DashboardManualPushRequest, DashboardManualPushReport } from './types.ts'
-import { buildManualPushEnvelopes } from './push-envelope-builder.ts'
-import { simulateManualTaskPush } from './push-simulation-engine.ts'
-import { buildManualTaskPushReport } from './push-report-builder.ts'
+import type { DashboardManualPushRequest, DashboardManualPushReport } from './types'
+import { buildManualPushEnvelopes } from './push-envelope-builder'
+import { simulateManualTaskPush } from './push-simulation-engine'
+import { buildManualTaskPushReport } from './push-report-builder'
 
 export function runDashboardManualTaskPush(
   request: DashboardManualPushRequest,

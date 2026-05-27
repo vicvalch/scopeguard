@@ -1,4 +1,4 @@
-import type { DashboardCardStatus, ExecutiveSummaryCardDTO } from './types.ts'
+import type { DashboardCardStatus, ExecutiveSummaryCardDTO } from './types'
 
 function resolveStatusFromScore(score: number): DashboardCardStatus {
   if (score >= 80) return 'healthy'

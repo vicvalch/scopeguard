@@ -1,9 +1,9 @@
-import { applyDashboardApprovalDecision, deriveDashboardEnvelopeExecutionGate } from '../approval-workflow/index.ts'
-import { mergeApprovalIntoLifecycle } from '../task-lifecycle/index.ts'
-import type { DashboardTaskLifecycleEvent, DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import type { DashboardApprovalRequest } from '../approval-workflow/index.ts'
-import { buildApprovalDecisionFromMutation } from './approval-decision-builder.ts'
-import type { DashboardApprovalMutationRequest } from './types.ts'
+import { applyDashboardApprovalDecision, deriveDashboardEnvelopeExecutionGate } from '../approval-workflow/index'
+import { mergeApprovalIntoLifecycle } from '../task-lifecycle/index'
+import type { DashboardTaskLifecycleEvent, DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import type { DashboardApprovalRequest } from '../approval-workflow/index'
+import { buildApprovalDecisionFromMutation } from './approval-decision-builder'
+import type { DashboardApprovalMutationRequest } from './types'
 
 export function applyApprovalMutation(input: {
   mutation: DashboardApprovalMutationRequest

@@ -1,10 +1,10 @@
-import type { DashboardAction, DashboardActionEscalationRoute } from './types.ts'
+import type { DashboardAction, DashboardActionEscalationRoute } from './types'
 
 export function buildDashboardActionEscalationRoute(action: DashboardAction): DashboardActionEscalationRoute {
   const required = action.priority === 'critical' || action.type === 'review_executive_decision' || action.type === 'escalate_dashboard_alert' ||
-    (action.type === 'review_financial_exposure' && (action.priority === 'high' || action.priority === 'critical')) ||
-    (action.type === 'resolve_portfolio_risk' && action.priority === 'critical') ||
-    (action.type === 'execute_pmo_intervention' && action.priority === 'critical')
+    (action.type === 'review_financial_exposure' && action.priority === 'high') ||
+    action.type === 'resolve_portfolio_risk' ||
+    action.type === 'execute_pmo_intervention'
 
   if (!required) return { required: false, reason: 'Escalation not required by current priority and type policy.' }
   if (action.type === 'review_executive_decision') return { required: true, routeTo: 'executive_sponsor', reason: 'Executive decisions require executive sponsorship oversight.' }

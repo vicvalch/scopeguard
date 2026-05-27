@@ -4,7 +4,7 @@ import type {
   DashboardManualPushEnvelope,
   DashboardManualPushSimulation,
   DashboardManualPushReport,
-} from './types.ts'
+} from './types'
 
 export function buildManualTaskPushReport({
   request,

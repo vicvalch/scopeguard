@@ -2,16 +2,16 @@ import {
   authorizeApprovalQueueCard,
   buildDashboardAuthorizationContext,
   evaluateAuthorizationCapability,
-} from '../role-authorization/index.ts'
-import { mapEnforcementStatusToHttpStatus } from './enforcement-response-builder.ts'
-import { enforceDashboardScope } from './scope-enforcement-engine.ts'
-import type { DashboardApprovalMutationDecision } from '../approval-mutations/index.ts'
-import type { DashboardAuthorizationCapability } from '../role-authorization/index.ts'
-import type { DashboardAuthorizationEnforcementResult, DashboardScopeContext } from './types.ts'
-import type { DashboardAuthorizationActor } from '../role-authorization/index.ts'
-import type { DashboardApprovalMutationRequest } from '../approval-mutations/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import type { DashboardApprovalQueueCard } from '../approval-queue-ui/index.ts'
+} from '../role-authorization/index'
+import { mapEnforcementStatusToHttpStatus } from './enforcement-response-builder'
+import { enforceDashboardScope } from './scope-enforcement-engine'
+import type { DashboardApprovalMutationDecision } from '../approval-mutations/index'
+import type { DashboardAuthorizationCapability } from '../role-authorization/index'
+import type { DashboardAuthorizationEnforcementResult, DashboardScopeContext } from './types'
+import type { DashboardAuthorizationActor } from '../role-authorization/index'
+import type { DashboardApprovalMutationRequest } from '../approval-mutations/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import type { DashboardApprovalQueueCard } from '../approval-queue-ui/index'
 
 const MAP: Record<DashboardApprovalMutationDecision, DashboardAuthorizationCapability> = { approve: 'approve', reject: 'reject', request_changes: 'request_changes', defer: 'request_changes' }
 

@@ -1,4 +1,4 @@
-export type ActivationStage =
+export type RuntimeActivationStage =
   | 'initializing'
   | 'context_ingestion'
   | 'memory_alignment'
@@ -9,10 +9,10 @@ export type ActivationStage =
 export type OnboardingPosture = 'assistive' | 'guided' | 'adaptive' | 'enterprise_divergent' | 'reactivation';
 
 export type OperationalActivationRuntimeState = {
-  currentActivationStage: ActivationStage;
+  currentActivationStage: RuntimeActivationStage;
   activationRuntimeVersion: string;
   activationRuntimeCursor: number;
-  activationTimeline: Array<{ at: string; stage: ActivationStage; eventId: string }>;
+  activationTimeline: Array<{ at: string; stage: RuntimeActivationStage; eventId: string }>;
   activationScore: number;
   operationalReadinessScore: number;
   continuityConfidence: number;

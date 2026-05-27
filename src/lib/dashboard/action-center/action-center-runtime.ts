@@ -1,6 +1,6 @@
-import { generateDashboardActions } from './action-generator.ts'
-import { prioritizeDashboardActions } from './action-priority-engine.ts'
-import type { DashboardActionCenterInput, DashboardActionCenterReport } from './types.ts'
+import { generateDashboardActions } from './action-generator'
+import { prioritizeDashboardActions } from './action-priority-engine'
+import type { DashboardActionCenterInput, DashboardActionCenterReport } from './types'
 
 export function runDashboardActionCenter(input: DashboardActionCenterInput): DashboardActionCenterReport {
   const actions = prioritizeDashboardActions(generateDashboardActions(input))

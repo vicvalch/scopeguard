@@ -1,10 +1,10 @@
-import { runDashboardRuntimeIntegration } from '../runtime-integration/dashboard-runtime-integration.ts'
+import { runDashboardRuntimeIntegration } from '../runtime-integration/dashboard-runtime-integration'
 import type {
   DashboardApiRequest,
   DashboardApiResponse,
   DashboardApiMetadata,
   DashboardSourceData,
-} from './types.ts'
+} from './types'
 
 const RUNTIME_VERSION = '8.2.0'
 

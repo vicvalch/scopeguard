@@ -1,5 +1,5 @@
-import type { DashboardApprovalApproverLane } from '../approval-workflow/index.ts'
-import type { DashboardApprovalQueueCard, DashboardApprovalQueueGroup, DashboardApprovalQueueSeverity } from './types.ts'
+import type { DashboardApprovalApproverLane } from '../approval-workflow/index'
+import type { DashboardApprovalQueueCard, DashboardApprovalQueueGroup, DashboardApprovalQueueSeverity } from './types'
 
 const SEVERITY_ORDER: DashboardApprovalQueueSeverity[] = ['critical', 'high', 'medium', 'low']
 const LANE_ORDER: DashboardApprovalApproverLane[] = ['pmo_director', 'executive_sponsor', 'finance_lead', 'technical_lead', 'project_manager', 'security_owner', 'system_owner']

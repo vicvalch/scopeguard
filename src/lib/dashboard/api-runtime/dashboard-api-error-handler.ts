@@ -1,5 +1,5 @@
-import { buildFallbackDTO } from './dashboard-api-response-builder.ts'
-import type { DashboardApiError, DashboardApiResponse } from './types.ts'
+import { buildFallbackDTO } from './dashboard-api-response-builder'
+import type { DashboardApiError, DashboardApiResponse } from './types'
 
 export function buildDashboardApiErrorResponse(errors: DashboardApiError[]): DashboardApiResponse {
   return {

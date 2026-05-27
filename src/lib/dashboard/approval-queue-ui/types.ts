@@ -3,8 +3,8 @@ import type {
   DashboardApprovalDecision,
   DashboardApprovalRequest,
   DashboardApprovalStatus,
-} from '../approval-workflow/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
+} from '../approval-workflow/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
 
 export type DashboardApprovalQueueSeverity = 'low' | 'medium' | 'high' | 'critical'
 

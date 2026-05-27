@@ -1,7 +1,7 @@
-import type { DashboardConsumptionInput, DashboardFetchOptions, DashboardViewModel } from './types.ts'
-import { deriveDashboardConsumptionStatus } from './dashboard-state-machine.ts'
-import { adaptDashboardViewModel } from './dashboard-view-model-adapter.ts'
-import { fetchPortfolioDashboard } from './dashboard-fetcher.ts'
+import type { DashboardConsumptionInput, DashboardFetchOptions, DashboardViewModel } from './types'
+import { deriveDashboardConsumptionStatus } from './dashboard-state-machine'
+import { adaptDashboardViewModel } from './dashboard-view-model-adapter'
+import { fetchPortfolioDashboard } from './dashboard-fetcher'
 
 export function runDashboardConsumptionRuntime(input: DashboardConsumptionInput): DashboardViewModel {
   const derivedStatus = deriveDashboardConsumptionStatus(input)

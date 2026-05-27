@@ -1,12 +1,12 @@
-import type { DashboardHydrationResult, DashboardSourceKind } from '../source-hydration/index.ts'
-import { prioritizeDashboardRefreshActions } from './refresh-priority-engine.ts'
+import type { DashboardHydrationResult, DashboardSourceKind } from '../source-hydration/index'
+import { prioritizeDashboardRefreshActions } from './refresh-priority-engine'
 import type {
   DashboardCachePolicy,
   DashboardCacheStatus,
   DashboardRefreshAction,
   DashboardRefreshPlan,
   DashboardRefreshReason,
-} from './types.ts'
+} from './types'
 
 function buildAction(sourceKind: DashboardSourceKind, reason: DashboardRefreshReason, title: string, description: string): DashboardRefreshAction {
   return { id: `${sourceKind}:${reason}`, sourceKind, reason, priority: 'medium', title, description }

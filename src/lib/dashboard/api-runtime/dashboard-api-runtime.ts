@@ -1,8 +1,8 @@
-import { validateDashboardApiRequest } from './request-validator.ts'
-import { resolveDashboardSourceData } from './source-data-resolver.ts'
-import { buildDashboardApiResponse } from './dashboard-api-response-builder.ts'
-import { buildDashboardApiErrorResponse } from './dashboard-api-error-handler.ts'
-import type { DashboardApiResponse, DashboardSourceData } from './types.ts'
+import { validateDashboardApiRequest } from './request-validator'
+import { resolveDashboardSourceData } from './source-data-resolver'
+import { buildDashboardApiResponse } from './dashboard-api-response-builder'
+import { buildDashboardApiErrorResponse } from './dashboard-api-error-handler'
+import type { DashboardApiResponse, DashboardSourceData } from './types'
 
 export function runDashboardApiRuntime(
   requestInput: unknown,

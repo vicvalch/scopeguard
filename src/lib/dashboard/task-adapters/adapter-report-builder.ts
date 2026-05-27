@@ -2,7 +2,7 @@ import type {
   DashboardTaskProjectionRequest,
   DashboardTaskProjection,
   DashboardTaskProjectionReport,
-} from './types.ts'
+} from './types'
 
 export function buildDashboardTaskProjectionReport(input: {
   request: DashboardTaskProjectionRequest

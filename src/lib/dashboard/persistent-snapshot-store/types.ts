@@ -3,7 +3,7 @@ import type {
   DashboardSourceSnapshot,
   DashboardSourceHydrationRequest,
   DashboardSnapshotStore,
-} from '../source-hydration/types.ts'
+} from '../source-hydration/types'
 
 export type { DashboardSourceKind, DashboardSourceSnapshot, DashboardSourceHydrationRequest, DashboardSnapshotStore }
 

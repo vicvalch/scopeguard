@@ -1,9 +1,9 @@
-import { runDashboardCacheRefresh } from '../cache-refresh/index.ts'
-import type { DashboardRefreshAction } from '../cache-refresh/index.ts'
+import { runDashboardCacheRefresh } from '../cache-refresh/index'
+import type { DashboardRefreshAction } from '../cache-refresh/index'
 import type {
   DashboardBackgroundRefreshRequest,
   DashboardBackgroundRefreshPlannerResult,
-} from './types.ts'
+} from './types'
 
 export async function planDashboardBackgroundRefresh(
   request: DashboardBackgroundRefreshRequest,

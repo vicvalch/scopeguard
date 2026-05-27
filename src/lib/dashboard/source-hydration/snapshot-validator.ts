@@ -1,4 +1,4 @@
-import { DASHBOARD_SOURCE_KINDS, type DashboardSourceSnapshot } from './types.ts'
+import { DASHBOARD_SOURCE_KINDS, type DashboardSourceSnapshot } from './types'
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
@@ -46,7 +46,7 @@ export function validateDashboardSnapshot(input: unknown): {
 
   if (errors.length > 0) return { valid: false, errors }
 
-  return { valid: true, snapshot: input as DashboardSourceSnapshot, errors: [] }
+  return { valid: true, snapshot: input as unknown as DashboardSourceSnapshot, errors: [] }
 }
 
 export function validateDashboardSnapshots(inputs: unknown[]): {

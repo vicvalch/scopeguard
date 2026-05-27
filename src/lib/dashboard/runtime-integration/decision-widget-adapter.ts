@@ -1,4 +1,4 @@
-import type { DashboardSeverity, DecisionWidgetItemDTO } from './types.ts'
+import type { DashboardSeverity, DecisionWidgetItemDTO } from './types'
 
 const MAX_DECISION_ITEMS = 8
 

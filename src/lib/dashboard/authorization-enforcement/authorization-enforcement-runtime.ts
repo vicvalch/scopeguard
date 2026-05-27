@@ -1,8 +1,8 @@
-import { enforceApprovalMutationAuthorization } from './approval-mutation-enforcement-engine.ts'
-import { enforceDashboardCapabilities } from './capability-enforcement-engine.ts'
-import { enforceLifecycleExecutionAuthorization } from './lifecycle-enforcement-engine.ts'
-import { enforceSensitiveDashboardRead, enforceAuditTrailRead } from './sensitive-read-enforcement-engine.ts'
-import type { DashboardAuthorizationEnforcementRequest, DashboardAuthorizationEnforcementResult } from './types.ts'
+import { enforceApprovalMutationAuthorization } from './approval-mutation-enforcement-engine'
+import { enforceDashboardCapabilities } from './capability-enforcement-engine'
+import { enforceLifecycleExecutionAuthorization } from './lifecycle-enforcement-engine'
+import { enforceSensitiveDashboardRead, enforceAuditTrailRead } from './sensitive-read-enforcement-engine'
+import type { DashboardAuthorizationEnforcementRequest, DashboardAuthorizationEnforcementResult } from './types'
 
 export function runDashboardAuthorizationEnforcement (request: DashboardAuthorizationEnforcementRequest): DashboardAuthorizationEnforcementResult {
   if (request.resourceType === 'approval_mutation') return enforceApprovalMutationAuthorization(request)

@@ -1,6 +1,6 @@
-import type { DashboardApprovalActionAvailability, DashboardApprovalQueueCard } from '../approval-queue-ui/index.ts'
-import type { DashboardApprovalApproverLane } from '../approval-workflow/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
+import type { DashboardApprovalActionAvailability, DashboardApprovalQueueCard } from '../approval-queue-ui/index'
+import type { DashboardApprovalApproverLane } from '../approval-workflow/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
 
 export type DashboardActorRole =
   | 'project_manager'

@@ -1,5 +1,5 @@
-import type { DashboardApprovalApproverLane } from '../approval-workflow/index.ts'
-import type { DashboardAuthorizationActor, DashboardSensitiveItemType } from './types.ts'
+import type { DashboardApprovalApproverLane } from '../approval-workflow/index'
+import type { DashboardAuthorizationActor, DashboardSensitiveItemType } from './types'
 
 export function isActorInRequiredLane ({ actor, requiredLanes }: { actor: DashboardAuthorizationActor; requiredLanes: DashboardApprovalApproverLane[] }): boolean {
   if (requiredLanes.length === 0) return true

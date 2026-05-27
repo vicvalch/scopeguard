@@ -1,6 +1,6 @@
-import { resolveActorCapabilities } from './role-capability-matrix.ts'
-import { canActorAccessSensitiveType, isActorInRequiredLane } from './authorization-policy-engine.ts'
-import type { DashboardAuthorizationCapability, DashboardAuthorizationContext, DashboardAuthorizationDecision } from './types.ts'
+import { resolveActorCapabilities } from './role-capability-matrix'
+import { canActorAccessSensitiveType, isActorInRequiredLane } from './authorization-policy-engine'
+import type { DashboardAuthorizationCapability, DashboardAuthorizationContext, DashboardAuthorizationDecision } from './types'
 
 const COMPLETED_STATES = new Set(['execution_completed', 'cancelled'])
 

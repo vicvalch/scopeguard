@@ -1,9 +1,9 @@
-import { buildDashboardAuthorizationContext, evaluateAuthorizationCapability } from '../role-authorization/index.ts'
-import { enforceDashboardCapabilities } from './capability-enforcement-engine.ts'
-import type { DashboardAuthorizationActor, DashboardAuthorizationCapability } from '../role-authorization/index.ts'
-import type { DashboardApprovalQueueCard } from '../approval-queue-ui/index.ts'
-import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index.ts'
-import type { DashboardAuthorizationEnforcementResult, DashboardScopeContext } from './types.ts'
+import { buildDashboardAuthorizationContext, evaluateAuthorizationCapability } from '../role-authorization/index'
+import { enforceDashboardCapabilities } from './capability-enforcement-engine'
+import type { DashboardAuthorizationActor, DashboardAuthorizationCapability } from '../role-authorization/index'
+import type { DashboardApprovalQueueCard } from '../approval-queue-ui/index'
+import type { DashboardTaskLifecycleRecord } from '../task-lifecycle/index'
+import type { DashboardAuthorizationEnforcementResult, DashboardScopeContext } from './types'
 
 function requiredSensitiveCaps (actor: DashboardAuthorizationActor | undefined, card?: DashboardApprovalQueueCard, lifecycle?: DashboardTaskLifecycleRecord): DashboardAuthorizationCapability[] {
   if (!actor) return ['view_queue_item']

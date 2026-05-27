@@ -1,4 +1,4 @@
-import type { DashboardFetchOptions, DashboardConsumptionError } from './types.ts'
+import type { DashboardFetchOptions, DashboardConsumptionError } from './types'
 
 export async function fetchPortfolioDashboard(options: DashboardFetchOptions = {}): Promise<any> {
   const { baseUrl, signal } = options

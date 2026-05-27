@@ -1,5 +1,5 @@
-import type { DashboardSourceFreshness } from './types.ts'
-import { DEFAULT_DASHBOARD_CACHE_POLICY, type DashboardCachePolicy } from './types.ts'
+import type { DashboardSourceFreshness } from './types'
+import { DEFAULT_DASHBOARD_CACHE_POLICY, type DashboardCachePolicy } from './types'
 
 export function resolveDashboardCachePolicy(policy?: Partial<DashboardCachePolicy>): DashboardCachePolicy {
   const merged = { ...DEFAULT_DASHBOARD_CACHE_POLICY, ...policy }
