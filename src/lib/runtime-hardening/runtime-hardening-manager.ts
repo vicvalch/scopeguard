@@ -9,18 +9,18 @@ import type {
   RuntimeSLOResult,
   ReplayIntegrityResult,
   SynchronizationIntegrityResult,
-} from "./runtime-hardening-types.js";
-import { retrieveRuntimeHealth, retrieveRuntimeHealthSnapshot } from "./runtime-health.js";
-import { evaluateReplayIntegrity } from "./replay-integrity.js";
-import { evaluateSynchronizationIntegrity } from "./synchronization-integrity.js";
-import { evaluateRuntimeSurvivability } from "./runtime-survivability.js";
-import { evaluateLaunchReadiness } from "./runtime-readiness.js";
-import { evaluateRuntimeSLOs, buildRuntimeSLOs } from "./runtime-slo.js";
-import { generateRuntimeDiagnostics } from "./runtime-integrity-diagnostics.js";
-import { generateRuntimeNarratives } from "./runtime-hardening-narratives.js";
-import { evaluateStartupAssertions } from "./startup-assertions.js";
-import { evaluateRuntimeInvariants } from "./runtime-invariants.js";
-import { classifyDegradedMode } from "./degraded-mode.js";
+} from "./runtime-hardening-types";
+import { retrieveRuntimeHealth, retrieveRuntimeHealthSnapshot } from "./runtime-health";
+import { evaluateReplayIntegrity } from "./replay-integrity";
+import { evaluateSynchronizationIntegrity } from "./synchronization-integrity";
+import { evaluateRuntimeSurvivability } from "./runtime-survivability";
+import { evaluateLaunchReadiness } from "./runtime-readiness";
+import { evaluateRuntimeSLOs, buildRuntimeSLOs } from "./runtime-slo";
+import { generateRuntimeDiagnostics } from "./runtime-integrity-diagnostics";
+import { generateRuntimeNarratives } from "./runtime-hardening-narratives";
+import { evaluateStartupAssertions } from "./startup-assertions";
+import { evaluateRuntimeInvariants } from "./runtime-invariants";
+import { classifyDegradedMode } from "./degraded-mode";
 
 export function retrieveRuntimeIntegrity(): {
   startupAssertions: ReturnType<typeof evaluateStartupAssertions>;

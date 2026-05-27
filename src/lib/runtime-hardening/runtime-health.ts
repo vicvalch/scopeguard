@@ -1,16 +1,16 @@
-import type { RuntimeHardeningSnapshot, RuntimeHealthStatus } from "./runtime-hardening-types.js";
-import { evaluateStartupAssertions } from "./startup-assertions.js";
-import { evaluateRuntimeInvariants } from "./runtime-invariants.js";
-import { evaluateCognitionContracts } from "./cognition-contracts.js";
-import { evaluateRuntimeBoundaries } from "./runtime-boundary-validation.js";
-import { evaluateReplayIntegrity } from "./replay-integrity.js";
-import { evaluateSynchronizationIntegrity } from "./synchronization-integrity.js";
-import { evaluateRuntimeSLOs } from "./runtime-slo.js";
-import { classifyDegradedMode } from "./degraded-mode.js";
-import { evaluateRuntimeSurvivability } from "./runtime-survivability.js";
-import { evaluateLaunchReadiness } from "./runtime-readiness.js";
-import { generateRuntimeDiagnostics } from "./runtime-integrity-diagnostics.js";
-import { generateRuntimeNarratives } from "./runtime-hardening-narratives.js";
+import type { RuntimeHardeningSnapshot, RuntimeHealthStatus } from "./runtime-hardening-types";
+import { evaluateStartupAssertions } from "./startup-assertions";
+import { evaluateRuntimeInvariants } from "./runtime-invariants";
+import { evaluateCognitionContracts } from "./cognition-contracts";
+import { evaluateRuntimeBoundaries } from "./runtime-boundary-validation";
+import { evaluateReplayIntegrity } from "./replay-integrity";
+import { evaluateSynchronizationIntegrity } from "./synchronization-integrity";
+import { evaluateRuntimeSLOs } from "./runtime-slo";
+import { classifyDegradedMode } from "./degraded-mode";
+import { evaluateRuntimeSurvivability } from "./runtime-survivability";
+import { evaluateLaunchReadiness } from "./runtime-readiness";
+import { generateRuntimeDiagnostics } from "./runtime-integrity-diagnostics";
+import { generateRuntimeNarratives } from "./runtime-hardening-narratives";
 
 function computeOverallHealth(snapshot: Omit<RuntimeHardeningSnapshot, "overallHealth" | "checkedAt">): RuntimeHealthStatus {
   const { degradedMode, launchReadiness } = snapshot;

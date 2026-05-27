@@ -3,7 +3,7 @@ import type {
   RuntimeLaunchReadinessResult,
   DegradedModeState,
   ReplayIntegrityResult,
-} from "./runtime-hardening-types.js";
+} from "./runtime-hardening-types";
 
 export function generateRuntimeNarratives(
   launchReadiness: RuntimeLaunchReadinessResult,

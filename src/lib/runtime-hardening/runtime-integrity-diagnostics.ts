@@ -4,7 +4,7 @@ import type {
   RuntimeInvariantResult,
   DegradedModeState,
   RuntimeSubsystem,
-} from "./runtime-hardening-types.js";
+} from "./runtime-hardening-types";
 
 function makeDiagnostic(
   id: string,
