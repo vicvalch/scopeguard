@@ -381,7 +381,7 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
   }, [imprintState.profile, imprintConfidence, preferredLanguage]);
 
   return (
-    <main className="mx-auto grid min-h-[82vh] w-full gap-5 xl:grid-cols-[1fr_300px]">
+    <main className="mx-auto min-h-[82vh] w-full">
       <section className="rounded-3xl border border-white/10 bg-slate-900/55 p-4 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.95)] backdrop-blur-xl md:p-6">
         <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -522,92 +522,6 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
         </div>
       </section>
 
-      <aside className="space-y-3 rounded-3xl border border-white/10 bg-slate-900/55 p-4 backdrop-blur-xl">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-200">Operational pulse</h2>
-        <article className="rounded-2xl border border-cyan-300/25 bg-cyan-950/20 p-3 text-xs text-cyan-100">
-          <p className="text-cyan-200">Hero insight</p>
-          <p className="mt-1">{executionRisk?.commentary[0] ?? coordination?.commentary[0] ?? "Standby. Ask one focused question."}</p>
-        </article>
-
-        <div className="grid grid-cols-2 gap-2">
-          <article className="rounded-xl border border-white/10 bg-slate-950/50 p-3 text-xs text-slate-200">
-            <p className="text-slate-400">Memory</p>
-            <p className="mt-1 font-semibold uppercase">{isDormant ? "Standby" : "Seeding"}</p>
-          </article>
-          <article className="rounded-xl border border-white/10 bg-slate-950/50 p-3 text-xs text-slate-200">
-            <p className="text-slate-400">Delivery</p>
-            <p className="mt-1 font-semibold uppercase">{isDormant ? "Awaiting signal" : (executionRisk?.deliveryConfidence ?? "orienting")}</p>
-          </article>
-          <article className="rounded-xl border border-white/10 bg-slate-950/50 p-3 text-xs text-slate-200">
-            <p className="text-slate-400">Stakeholders</p>
-            <p className="mt-1 font-semibold uppercase">{awakening.awakenedAgents.includes("stakeholders") ? (stakeholderIntel?.executiveAlignment ?? "mixed") : "Dormant"}</p>
-          </article>
-          <article className="rounded-xl border border-white/10 bg-slate-950/50 p-3 text-xs text-slate-200">
-            <p className="text-slate-400">Escalation</p>
-            <p className="mt-1 font-semibold uppercase">{awakening.awakenedAgents.includes("risk") ? (executionRisk?.activeEscalationRisk ?? "watch") : "Pending"}</p>
-          </article>
-        </div>
-
-        {/* Agent awakening panel */}
-        <AgentAwakeningPanel
-          state={awakening}
-          imprintProfile={imprintState.profile}
-          imprintConfidence={imprintConfidence}
-        />
-
-        {/* Imprint transparency surface — visible after stable confidence */}
-        <ImprintSummary
-          profile={imprintState.profile}
-          companyId={scope.companyId}
-          workspaceId={scope.workspaceId}
-          userId={scope.userId}
-          onReset={() => setImprintState(emptyImprintState())}
-        />
-
-        {/* Runtime trust observability surfaces — gated by beta validation mode */}
-        {validationEnabled ? (
-          <>
-            <RuntimeTrustPanel
-              traces={validationState.traces}
-              currentConfidence={validationState.currentConfidence}
-              onFeedback={(traceId: string, feedback: ValidationFeedback) => {
-                const nextVState = applyFeedback(validationState, feedback, traceId);
-                setValidationState(nextVState);
-                void runtimePersistence.persistValidation(scope, nextVState).catch(() => setSyncStatus("fallback"));
-              }}
-            />
-            <ValidationTimeline traces={validationState.traces} />
-            <ValidationReplay traces={validationState.traces} />
-          </>
-        ) : null}
-
-        <details className="rounded-2xl border border-white/10 bg-white/15 p-3 text-xs text-slate-200">
-          <summary className="cursor-pointer font-semibold text-slate-100">Top action queue</summary>
-          <ul className="mt-2 list-disc space-y-1 pl-4 text-slate-300">
-            {(coordination?.operational_priority_queue.actions.slice(0, 3) ?? []).map((action) => (
-              <li key={action.actionId}>#{action.recommendedExecutionOrder} {action.type} · {action.targetStakeholder}</li>
-            ))}
-          </ul>
-        </details>
-
-        <details className="rounded-2xl border border-white/10 bg-white/15 p-3 text-xs text-slate-200">
-          <summary className="cursor-pointer font-semibold text-slate-100">Memory highlights</summary>
-          <ul className="mt-2 list-disc space-y-1 pl-4 text-slate-300">
-            {(ambientMemory.criticalRisks.length ? ambientMemory.criticalRisks : ["No critical risks detected yet."]).slice(0, 2).map((item) => <li key={item}>{item}</li>)}
-            {(ambientMemory.blockers.length ? ambientMemory.blockers : ["No blockers detected yet."]).slice(0, 1).map((item) => <li key={item}>{item}</li>)}
-          </ul>
-        </details>
-
-        <details className="rounded-2xl border border-white/10 bg-white/15 p-3 text-xs text-slate-200">
-          <summary className="cursor-pointer font-semibold text-slate-100">Deep signals</summary>
-          <div className="mt-2 space-y-2 text-slate-300">
-            <p>Pressure: {executionRisk?.stakeholderPressure ?? "low"} · Stability: {executionRisk?.executionStability ?? "watching"}</p>
-            <p>Escalation trajectory: {stakeholderIntel?.escalationTrajectory ?? "reactive"}</p>
-            <p>Recovery: {coordination?.execution_recovery_path.commentary[0] ?? "Standby."}</p>
-            <p>Recent uploads: {uploadedFiles.length ? uploadedFiles.slice(0, 2).join(", ") : "None"}</p>
-          </div>
-        </details>
-      </aside>
     </main>
   );
 }

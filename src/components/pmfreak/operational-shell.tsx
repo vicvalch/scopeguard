@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ContextScopeBar } from "./ContextScopeBar";
 import { OperationalEventFeed } from "./OperationalEventFeed";
 import { ShellMetric } from "./ShellMetric";
 import { AdvancedDrawer } from "./navigation/advanced-drawer";
@@ -375,17 +374,6 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
               ))}
             </div>
           </div>
-
-          {/* Context scope bar */}
-          <ContextScopeBar
-            projects={projects}
-            projectId={projectId}
-            onProjectChange={setProjectId}
-            loading={projectsLoading}
-            error={projectsError}
-            scopeLabel={scopeLabel}
-            hasProjects={hasProjects}
-          />
 
           {/* Page content */}
           {activeLens && (
