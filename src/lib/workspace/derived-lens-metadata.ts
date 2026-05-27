@@ -1,4 +1,4 @@
-export type DerivedLensType = "summary" | "execution" | "executive" | "portfolio" | "memory";
+export type DerivedLensType = "overview" | "delivery" | "leadership" | "controls" | "memory";
 
 export type DerivedLensMetadata = {
   route: string;
@@ -10,10 +10,10 @@ export type DerivedLensMetadata = {
 };
 
 export const DERIVED_LENS_METADATA: DerivedLensMetadata[] = [
-  { route: "/dashboard", title: "Summary", displayLabel: "Summary", breadcrumbLabel: "Summary", parent: "/workspace", lensType: "summary" },
-  { route: "/command-center", title: "Execution", displayLabel: "Execution", breadcrumbLabel: "Execution", parent: "/workspace", lensType: "execution" },
-  { route: "/executive", title: "Executive", displayLabel: "Executive", breadcrumbLabel: "Executive", parent: "/workspace", lensType: "executive" },
-  { route: "/portfolio", title: "Portfolio", displayLabel: "Portfolio", breadcrumbLabel: "Portfolio", parent: "/workspace", lensType: "portfolio" },
+  { route: "/dashboard", title: "Overview", displayLabel: "Overview", breadcrumbLabel: "Overview", parent: "/workspace", lensType: "overview" },
+  { route: "/command-center", title: "Delivery Status", displayLabel: "Delivery Status", breadcrumbLabel: "Delivery Status", parent: "/workspace", lensType: "delivery" },
+  { route: "/executive", title: "Leadership View", displayLabel: "Leadership View", breadcrumbLabel: "Leadership View", parent: "/workspace", lensType: "leadership" },
+  { route: "/portfolio", title: "Project Controls", displayLabel: "Project Controls", breadcrumbLabel: "Project Controls", parent: "/workspace", lensType: "controls" },
   { route: "/operational-memory", title: "Memory", displayLabel: "Memory", breadcrumbLabel: "Memory", parent: "/workspace", lensType: "memory" },
   { route: "/stakeholder-intel", title: "Stakeholders", displayLabel: "Stakeholders", breadcrumbLabel: "Stakeholders", parent: "/workspace", lensType: "memory" },
 ];
