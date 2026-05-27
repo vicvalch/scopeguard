@@ -30,13 +30,14 @@ export function AuthShell({
             </p>
           </div>
 
-          <div className="mt-10">
+          <div className="mt-10 flex justify-center">
             <Image
-              src="/Cara.png"
-              alt="PMFreak"
-              width={200}
-              height={200}
-              className="object-contain"
+              src="/Brain-Transparente.png"
+              alt="PMFreak Intelligence Core"
+              width={360}
+              height={360}
+              priority
+              className="object-contain opacity-95"
             />
           </div>
         </div>
