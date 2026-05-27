@@ -31,6 +31,7 @@ export const NAVIGATION_HIERARCHY: NavigationNode[] = [
   { label: "Audit", href: "/audit", tier: "advanced", visibleByDefault: false, requiresCapability: "governance" },
   { label: "Capabilities", href: "/capabilities", tier: "advanced", visibleByDefault: false, requiresCapability: "interventions" },
   { label: "Intelligence", href: "/intelligence", tier: "advanced", visibleByDefault: false, requiresCapability: "executive" },
+  { label: "Trials", href: "/trials", tier: "advanced", visibleByDefault: false, requiresCapability: "interventions" },
 ];
 
 export const getNavigationByTier = (tier: NavigationTier) => NAVIGATION_HIERARCHY.filter((node) => node.tier === tier);
