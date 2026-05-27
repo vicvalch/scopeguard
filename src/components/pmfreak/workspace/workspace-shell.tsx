@@ -3,19 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { WorkspaceConversationShell } from "@/components/pmfreak/workspace/workspace-conversation-shell";
 import { WORKSPACE_DISPLAY } from "@/lib/workspace/display-semantics";
-import {
-  AWAKENING_EVENT,
-  deriveAwakeningState,
-  loadAwakeningState,
-  persistAwakeningState,
-  type AwakeningState,
-} from "@/lib/workspace/awakening-state";
+import { AWAKENING_EVENT, deriveAwakeningState, type AwakeningState } from "@/lib/workspace/awakening-state";
 import { CONFIDENCE_CHIP_LABELS, computeImprintConfidence } from "@/lib/workspace/imprint-confidence";
-import { loadImprintState, type PMOperationalImprint } from "@/lib/workspace/operational-imprint-profile";
+import { type PMOperationalImprint } from "@/lib/workspace/operational-imprint-profile";
+import { bootstrapRuntimeState } from "@/lib/workspace/runtime-bootstrap";
+import { runtimePersistence, type RuntimePersistenceScope, type RuntimeHydrationIntegrity, type RuntimeSyncStatus } from "@/lib/workspace/runtime-persistence";
+import { RuntimePersistenceStatus } from "@/components/pmfreak/workspace/runtime-persistence-status";
 
 const COMPANY_ID = "global";
 const WORKSPACE_ID = "default";
 const USER_ID = "default";
+const RUNTIME_SCOPE: RuntimePersistenceScope = { companyId: COMPANY_ID, workspaceId: WORKSPACE_ID, userId: USER_ID };
 
 const GOVERNANCE_SECTIONS = ["Portfolio", "PMO", "Projects", "Stakeholders", "Scope", "Timeline", "Cost", "RAID", "Delivery", "Memory"];
 
@@ -30,15 +28,24 @@ const ACTIVE_CHIPS = [
 export function WorkspaceShell() {
   const [awakening, setAwakening] = useState<AwakeningState>(() => deriveAwakeningState(0));
   const [imprintProfile, setImprintProfile] = useState<PMOperationalImprint | null>(null);
+  const [hydrationIntegrity, setHydrationIntegrity] = useState<RuntimeHydrationIntegrity>("healthy");
+  const [syncStatus, setSyncStatus] = useState<RuntimeSyncStatus>("synced");
+  const [lastCheckpoint, setLastCheckpoint] = useState<number | null>(null);
+  const [resumeLabel, setResumeLabel] = useState("Continuity restored");
 
   useEffect(() => {
-    setAwakening(loadAwakeningState(COMPANY_ID, WORKSPACE_ID));
-    setImprintProfile(loadImprintState(COMPANY_ID, WORKSPACE_ID, USER_ID).profile);
+    void bootstrapRuntimeState(RUNTIME_SCOPE).then((boot) => {
+      setAwakening(boot.awakening);
+      setImprintProfile(boot.imprint.profile);
+      setHydrationIntegrity(boot.integrity);
+      setResumeLabel(boot.resumedLabel);
+    }).catch(() => setHydrationIntegrity("recovered"));
   }, []);
 
   const handleAwakeningAdvance = useCallback((next: AwakeningState) => {
     setAwakening(next);
-    persistAwakeningState(COMPANY_ID, WORKSPACE_ID, next);
+    setSyncStatus("syncing");
+    void runtimePersistence.persistAwakening(RUNTIME_SCOPE, next).then(() => { setSyncStatus("synced"); setLastCheckpoint(Date.now()); }).catch(() => setSyncStatus("fallback"));
     window.dispatchEvent(new CustomEvent(AWAKENING_EVENT, { detail: next }));
   }, []);
 
@@ -65,7 +72,7 @@ export function WorkspaceShell() {
         <div className="rounded-2xl border border-cyan-400/25 bg-slate-900/70 p-4">
           <p className="text-sm font-semibold text-cyan-100">{WORKSPACE_DISPLAY.labels.workspace}</p>
           <p className="mt-1 text-xs text-slate-400">
-            {isDormant ? WORKSPACE_DISPLAY.labels.standbySubtitle : WORKSPACE_DISPLAY.labels.operationallyLive}
+            {isDormant ? WORKSPACE_DISPLAY.labels.standbySubtitle : resumeLabel}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {chips.map((chip) => (
@@ -78,7 +85,9 @@ export function WorkspaceShell() {
             ) : null}
           </div>
         </div>
+        <RuntimePersistenceStatus betaMode syncStatus={syncStatus} lastCheckpoint={lastCheckpoint} integrity={hydrationIntegrity} />
         <WorkspaceConversationShell
+          scope={RUNTIME_SCOPE}
           awakening={awakening}
           onAwakeningAdvance={handleAwakeningAdvance}
         />
