@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PMORole, DeliveryControl, EscalationRule, PMOGovernanceSkeleton } from "@/lib/pmo/pmo-governance-types";
 import { INITIAL_PMO_SKELETON } from "@/lib/pmo/pmo-governance-defaults";
+import { saveWorkspaceGovernance } from "@/lib/pmo/save-workspace-governance";
 
 const STEPS = [
   "PMO Identity",
@@ -111,18 +112,29 @@ export function CreatePmoWizard() {
     setStep((s) => Math.max(s - 1, 1));
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     setCreating(true);
     const skeleton: PMOGovernanceSkeleton = {
       ...data,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    // Persist to Supabase as the workspace governance contract.
+    // Falls back gracefully — wizard proceeds regardless of Supabase result.
+    const result = await saveWorkspaceGovernance(skeleton);
+    if (!result.ok) {
+      console.warn("[pmo] Supabase save failed, governance cached locally:", result.error);
+    }
+
+    // Keep a client-side cache so the skeleton is available immediately
+    // without a round-trip (and as a fallback if Supabase was unreachable).
     try {
       localStorage.setItem(PMO_STORAGE_KEY, JSON.stringify(skeleton));
     } catch {
-      // localStorage unavailable — skeleton lives in session memory only
+      // localStorage unavailable — Supabase is the source of truth
     }
+
     router.push("/workspace");
   };
 
