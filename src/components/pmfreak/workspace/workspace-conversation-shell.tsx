@@ -14,19 +14,17 @@ import {
 } from "@/lib/workspace/imprint-inference";
 import {
   emptyImprintState,
-  loadImprintState,
-  persistImprintState,
   type PMImprintState,
 } from "@/lib/workspace/operational-imprint-profile";
-import { isRuntimeValidationEnabled } from "@/lib/workspace/beta-validation-mode";
+import { runtimePersistence, type RuntimePersistenceScope, type RuntimeSyncStatus } from "@/lib/workspace/runtime-persistence";
+import { bootstrapRuntimeState } from "@/lib/workspace/runtime-bootstrap";
 import { buildValidationTrace, VALIDATION_CONFIDENCE_LABELS } from "@/lib/workspace/validation-trace-builder";
 import { detectContradiction } from "@/lib/workspace/validation-consistency";
 import {
   addTrace,
   applyFeedback,
   emptyValidationState,
-  loadValidationState,
-  persistValidationState,
+
   type ValidationFeedback,
   type ValidationState,
   type ValidationTrace,
@@ -111,9 +109,6 @@ type CoordinationSnapshot = {
 
 const MEMORY_DOMAINS = ["stakeholder_intelligence","delivery_intelligence","risk_intelligence","pmo_governance","team_health","executive_context","operational_memory","operational_plans"] as const;
 const SESSION_KEY = "copilot-shell-v1";
-const IMPRINT_COMPANY_ID = "global";
-const IMPRINT_WORKSPACE_ID = "default";
-const IMPRINT_USER_ID = "default";
 
 const QUICK_NUDGES = [
   "What is the single most important risk right now?",
@@ -136,9 +131,10 @@ const STAGE_CHIP: Record<AwakeningState["stage"], { label: string; style: string
 type Props = {
   awakening: AwakeningState;
   onAwakeningAdvance: (state: AwakeningState) => void;
+  scope: RuntimePersistenceScope;
 };
 
-export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Props) {
+export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scope }: Props) {
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [methodology, setMethodology] = useState<"PMI" | "Agile" | "Hybrid" | "General PMO">("Hybrid");
@@ -154,7 +150,8 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [imprintState, setImprintState] = useState<PMImprintState>(() => emptyImprintState());
   const [validationState, setValidationState] = useState<ValidationState>(() => emptyValidationState());
-  const [validationEnabled] = useState(() => isRuntimeValidationEnabled());
+  const [validationEnabled, setValidationEnabled] = useState(true);
+  const [, setSyncStatus] = useState<RuntimeSyncStatus>("synced");
   const pendingTraceRef = useRef<ValidationTrace | null>(null);
   const [ambientMemory, setAmbientMemory] = useState<AmbientMemory>({ blockers: [], recentDecisions: [], stakeholderPressure: [], criticalRisks: [], concerns: [] });
   const [executionRisk, setExecutionRisk] = useState<ExecutionRiskSnapshot | null>(null);
@@ -170,14 +167,12 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
   }, [messages, loading]);
 
   useEffect(() => {
-    setImprintState(loadImprintState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID));
-  }, []);
-
-  useEffect(() => {
-    if (validationEnabled) {
-      setValidationState(loadValidationState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID));
-    }
-  }, [validationEnabled]);
+    void bootstrapRuntimeState(scope).then((boot) => {
+      setImprintState(boot.imprint);
+      setValidationState(boot.validation);
+      setValidationEnabled(boot.flags.runtimeValidationEnabled);
+    });
+  }, [scope]);
 
   useEffect(() => {
     void fetch("/api/copilot/context")
@@ -248,7 +243,8 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
       onAwakeningAdvance(nextAwakening);
       const nextImprint = observeInteraction(message, imprintState);
       setImprintState(nextImprint);
-      persistImprintState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID, nextImprint);
+      setSyncStatus("syncing");
+      void runtimePersistence.persistImprint(scope, nextImprint).then(() => setSyncStatus("synced")).catch(() => setSyncStatus("fallback"));
       if (validationEnabled) {
         const contradiction = detectContradiction(message, imprintState);
         const trace = buildValidationTrace(
@@ -262,7 +258,7 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
         pendingTraceRef.current = trace;
         const nextVState = addTrace(validationState, trace);
         setValidationState(nextVState);
-        persistValidationState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID, nextVState);
+        void runtimePersistence.persistValidation(scope, nextVState).catch(() => setSyncStatus("fallback"));
       }
     }
 
@@ -536,9 +532,9 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
         {/* Imprint transparency surface — visible after stable confidence */}
         <ImprintSummary
           profile={imprintState.profile}
-          companyId={IMPRINT_COMPANY_ID}
-          workspaceId={IMPRINT_WORKSPACE_ID}
-          userId={IMPRINT_USER_ID}
+          companyId={scope.companyId}
+          workspaceId={scope.workspaceId}
+          userId={scope.userId}
           onReset={() => setImprintState(emptyImprintState())}
         />
 
@@ -551,7 +547,7 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
               onFeedback={(traceId: string, feedback: ValidationFeedback) => {
                 const nextVState = applyFeedback(validationState, feedback, traceId);
                 setValidationState(nextVState);
-                persistValidationState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID, nextVState);
+                void runtimePersistence.persistValidation(scope, nextVState).catch(() => setSyncStatus("fallback"));
               }}
             />
             <ValidationTimeline traces={validationState.traces} />
