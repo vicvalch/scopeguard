@@ -4,7 +4,7 @@ import { AuthShell } from "@/ui-core/auth/auth-shell";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{ error?: string; success?: string; next?: string }>;
 }) {
   const params = await searchParams;
 
@@ -13,6 +13,7 @@ export default async function LoginPage({
       {params.error ? <p className="mb-4 text-sm text-red-600">{params.error}</p> : null}
 
       <form action="/api/login" method="post" className="space-y-4">
+        {params.next ? <input type="hidden" name="next" value={params.next} /> : null}
         <input name="email" type="email" placeholder="Email" required className="w-full rounded-xl border-2 border-black px-4 py-3 text-sm" />
         <input name="password" type="password" placeholder="Password" required className="w-full rounded-xl border-2 border-black px-4 py-3 text-sm" />
 
