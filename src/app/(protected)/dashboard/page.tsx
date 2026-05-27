@@ -29,8 +29,8 @@ export default async function DashboardPage({
     <>
       <FirstUserTelemetryEvent eventType="first_workspace_loaded" />
       <ModuleShell
-        title="Operational Summary Lens"
-        subtitle="Derived operational summary generated from active workspace context."
+        title="Summary"
+        subtitle="Operational view."
         metrics={[
           { label: "Operational State", value: "Live" },
           { label: "Context Memory", value: "Tracking" },
@@ -38,10 +38,10 @@ export default async function DashboardPage({
           { label: "Next Action", value: currentProjectId ? "Ready" : "Select scope" },
         ]}
       >
-        <WorkspaceContextBanner lens="Operational Summary Lens" />
+        <WorkspaceContextBanner lens="Summary" />
         <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">Lens Purpose</p>
-          <p className="mt-2 text-sm text-slate-200">PMFreak turns operational chaos into one calm command loop: capture signal, preserve memory, identify pressure, execute next action.</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">Summary</p>
+          <p className="mt-2 text-sm text-slate-200">Capture signal, preserve memory, execute next action.</p>
           {currentProjectId ? (
             <p className="mt-2 text-sm text-cyan-200">Project scope is active. Every module now keeps context for {currentProjectId}.</p>
           ) : null}

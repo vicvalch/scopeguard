@@ -378,7 +378,7 @@ export function WorkspaceConversationShell() {
           <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-200">Operational pulse</h2>
           <article className="rounded-2xl border border-cyan-300/25 bg-cyan-950/20 p-3 text-xs text-cyan-100">
             <p className="text-cyan-200">Hero insight</p>
-            <p className="mt-1">{executionRisk?.commentary[0] ?? coordination?.commentary[0] ?? "Operational signal model is warming up. Ask one focused question for sharper intelligence."}</p>
+            <p className="mt-1">{executionRisk?.commentary[0] ?? coordination?.commentary[0] ?? "Standby. Ask one focused question."}</p>
           </article>
 
           <div className="grid grid-cols-2 gap-2">
@@ -422,7 +422,7 @@ export function WorkspaceConversationShell() {
             <div className="mt-2 space-y-2 text-slate-300">
               <p>Pressure: {executionRisk?.stakeholderPressure ?? "low"} · Stability: {executionRisk?.executionStability ?? "watching"}</p>
               <p>Escalation trajectory: {stakeholderIntel?.escalationTrajectory ?? "reactive"}</p>
-              <p>Recovery: {coordination?.execution_recovery_path.commentary[0] ?? "Recovery workflow warming up."}</p>
+              <p>Recovery: {coordination?.execution_recovery_path.commentary[0] ?? "Standby."}</p>
               <p>Recent uploads: {uploadedFiles.length ? uploadedFiles.slice(0, 2).join(", ") : "None"}</p>
             </div>
           </details>
