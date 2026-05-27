@@ -3,17 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AgentAwakeningPanel } from "@/components/pmfreak/workspace/agent-awakening-panel";
 import { ImprintSummary } from "@/components/pmfreak/workspace/imprint-summary";
-import { WORKSPACE_DISPLAY } from "@/lib/workspace/display-semantics";
 import { deriveAwakeningState, type AwakeningState } from "@/lib/workspace/awakening-state";
 import { isMeaningfulOperationalContact } from "@/lib/workspace/first-contact-detector";
 import { computeImprintConfidence } from "@/lib/workspace/imprint-confidence";
 import { detectOperationalLanguage, type SupportedLanguage } from "@/lib/workspace/language/language-detection";
 import { resolveLanguagePreference } from "@/lib/workspace/language/language-preference";
 import { normalizeOperationalConcepts } from "@/lib/workspace/language/operational-concepts";
-import { buildLocalizedFirstContactFrame, getLocalizedIgnitionCues } from "@/lib/workspace/language/first-contact-language";
 import {
-  computeAdaptiveClarifyingQuestion,
-  computeIgnitionCues,
   observeInteraction,
 } from "@/lib/workspace/imprint-inference";
 import {
@@ -22,7 +18,7 @@ import {
 } from "@/lib/workspace/operational-imprint-profile";
 import { runtimePersistence, type RuntimePersistenceScope, type RuntimeSyncStatus } from "@/lib/workspace/runtime-persistence";
 import { bootstrapRuntimeState } from "@/lib/workspace/runtime-bootstrap";
-import { buildValidationTrace, VALIDATION_CONFIDENCE_LABELS } from "@/lib/workspace/validation-trace-builder";
+import { buildValidationTrace } from "@/lib/workspace/validation-trace-builder";
 import { detectContradiction } from "@/lib/workspace/validation-consistency";
 import {
   addTrace,
@@ -114,22 +110,11 @@ type CoordinationSnapshot = {
 const MEMORY_DOMAINS = ["stakeholder_intelligence","delivery_intelligence","risk_intelligence","pmo_governance","team_health","executive_context","operational_memory","operational_plans"] as const;
 const SESSION_KEY = "copilot-shell-v1";
 
-const QUICK_NUDGES = [
-  "What is the single most important risk right now?",
-  "Give me the top 3 actions for the next 24 hours.",
-  "Draft an executive-ready status update in 6 bullets.",
-  "Which issue should I escalate today, and to whom?",
-  "What are stakeholders likely to challenge in tomorrow's review?",
-];
-
-// Stage chip display
-const STAGE_CHIP: Record<AwakeningState["stage"], { label: string; style: string }> = {
-  dormant:           { label: WORKSPACE_DISPLAY.states.standby,      style: "border-zinc-600/30 bg-zinc-500/[0.08] text-zinc-500" },
-  initializing:      { label: WORKSPACE_DISPLAY.states.initializing, style: "border-amber-400/30 bg-amber-400/[0.08] text-amber-300" },
-  orienting:         { label: WORKSPACE_DISPLAY.states.orienting,    style: "border-cyan-400/30 bg-cyan-400/[0.08] text-cyan-300" },
-  engaged:           { label: WORKSPACE_DISPLAY.states.active,       style: "border-emerald-400/30 bg-emerald-400/[0.08] text-emerald-200" },
-  expanded:          { label: WORKSPACE_DISPLAY.states.active,       style: "border-emerald-400/30 bg-emerald-400/[0.08] text-emerald-200" },
-  "fully-operational": { label: WORKSPACE_DISPLAY.states.active,    style: "border-emerald-400/30 bg-emerald-400/[0.08] text-emerald-200" },
+const GREETING_MESSAGE: ChatMessage = {
+  id: "greeting-0",
+  role: "assistant",
+  text: "Hi — I'm ready. Tell me what project, blocker, risk, or decision needs attention, and I'll help you turn it into a clear next move.",
+  state: "complete",
 };
 
 type Props = {
@@ -141,16 +126,15 @@ type Props = {
 export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scope }: Props) {
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [methodology, setMethodology] = useState<"PMI" | "Agile" | "Hybrid" | "General PMO">("Hybrid");
+  const [methodology] = useState<"PMI" | "Agile" | "Hybrid" | "General PMO">("Hybrid");
   const [input, setInput] = useState("");
   const [preferredLanguage, setPreferredLanguage] = useState<SupportedLanguage>("en");
-  const [memoryDomain, setMemoryDomain] = useState<(typeof MEMORY_DOMAINS)[number]>("operational_memory");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [memoryDomain] = useState<(typeof MEMORY_DOMAINS)[number]>("operational_memory");
+  const [messages, setMessages] = useState<ChatMessage[]>([GREETING_MESSAGE]);
   const [loading, setLoading] = useState(false);
   const [thinkingState, setThinkingState] = useState<"idle" | "triaging" | "reasoning" | "validating">("idle");
   const [error, setError] = useState<string | null>(null);
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
-  const [activeFollowUps, setActiveFollowUps] = useState<string[]>(QUICK_NUDGES);
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [imprintState, setImprintState] = useState<PMImprintState>(() => emptyImprintState());
@@ -313,31 +297,18 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
         }),
       });
       const payload = (await response.json()) as CopilotResponse & { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Unable to get PMFreak Workspace response.");
+      if (!response.ok) throw new Error(payload.error ?? "Unable to get a response.");
       setThinkingState("validating");
       await streamAssistant(assistantMessageId, payload.answer);
       setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, text: payload.answer, response: payload, state: "complete", trace: pendingTraceRef.current ?? undefined } : msg)));
       pendingTraceRef.current = null;
-      const adaptiveClarifier = computeAdaptiveClarifyingQuestion(
-        imprintState.profile,
-        computeImprintConfidence(imprintState.profile),
-      );
-      const firstContact = buildLocalizedFirstContactFrame({
-        language: preference.preferredLanguage,
-        concepts: normalizedConcepts.concepts,
-      });
-      setActiveFollowUps([
-        payload.contextGapQuestions?.[0] || firstContact.clarifyingQuestion || adaptiveClarifier,
-        "Draft my next sponsor update from this response.",
-        selectedProject ? `What is the next highest-impact action for ${selectedProject.projectName}?` : "What should I escalate in the next 24 hours?",
-      ]);
     } catch (e) {
-      const failure = e instanceof Error ? e.message : "Unable to get PMFreak Workspace response.";
+      const failure = e instanceof Error ? e.message : "Unable to get a response.";
       setError(failure);
       setLastFailedMessage(message);
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === assistantMessageId ? { ...msg, text: "PMFreak lost signal while compiling guidance. Retry to continue continuity.", state: "error" } : msg,
+          msg.id === assistantMessageId ? { ...msg, text: "Response unavailable — try again to continue.", state: "error" } : msg,
         ),
       );
     } finally {
@@ -372,77 +343,12 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
     }
   };
 
-  const isDormant = awakening.stage === "dormant";
-  const stageChip = STAGE_CHIP[awakening.stage];
-  const imprintConfidence = computeImprintConfidence(imprintState.profile);
-  const ignitionCues = useMemo(() => {
-    const adaptive = computeIgnitionCues(imprintState.profile, imprintConfidence);
-    return imprintConfidence === "forming" ? getLocalizedIgnitionCues(preferredLanguage) : adaptive;
-  }, [imprintState.profile, imprintConfidence, preferredLanguage]);
-
   return (
     <main className="mx-auto min-h-[82vh] w-full">
       <section className="rounded-3xl border border-white/10 bg-slate-900/55 p-4 shadow-[0_30px_70px_-50px_rgba(15,23,42,0.95)] backdrop-blur-xl md:p-6">
-        <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">PMFreak Workspace</p>
-            <h1 className="mt-1 text-2xl font-semibold">Operational Command Center</h1>
-            {isDormant ? (
-              <p className="mt-1 text-sm text-slate-500">
-                {WORKSPACE_DISPLAY.labels.dormantInvitation}
-              </p>
-            ) : (
-              <p className="mt-1 text-sm text-slate-300">Ask once. PMFreak distills complexity into clear operational judgment with full depth running quietly underneath.</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.16em] transition-colors ${stageChip.style}`}>
-              {stageChip.label}
-            </span>
-            {validationEnabled && validationState.traces.length > 0 ? (
-              <span className="rounded-full border border-violet-400/30 bg-violet-400/[0.08] px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-violet-300/80 transition-colors">
-                {VALIDATION_CONFIDENCE_LABELS[validationState.currentConfidence]}
-              </span>
-            ) : null}
-            <select value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className="rounded-xl border border-white/15 bg-white/30 px-3 py-2 text-xs">
-              <option value="">All projects</option>
-              {projects.map((p) => <option key={p.id} value={p.id}>{p.projectName}</option>)}
-            </select>
-            <select value={methodology} onChange={(e) => setMethodology(e.target.value as never)} className="rounded-xl border border-white/15 bg-white/30 px-3 py-2 text-xs">
-              <option>Hybrid</option><option>PMI</option><option>Agile</option><option>General PMO</option>
-            </select>
-          </div>
+        <header className="mb-4">
+          <h1 className="text-2xl font-semibold">Operational Command Center</h1>
         </header>
-
-        {/* Dormant state — operational ignition cues */}
-        {isDormant && messages.length === 0 ? (
-          <section className="mb-4 rounded-2xl border border-white/[0.06] bg-white/[0.01] p-5">
-            <p className="text-[11px] text-slate-600">{WORKSPACE_DISPLAY.labels.dormantSignalHint}</p>
-            <div className="mt-4 space-y-2">
-              {ignitionCues.map((cue) => (
-                <button
-                  key={cue}
-                  type="button"
-                  onClick={() => void send(cue)}
-                  className="block w-full rounded-xl border border-white/[0.06] bg-white/[0.01] px-4 py-2.5 text-left text-xs text-slate-400 transition hover:border-cyan-300/20 hover:text-slate-200"
-                >
-                  {cue}
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {/* Follow-up nudges — only after conversation has started */}
-        {messages.length > 0 ? (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {activeFollowUps.map((prompt) => (
-              <button key={prompt} onClick={() => void send(prompt)} className="rounded-full border border-white/15 bg-white/[0.02] px-3 py-1.5 text-xs text-slate-200 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.08]">
-                {prompt}
-              </button>
-            ))}
-          </div>
-        ) : null}
 
         <div
           onDrop={(e) => { e.preventDefault(); setDragActive(false); void handleUpload(e.dataTransfer.files); }}
@@ -454,8 +360,8 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
             {messages.map((msg) => (
               <article key={msg.id} className={`max-w-3xl rounded-2xl p-3 text-sm transition-all ${msg.role === "user" ? "ml-auto border border-cyan-300/20 bg-cyan-400/[0.12]" : "border border-white/10 bg-slate-900/80"} ${msg.state === "streaming" ? "ring-1 ring-cyan-300/30" : ""}`}>
                 <p>{msg.text}</p>
-                {msg.role === "assistant" && msg.state === "streaming" ? <p className="mt-2 text-[11px] text-cyan-200 animate-pulse">typing operational guidance…</p> : null}
-                {msg.role === "assistant" && msg.state === "error" ? <p className="mt-2 text-[11px] text-rose-200">degraded AI state — conversation memory retained</p> : null}
+                {msg.role === "assistant" && msg.state === "streaming" ? <p className="mt-2 text-[11px] text-cyan-200 animate-pulse">typing…</p> : null}
+                {msg.role === "assistant" && msg.state === "error" ? <p className="mt-2 text-[11px] text-rose-200">Response unavailable — try again to continue.</p> : null}
                 {msg.role === "assistant" && msg.response?.runtimeResponse ? <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-slate-200"><p><span className="text-slate-400">Observation:</span> {msg.response.runtimeResponse.observation}</p><p><span className="text-slate-400">Interpretation:</span> {msg.response.runtimeResponse.interpretation}</p><p><span className="text-slate-400">Confidence:</span> {msg.response.runtimeResponse.confidence}</p><ul className="list-disc pl-4 text-slate-300">{msg.response.runtimeResponse.supportingEvidence.map((item) => <li key={item}>{item}</li>)}</ul>{msg.response.runtimeResponse.trustNotes.length ? <p className="text-amber-200">Trust notes: {msg.response.runtimeResponse.trustNotes.join(" ")}</p> : null}</div> : null}
                 {msg.role === "assistant" && msg.state === "complete" && msg.trace && validationEnabled ? (
                   <details className="mt-2 rounded-lg border border-white/[0.05] bg-white/[0.01] p-2 text-[11px]">
@@ -490,7 +396,7 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
                 ) : null}
               </article>
             ))}
-            {loading ? <p className="text-sm text-slate-300 animate-pulse">Thinking: {thinkingState === "triaging" ? "triaging operational signals" : thinkingState === "reasoning" ? "running PM reasoning pass" : "validating intervention quality"}…</p> : null}
+            {loading ? <p className="text-sm text-slate-500 animate-pulse">…</p> : null}
             {error ? <p className="text-sm text-rose-200">{error}</p> : null}
             <div ref={messagesEndRef} />
           </div>
@@ -502,23 +408,17 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance, scop
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={isDormant ? "What needs operational attention?" : "Ask for the next decision, risk, or action…"}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
+              placeholder="Tell PMFreak what needs attention…"
               className="flex-1 rounded-xl border border-white/15 bg-slate-950/75 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300/70"
             />
             <button onClick={() => void send()} disabled={loading} className="rounded-xl border border-cyan-200/45 bg-cyan-400/[0.08] px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/[0.16]">Send</button>
           </div>
           {lastFailedMessage ? (
             <button onClick={() => void send(lastFailedMessage)} className="rounded-xl border border-amber-300/40 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
-              Retry last prompt with memory continuity
+              Retry
             </button>
           ) : null}
-          <div className="flex items-center gap-2 text-xs">
-            <select value={memoryDomain} onChange={(e) => setMemoryDomain(e.target.value as (typeof MEMORY_DOMAINS)[number])} className="rounded-lg border border-white/15 bg-white/30 px-2 py-1">
-              {MEMORY_DOMAINS.map((domain) => <option key={domain} value={domain}>{domain}</option>)}
-            </select>
-            <button onClick={async () => { if (!input.trim()) return; await fetch("/api/operational-memory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ domain: memoryDomain, title: "General chat routed insight", text: input, sourceRef: "copilot" }) }); }} className="text-cyan-200">Route insight to domain</button>
-          </div>
-          <button onClick={() => fileInputRef.current?.click()} className="text-xs text-cyan-200">+ Drop or attach project files to enrich context</button>
         </div>
       </section>
 

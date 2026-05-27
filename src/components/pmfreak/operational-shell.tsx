@@ -3,21 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { OperationalEventFeed } from "./OperationalEventFeed";
-import { ShellMetric } from "./ShellMetric";
-import { AdvancedDrawer } from "./navigation/advanced-drawer";
 import { DERIVED_LENS_METADATA } from "@/lib/workspace/derived-lens-metadata";
 import { computeCapabilityRevealState, computeNavigationRail } from "@/features/runtime/capability-reveal/capability-reveal-selectors";
-import {
-  AWAKENING_EVENT,
-  deriveAwakeningState,
-  isLensUnlocked,
-  loadAwakeningState,
-  type AwakeningState,
-} from "@/lib/workspace/awakening-state";
-import { computeImprintConfidence } from "@/lib/workspace/imprint-confidence";
-import { loadImprintState } from "@/lib/workspace/operational-imprint-profile";
-import type { PMOperationalImprint } from "@/lib/workspace/operational-imprint-profile";
 
 type UserProject = { id: string; name: string };
 
@@ -30,8 +17,6 @@ type OperationalShellProps = {
 export function OperationalShell({ children, user }: OperationalShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [awakening, setAwakening] = useState<AwakeningState>(() => deriveAwakeningState(0));
-  const [imprintFocus, setImprintFocus] = useState<PMOperationalImprint["dominantFocus"] | null>(null);
   const [projects, setProjects] = useState<UserProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const initializedRef = useRef(false);
@@ -70,22 +55,6 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
     if (projectId) globalThis.localStorage?.setItem("pmfreak.currentProjectId", projectId);
   }, [projectId]);
 
-  // Hydrate awakening state from localStorage and keep in sync with workspace events
-  useEffect(() => {
-    setAwakening(loadAwakeningState("global", "default"));
-    const imprintState = loadImprintState("global", "default", "default");
-    const confidence = computeImprintConfidence(imprintState.profile);
-    if (confidence !== "forming") {
-      setImprintFocus(imprintState.profile.dominantFocus);
-    }
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent<AwakeningState>).detail;
-      if (detail) setAwakening(detail);
-    };
-    window.addEventListener(AWAKENING_EVENT, handler);
-    return () => window.removeEventListener(AWAKENING_EVENT, handler);
-  }, []);
-
   // Once projects finish loading: clean stale localStorage and hydrate URL from stored id.
   // Skip on network error — a failed fetch must not incorrectly invalidate a valid stored context.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,7 +68,6 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
     const validIds = new Set(projects.map((p) => p.id));
 
     if (urlProjectId) {
-      // Explicit URL projectId — validate but do not redirect (guarded state for invalid urls).
       if (!validIds.has(urlProjectId)) {
         globalThis.localStorage?.removeItem("pmfreak.currentProjectId");
         setProjectId("");
@@ -107,13 +75,10 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
       return;
     }
 
-    // No projectId in URL — check stored id.
     if (projectId && validIds.has(projectId)) {
-      // Valid stored id — hydrate URL to eliminate server/client drift.
       urlParams.set("projectId", projectId);
       router.replace(`${window.location.pathname}?${urlParams.toString()}`);
     } else if (projectId && !validIds.has(projectId)) {
-      // Stale stored id — clean up without redirecting.
       globalThis.localStorage?.removeItem("pmfreak.currentProjectId");
       setProjectId("");
     }
@@ -136,21 +101,6 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
   const navHref = (href: string) => (projectId ? `${href}?projectId=${projectId}` : href);
   const navItems = computeNavigationRail(revealState);
   const primaryNav = navItems.filter((item) => item.idle === "text-indigo-100/90");
-  const LENS_ORDER_BY_FOCUS: Record<PMOperationalImprint["dominantFocus"], string[]> = {
-    delivery: ["/dashboard", "/command-center", "/executive", "/portfolio"],
-    stakeholders: ["/dashboard", "/executive", "/command-center", "/portfolio"],
-    governance: ["/dashboard", "/executive", "/command-center", "/portfolio"],
-    risk: ["/dashboard", "/executive", "/command-center", "/portfolio"],
-  };
-  const lensHrefs = ["/dashboard", "/command-center", "/executive", "/portfolio"];
-  const lensOrder = imprintFocus ? LENS_ORDER_BY_FOCUS[imprintFocus] : lensHrefs;
-  const lensNav = navItems
-    .filter((item) => lensHrefs.includes(item.href))
-    .sort((a, b) => lensOrder.indexOf(a.href) - lensOrder.indexOf(b.href));
-  const projectToolsNav = navItems.filter((item) => ["/projects", "/input-hub"].includes(item.href) && item.idle !== "text-indigo-100/90");
-  const workspaceNav = navItems.filter((item) => item.href === "/team");
-  const assigned = new Set([...primaryNav, ...lensNav, ...projectToolsNav, ...workspaceNav]);
-  const advancedNav = navItems.filter((item) => !assigned.has(item));
   const activeLens = DERIVED_LENS_METADATA.find((lens) => pathname.startsWith(lens.route) && ["overview", "delivery", "leadership", "controls"].includes(lens.lensType));
 
   return (
@@ -165,169 +115,44 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
 
             {/* Identity block */}
             <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-black/40 p-3.5">
-              {/* AI glow orb */}
               <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-indigo-500/20 blur-2xl motion-safe:animate-[breathe_8s_ease-in-out_infinite]" />
               <div className="pointer-events-none absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-cyan-500/15 blur-xl" />
 
               <div className="relative">
                 <div className="flex items-center gap-2">
-                  {/* AI pulse dot */}
                   <span className="relative flex h-2 w-2 shrink-0">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400/60 motion-safe:animate-[pulse_3s_ease-in-out_infinite]" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-400" />
                   </span>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.36em] text-indigo-200/80">PMFreak</p>
                 </div>
-
-                <h2 className="mt-2 text-sm font-semibold leading-snug text-white">
-                  {hasProjects ? "Operational Intelligence" : "Setup Your Context"}
-                </h2>
-                <p className="mt-0.5 text-[11px] text-zinc-500">{user.companyName}</p>
-                <p className="mt-1 text-[10px] text-cyan-300/80">Stage: {revealState.stage} · Evidence: {revealState.evidenceDensity}</p>
-
-                <div className="mt-2.5">
-                  {hasProjects ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-300/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-emerald-100">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 motion-safe:animate-pulse" />
-                      Active
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-500/30 bg-zinc-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-400">
-                      <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-                      Standby
-                    </span>
-                  )}
-                </div>
+                <p className="mt-1 text-[11px] text-zinc-500">{user.companyName}</p>
               </div>
             </div>
 
-            {/* Primary navigation */}
-            <nav aria-label="Primary navigation" className="space-y-3">
+            {/* Primary navigation — Start Here */}
+            <nav aria-label="Primary navigation">
               <div className="space-y-1">
                 <p className="mb-1.5 px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-600">Start Here</p>
-              {primaryNav.map((item) => {
-                const isActive = pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={navHref(item.href)}
-                    className={`group relative block overflow-hidden rounded-xl border px-3 py-2.5 text-sm transition-all duration-200 ${
-                      isActive
-                        ? `${item.active} border-opacity-100`
-                        : `border-white/[0.05] bg-white/[0.01] ${item.idle} hover:border-white/[0.15] hover:bg-white/[0.04] hover:-translate-y-px`
-                    }`}
-                  >
-                    <span className={`pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 bg-gradient-to-r group-hover:opacity-100 ${item.accent}`} />
-                    <span className="relative">{item.label}</span>
-                  </Link>
-                );
-              })}
-              </div>
-              <div className="space-y-1">
-                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Views</p>
-                {lensNav.map((item) => {
-                  const unlocked = isLensUnlocked(item.href, awakening.stage);
-                  return unlocked ? (
-                    <Link key={item.href} href={navHref(item.href)} className={`block rounded-lg border px-3 py-2 text-xs ${pathname.startsWith(item.href) ? item.active : `border-white/[0.05] bg-white/[0.01] ${item.idle}`}`}>{item.label}</Link>
-                  ) : (
-                    <span key={item.href} className="block cursor-default rounded-lg border border-white/[0.03] px-3 py-2 text-xs text-zinc-700 opacity-40 select-none">{item.label}</span>
+                {primaryNav.map((item) => {
+                  const isActive = pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={navHref(item.href)}
+                      className={`group relative block overflow-hidden rounded-xl border px-3 py-2.5 text-sm transition-all duration-200 ${
+                        isActive
+                          ? `${item.active} border-opacity-100`
+                          : `border-white/[0.05] bg-white/[0.01] ${item.idle} hover:border-white/[0.15] hover:bg-white/[0.04] hover:-translate-y-px`
+                      }`}
+                    >
+                      <span className={`pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 bg-gradient-to-r group-hover:opacity-100 ${item.accent}`} />
+                      <span className="relative">{item.label}</span>
+                    </Link>
                   );
                 })}
               </div>
-              <div className="space-y-1">
-                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Project Tools</p>
-                {projectToolsNav.map((item) => (
-                  <Link key={item.href} href={navHref(item.href)} className={`block rounded-lg border px-3 py-2 text-xs ${pathname.startsWith(item.href) ? item.active : `border-white/[0.05] bg-white/[0.01] ${item.idle}`}`}>{item.label}</Link>
-                ))}
-              </div>
-              <div className="space-y-1">
-                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Workspace</p>
-                {workspaceNav.map((item) => (
-                  <Link key={item.href} href={navHref(item.href)} className={`block rounded-lg border px-3 py-2 text-xs ${pathname.startsWith(item.href) ? item.active : `border-white/[0.05] bg-white/[0.01] ${item.idle}`}`}>{item.label}</Link>
-                ))}
-                <AdvancedDrawer items={advancedNav} pathname={pathname} navHref={navHref} />
-              </div>
             </nav>
-
-            {/* AI Assistant */}
-            <div className="rounded-2xl border border-indigo-300/[0.12] bg-indigo-300/[0.04] p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="relative flex h-1.5 w-1.5 shrink-0">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400/50 motion-safe:animate-[pulse_3s_ease-in-out_infinite]" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
-                </span>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-indigo-300/80">AI Assistant</p>
-              </div>
-              <p className="text-[11px] leading-relaxed text-slate-400">
-                {hasProjects
-                  ? "Monitoring"
-                  : "No active context"}
-              </p>
-              <Link
-                href="/workspace"
-                className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-indigo-300/25 bg-indigo-300/[0.06] px-3 py-1.5 text-[11px] font-medium text-indigo-200 transition-all hover:border-indigo-300/40 hover:bg-indigo-300/[0.10]"
-              >
-                Open Workspace
-                <span className="opacity-60">→</span>
-              </Link>
-            </div>
-
-            {/* Operational signal feed */}
-            {hasProjects && (
-              <div>
-                <p className="mb-1.5 px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Live Signals</p>
-                <OperationalEventFeed maxVisible={3} />
-              </div>
-            )}
-
-            {/* Empty state — no projects */}
-            {!hasProjects && !projectsLoading && (
-              <div className="rounded-2xl border border-cyan-300/[0.12] bg-cyan-300/[0.04] p-3">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400/70 mb-1.5">Get Started</p>
-                <p className="text-[11px] leading-relaxed text-slate-400">
-                  Create your first context.
-                </p>
-                <Link
-                  href="/workspace"
-                  className="mt-2 inline-flex text-[11px] font-medium text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
-                >
-                  Begin continuity →
-                </Link>
-              </div>
-            )}
-
-            {/* Context awareness metrics */}
-            {hasProjects && (
-              <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
-                <p className="mb-2.5 text-[9px] uppercase tracking-[0.28em] text-zinc-700">Workspace</p>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <ShellMetric
-                    label="Projects"
-                    value={String(projects.length)}
-                    delta="Active contexts"
-                    trend="stable"
-                  />
-                  <ShellMetric
-                    label="Signal drift"
-                    value="+12%"
-                    delta="vs. last week"
-                    trend="warning"
-                  />
-                  <ShellMetric
-                    label="Tension"
-                    value="Rising"
-                    delta="Political layer"
-                    trend="down"
-                  />
-                  <ShellMetric
-                    label="Memory"
-                    value="Stable"
-                    delta="Confidence OK"
-                    trend="up"
-                  />
-                </div>
-              </div>
-            )}
           </div>
 
           {/* User block — pinned bottom */}
@@ -363,7 +188,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
               <span className="text-[10px] text-zinc-600">{user.companyName}</span>
             </div>
             <div className="flex snap-x gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {[...primaryNav, ...lensNav, ...projectToolsNav, ...workspaceNav].map((item) => (
+              {primaryNav.map((item) => (
                 <Link
                   key={item.label}
                   href={navHref(item.href)}
@@ -381,7 +206,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
 
           {/* Page content */}
           {activeLens && (
-            <p className="px-1 text-[11px] text-slate-500">Workspace / {activeLens.breadcrumbLabel}</p>
+            <p className="px-1 text-[11px] text-slate-500">{activeLens.breadcrumbLabel}</p>
           )}
           <main className="min-w-0">{children}</main>
         </div>
