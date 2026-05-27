@@ -18,6 +18,22 @@ import {
   persistImprintState,
   type PMImprintState,
 } from "@/lib/workspace/operational-imprint-profile";
+import { isRuntimeValidationEnabled } from "@/lib/workspace/beta-validation-mode";
+import { buildValidationTrace, VALIDATION_CONFIDENCE_LABELS } from "@/lib/workspace/validation-trace-builder";
+import { detectContradiction } from "@/lib/workspace/validation-consistency";
+import {
+  addTrace,
+  applyFeedback,
+  emptyValidationState,
+  loadValidationState,
+  persistValidationState,
+  type ValidationFeedback,
+  type ValidationState,
+  type ValidationTrace,
+} from "@/lib/workspace/runtime-validation";
+import { RuntimeTrustPanel } from "@/components/pmfreak/workspace/runtime-trust-panel";
+import { ValidationTimeline } from "@/components/pmfreak/workspace/validation-timeline";
+import { ValidationReplay } from "@/components/pmfreak/workspace/validation-replay";
 
 type ProjectOption = { id: string; projectName: string; uploadDate: string };
 type CopilotCard = { type: "Risks" | "Next Actions" | "Draft Email" | "RACI" | "Checklist"; title: string; items: string[] };
@@ -51,6 +67,7 @@ type ChatMessage = {
   response?: CopilotResponse;
   ingestion?: IngestionMetadata;
   state?: "streaming" | "complete" | "error";
+  trace?: ValidationTrace;
 };
 
 type AmbientMemory = { blockers: string[]; recentDecisions: string[]; stakeholderPressure: string[]; criticalRisks: string[]; concerns: string[] };
@@ -136,6 +153,9 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [imprintState, setImprintState] = useState<PMImprintState>(() => emptyImprintState());
+  const [validationState, setValidationState] = useState<ValidationState>(() => emptyValidationState());
+  const [validationEnabled] = useState(() => isRuntimeValidationEnabled());
+  const pendingTraceRef = useRef<ValidationTrace | null>(null);
   const [ambientMemory, setAmbientMemory] = useState<AmbientMemory>({ blockers: [], recentDecisions: [], stakeholderPressure: [], criticalRisks: [], concerns: [] });
   const [executionRisk, setExecutionRisk] = useState<ExecutionRiskSnapshot | null>(null);
   const [stakeholderIntel, setStakeholderIntel] = useState<StakeholderRelationshipSnapshot | null>(null);
@@ -152,6 +172,12 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
   useEffect(() => {
     setImprintState(loadImprintState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID));
   }, []);
+
+  useEffect(() => {
+    if (validationEnabled) {
+      setValidationState(loadValidationState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID));
+    }
+  }, [validationEnabled]);
 
   useEffect(() => {
     void fetch("/api/copilot/context")
@@ -218,10 +244,26 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
     // Advance awakening and observe imprint on meaningful operational signal
     if (isMeaningfulOperationalContact(message)) {
       const nextCount = awakening.interactionCount + 1;
-      onAwakeningAdvance(deriveAwakeningState(nextCount));
+      const nextAwakening = deriveAwakeningState(nextCount);
+      onAwakeningAdvance(nextAwakening);
       const nextImprint = observeInteraction(message, imprintState);
       setImprintState(nextImprint);
       persistImprintState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID, nextImprint);
+      if (validationEnabled) {
+        const contradiction = detectContradiction(message, imprintState);
+        const trace = buildValidationTrace(
+          nextAwakening,
+          nextImprint,
+          computeImprintConfidence(nextImprint.profile),
+          validationState.feedbackBias,
+          contradiction.hasContradiction,
+          message.slice(0, 80),
+        );
+        pendingTraceRef.current = trace;
+        const nextVState = addTrace(validationState, trace);
+        setValidationState(nextVState);
+        persistValidationState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID, nextVState);
+      }
     }
 
     messageIdRef.current += 1;
@@ -256,7 +298,8 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
       if (!response.ok) throw new Error(payload.error ?? "Unable to get PMFreak Workspace response.");
       setThinkingState("validating");
       await streamAssistant(assistantMessageId, payload.answer);
-      setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, text: payload.answer, response: payload, state: "complete" } : msg)));
+      setMessages((prev) => prev.map((msg) => (msg.id === assistantMessageId ? { ...msg, text: payload.answer, response: payload, state: "complete", trace: pendingTraceRef.current ?? undefined } : msg)));
+      pendingTraceRef.current = null;
       const adaptiveClarifier = computeAdaptiveClarifyingQuestion(
         imprintState.profile,
         computeImprintConfidence(imprintState.profile),
@@ -334,6 +377,11 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
             <span className={`rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.16em] transition-colors ${stageChip.style}`}>
               {stageChip.label}
             </span>
+            {validationEnabled && validationState.traces.length > 0 ? (
+              <span className="rounded-full border border-violet-400/30 bg-violet-400/[0.08] px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-violet-300/80 transition-colors">
+                {VALIDATION_CONFIDENCE_LABELS[validationState.currentConfidence]}
+              </span>
+            ) : null}
             <select value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className="rounded-xl border border-white/15 bg-white/30 px-3 py-2 text-xs">
               <option value="">All projects</option>
               {projects.map((p) => <option key={p.id} value={p.id}>{p.projectName}</option>)}
@@ -387,6 +435,26 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
                 {msg.role === "assistant" && msg.state === "streaming" ? <p className="mt-2 text-[11px] text-cyan-200 animate-pulse">typing operational guidance…</p> : null}
                 {msg.role === "assistant" && msg.state === "error" ? <p className="mt-2 text-[11px] text-rose-200">degraded AI state — conversation memory retained</p> : null}
                 {msg.role === "assistant" && msg.response?.runtimeResponse ? <div className="mt-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-slate-200"><p><span className="text-slate-400">Observation:</span> {msg.response.runtimeResponse.observation}</p><p><span className="text-slate-400">Interpretation:</span> {msg.response.runtimeResponse.interpretation}</p><p><span className="text-slate-400">Confidence:</span> {msg.response.runtimeResponse.confidence}</p><ul className="list-disc pl-4 text-slate-300">{msg.response.runtimeResponse.supportingEvidence.map((item) => <li key={item}>{item}</li>)}</ul>{msg.response.runtimeResponse.trustNotes.length ? <p className="text-amber-200">Trust notes: {msg.response.runtimeResponse.trustNotes.join(" ")}</p> : null}</div> : null}
+                {msg.role === "assistant" && msg.state === "complete" && msg.trace && validationEnabled ? (
+                  <details className="mt-2 rounded-lg border border-white/[0.05] bg-white/[0.01] p-2 text-[11px]">
+                    <summary className="cursor-pointer select-none text-zinc-600">Why this response</summary>
+                    <div className="mt-1.5 space-y-0.5">
+                      <p className="text-zinc-600 mb-1">Generated from:</p>
+                      {msg.trace.continuitySignals.map((sig) => (
+                        <p key={sig} className="flex items-start gap-1.5 text-slate-500">
+                          <span className="mt-0.5 shrink-0 text-violet-500/50">•</span>
+                          {sig}
+                        </p>
+                      ))}
+                      {msg.trace.activeSources.slice(0, 3).map((src) => (
+                        <p key={src} className="flex items-start gap-1.5 text-zinc-600">
+                          <span className="mt-0.5 shrink-0">•</span>
+                          {src} signal active
+                        </p>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
                 {msg.role === "assistant" && msg.response?.operationalPlans?.length ? (
                   <div className="mt-3 space-y-2 rounded-xl border border-cyan-300/20 bg-cyan-400/5 p-3 text-xs">
                     <p className="font-semibold text-cyan-100">Operational Plans</p>
@@ -473,6 +541,23 @@ export function WorkspaceConversationShell({ awakening, onAwakeningAdvance }: Pr
           userId={IMPRINT_USER_ID}
           onReset={() => setImprintState(emptyImprintState())}
         />
+
+        {/* Runtime trust observability surfaces — gated by beta validation mode */}
+        {validationEnabled ? (
+          <>
+            <RuntimeTrustPanel
+              traces={validationState.traces}
+              currentConfidence={validationState.currentConfidence}
+              onFeedback={(traceId: string, feedback: ValidationFeedback) => {
+                const nextVState = applyFeedback(validationState, feedback, traceId);
+                setValidationState(nextVState);
+                persistValidationState(IMPRINT_COMPANY_ID, IMPRINT_WORKSPACE_ID, IMPRINT_USER_ID, nextVState);
+              }}
+            />
+            <ValidationTimeline traces={validationState.traces} />
+            <ValidationReplay traces={validationState.traces} />
+          </>
+        ) : null}
 
         <details className="rounded-2xl border border-white/10 bg-white/15 p-3 text-xs text-slate-200">
           <summary className="cursor-pointer font-semibold text-slate-100">Top action queue</summary>
