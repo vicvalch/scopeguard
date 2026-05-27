@@ -133,13 +133,9 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
     canUsePortfolioMemory: true,
     canUseGovernanceDirectives: user.role === "admin" || user.role === "owner",
   }), [hasProjects, user.role]);
-  const scopeLabel = useMemo(
-    () => projects.find((p) => p.id === projectId)?.name ?? "Portfolio scope",
-    [projectId, projects]
-  );
   const navHref = (href: string) => (projectId ? `${href}?projectId=${projectId}` : href);
   const navItems = computeNavigationRail(revealState);
-  const primaryNav = navItems.filter((item) => item.href === "/workspace");
+  const primaryNav = navItems.filter((item) => item.idle === "text-indigo-100/90");
   const LENS_ORDER_BY_FOCUS: Record<PMOperationalImprint["dominantFocus"], string[]> = {
     delivery: ["/dashboard", "/command-center", "/executive", "/portfolio"],
     stakeholders: ["/dashboard", "/executive", "/command-center", "/portfolio"],
@@ -151,9 +147,11 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
   const lensNav = navItems
     .filter((item) => lensHrefs.includes(item.href))
     .sort((a, b) => lensOrder.indexOf(a.href) - lensOrder.indexOf(b.href));
-  const utilityNav = navItems.filter((item) => ["/projects", "/input-hub", "/team"].includes(item.href));
-  const advancedNav = navItems.filter((item) => ![...primaryNav, ...lensNav, ...utilityNav].some((base) => base.href === item.href));
-  const activeLens = DERIVED_LENS_METADATA.find((lens) => pathname.startsWith(lens.route) && ["summary", "execution", "executive", "portfolio"].includes(lens.lensType));
+  const projectToolsNav = navItems.filter((item) => ["/projects", "/input-hub"].includes(item.href) && item.idle !== "text-indigo-100/90");
+  const workspaceNav = navItems.filter((item) => item.href === "/team");
+  const assigned = new Set([...primaryNav, ...lensNav, ...projectToolsNav, ...workspaceNav]);
+  const advancedNav = navItems.filter((item) => !assigned.has(item));
+  const activeLens = DERIVED_LENS_METADATA.find((lens) => pathname.startsWith(lens.route) && ["overview", "delivery", "leadership", "controls"].includes(lens.lensType));
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-100">
@@ -206,7 +204,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
             {/* Primary navigation */}
             <nav aria-label="Primary navigation" className="space-y-3">
               <div className="space-y-1">
-                <p className="mb-1.5 px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-600">Workspace</p>
+                <p className="mb-1.5 px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-600">Start Here</p>
               {primaryNav.map((item) => {
                 const isActive = pathname.startsWith(item.href);
                 return (
@@ -226,7 +224,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
               })}
               </div>
               <div className="space-y-1">
-                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Lenses</p>
+                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Views</p>
                 {lensNav.map((item) => {
                   const unlocked = isLensUnlocked(item.href, awakening.stage);
                   return unlocked ? (
@@ -237,12 +235,18 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
                 })}
               </div>
               <div className="space-y-1">
-                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Utilities</p>
-                {utilityNav.map((item) => (
+                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Project Tools</p>
+                {projectToolsNav.map((item) => (
                   <Link key={item.href} href={navHref(item.href)} className={`block rounded-lg border px-3 py-2 text-xs ${pathname.startsWith(item.href) ? item.active : `border-white/[0.05] bg-white/[0.01] ${item.idle}`}`}>{item.label}</Link>
                 ))}
               </div>
-              <AdvancedDrawer items={advancedNav} pathname={pathname} navHref={navHref} />
+              <div className="space-y-1">
+                <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Workspace</p>
+                {workspaceNav.map((item) => (
+                  <Link key={item.href} href={navHref(item.href)} className={`block rounded-lg border px-3 py-2 text-xs ${pathname.startsWith(item.href) ? item.active : `border-white/[0.05] bg-white/[0.01] ${item.idle}`}`}>{item.label}</Link>
+                ))}
+                <AdvancedDrawer items={advancedNav} pathname={pathname} navHref={navHref} />
+              </div>
             </nav>
 
             {/* AI Assistant */}
@@ -359,9 +363,9 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
               <span className="text-[10px] text-zinc-600">{user.companyName}</span>
             </div>
             <div className="flex snap-x gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {[...primaryNav, ...lensNav, ...utilityNav].map((item) => (
+              {[...primaryNav, ...lensNav, ...projectToolsNav, ...workspaceNav].map((item) => (
                 <Link
-                  key={item.href}
+                  key={item.label}
                   href={navHref(item.href)}
                   className={`shrink-0 snap-start rounded-lg border px-3 py-1.5 text-xs transition-colors ${
                     pathname.startsWith(item.href)
