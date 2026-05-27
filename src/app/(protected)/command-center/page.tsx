@@ -121,7 +121,6 @@ export default async function CommandCenterPage({
                 <p className="text-[11px] text-slate-500">You can keep refining workspace context after save.</p>
               </div>
             </form>
-          </div>
         </section>
 
         {/* Supporting context */}
