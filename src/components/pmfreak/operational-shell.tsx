@@ -9,6 +9,13 @@ import { ShellMetric } from "./ShellMetric";
 import { AdvancedDrawer } from "./navigation/advanced-drawer";
 import { DERIVED_LENS_METADATA } from "@/lib/workspace/derived-lens-metadata";
 import { computeCapabilityRevealState, computeNavigationRail } from "@/features/runtime/capability-reveal/capability-reveal-selectors";
+import {
+  AWAKENING_EVENT,
+  deriveAwakeningState,
+  isLensUnlocked,
+  loadAwakeningState,
+  type AwakeningState,
+} from "@/lib/workspace/awakening-state";
 
 type UserProject = { id: string; name: string };
 
@@ -21,6 +28,7 @@ type OperationalShellProps = {
 export function OperationalShell({ children, user }: OperationalShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [awakening, setAwakening] = useState<AwakeningState>(() => deriveAwakeningState(0));
   const [projects, setProjects] = useState<UserProject[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(true);
   const initializedRef = useRef(false);
@@ -58,6 +66,17 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
   useEffect(() => {
     if (projectId) globalThis.localStorage?.setItem("pmfreak.currentProjectId", projectId);
   }, [projectId]);
+
+  // Hydrate awakening state from localStorage and keep in sync with workspace events
+  useEffect(() => {
+    setAwakening(loadAwakeningState("global", "default"));
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<AwakeningState>).detail;
+      if (detail) setAwakening(detail);
+    };
+    window.addEventListener(AWAKENING_EVENT, handler);
+    return () => window.removeEventListener(AWAKENING_EVENT, handler);
+  }, []);
 
   // Once projects finish loading: clean stale localStorage and hydrate URL from stored id.
   // Skip on network error — a failed fetch must not incorrectly invalidate a valid stored context.
@@ -190,9 +209,14 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
               </div>
               <div className="space-y-1">
                 <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Lenses</p>
-                {lensNav.map((item) => (
-                  <Link key={item.href} href={navHref(item.href)} className={`block rounded-lg border px-3 py-2 text-xs ${pathname.startsWith(item.href) ? item.active : `border-white/[0.05] bg-white/[0.01] ${item.idle}`}`}>{item.label}</Link>
-                ))}
+                {lensNav.map((item) => {
+                  const unlocked = isLensUnlocked(item.href, awakening.stage);
+                  return unlocked ? (
+                    <Link key={item.href} href={navHref(item.href)} className={`block rounded-lg border px-3 py-2 text-xs ${pathname.startsWith(item.href) ? item.active : `border-white/[0.05] bg-white/[0.01] ${item.idle}`}`}>{item.label}</Link>
+                  ) : (
+                    <span key={item.href} className="block cursor-default rounded-lg border border-white/[0.03] px-3 py-2 text-xs text-zinc-700 opacity-40 select-none">{item.label}</span>
+                  );
+                })}
               </div>
               <div className="space-y-1">
                 <p className="px-1 text-[9px] uppercase tracking-[0.3em] text-zinc-700">Utilities</p>
