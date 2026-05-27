@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -53,7 +54,10 @@ export const getAuthUser = cache(async (): Promise<AuthUserContext | null> => {
 export const requireAuthUser = async () => {
   const user = await getAuthUser();
   if (!user) {
-    redirect("/login");
+    const headersList = await headers();
+    const currentPath = headersList.get("x-pathname") ?? "/workspace";
+    const nextParam = encodeURIComponent(currentPath || "/workspace");
+    redirect(`/login?next=${nextParam}`);
   }
   return user;
 };
