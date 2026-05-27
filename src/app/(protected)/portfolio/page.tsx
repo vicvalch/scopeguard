@@ -75,9 +75,9 @@ export default function PortfolioPage() {
       <main className="mx-auto w-full max-w-5xl space-y-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl md:p-10">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">Portfolio Intelligence Lens</p>
-            <h1 className="text-3xl font-semibold tracking-tight">Portfolio Intelligence Lens</h1>
-            <p className="mt-2 text-sm text-slate-300">Derived analytical lens over workspace project history, risk, and complexity.</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-cyan-300">Portfolio</p>
+            <h1 className="text-3xl font-semibold tracking-tight">Portfolio</h1>
+            <p className="mt-2 text-sm text-slate-300">Project history, risk, and complexity.</p>
           </div>
           <Link
             href="/upload"
@@ -86,7 +86,7 @@ export default function PortfolioPage() {
             Back to Upload
           </Link>
         </div>
-        <WorkspaceContextBanner lens="Portfolio Intelligence Lens" />
+        <WorkspaceContextBanner lens="Portfolio" />
 
         <section className="space-y-3">
           <label htmlFor="quick-search" className="text-sm text-slate-200">

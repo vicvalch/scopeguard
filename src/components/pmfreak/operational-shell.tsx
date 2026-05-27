@@ -138,7 +138,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
                 <div className="flex items-center gap-2">
                   {/* AI pulse dot */}
                   <span className="relative flex h-2 w-2 shrink-0">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400/60 motion-safe:animate-ping" />
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400/60 motion-safe:animate-[pulse_3s_ease-in-out_infinite]" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-400" />
                   </span>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.36em] text-indigo-200/80">PMFreak</p>
@@ -154,12 +154,12 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
                   {hasProjects ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-300/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-emerald-100">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 motion-safe:animate-pulse" />
-                      System pulse active
+                      Active
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-500/30 bg-zinc-500/[0.08] px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-400">
                       <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-                      Agents on standby
+                      Standby
                     </span>
                   )}
                 </div>
@@ -207,15 +207,15 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
             <div className="rounded-2xl border border-indigo-300/[0.12] bg-indigo-300/[0.04] p-3">
               <div className="flex items-center gap-2 mb-2">
                 <span className="relative flex h-1.5 w-1.5 shrink-0">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400/50 motion-safe:animate-ping" />
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400/50 motion-safe:animate-[pulse_3s_ease-in-out_infinite]" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
                 </span>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-indigo-300/80">AI Assistant</p>
               </div>
               <p className="text-[11px] leading-relaxed text-slate-400">
                 {hasProjects
-                  ? "Workspace intelligence is monitoring signals across projects, stakeholders, risks, and meetings."
-                  : "Workspace intelligence is ready. Activate an operational context to begin continuous monitoring."}
+                  ? "Monitoring"
+                  : "No active context"}
               </p>
               <Link
                 href="/workspace"
@@ -239,13 +239,13 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
               <div className="rounded-2xl border border-cyan-300/[0.12] bg-cyan-300/[0.04] p-3">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400/70 mb-1.5">Get Started</p>
                 <p className="text-[11px] leading-relaxed text-slate-400">
-                  Activate your first operational context to unlock AI telemetry, risk sensing, and stakeholder signals.
+                  Create your first context.
                 </p>
                 <Link
                   href="/workspace"
                   className="mt-2 inline-flex text-[11px] font-medium text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
                 >
-                  Start in Workspace →
+                  Begin continuity →
                 </Link>
               </div>
             )}
@@ -309,7 +309,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400/50 motion-safe:animate-ping" />
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400/50 motion-safe:animate-[pulse_3s_ease-in-out_infinite]" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
                 </span>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-indigo-300/80">PMFreak</p>
@@ -346,7 +346,7 @@ export function OperationalShell({ children, user }: OperationalShellProps) {
 
           {/* Page content */}
           {activeLens && (
-            <p className="px-1 text-[11px] text-slate-500">Workspace / {activeLens.title.replace(" Lens","").replace("Operational ","").replace(" Coordination","").replace(" Insight","").replace(" Intelligence","")}</p>
+            <p className="px-1 text-[11px] text-slate-500">Workspace / {activeLens.breadcrumbLabel}</p>
           )}
           <main className="min-w-0">{children}</main>
         </div>

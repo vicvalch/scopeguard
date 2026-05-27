@@ -3,15 +3,17 @@ export type DerivedLensType = "summary" | "execution" | "executive" | "portfolio
 export type DerivedLensMetadata = {
   route: string;
   title: string;
+  displayLabel: string;
+  breadcrumbLabel: string;
   parent: "/workspace";
   lensType: DerivedLensType;
 };
 
 export const DERIVED_LENS_METADATA: DerivedLensMetadata[] = [
-  { route: "/dashboard", title: "Operational Summary Lens", parent: "/workspace", lensType: "summary" },
-  { route: "/command-center", title: "Execution Coordination Lens", parent: "/workspace", lensType: "execution" },
-  { route: "/executive", title: "Executive Insight Lens", parent: "/workspace", lensType: "executive" },
-  { route: "/portfolio", title: "Portfolio Intelligence Lens", parent: "/workspace", lensType: "portfolio" },
-  { route: "/operational-memory", title: "Operational Memory Lens", parent: "/workspace", lensType: "memory" },
-  { route: "/stakeholder-intel", title: "Stakeholder Intelligence Lens", parent: "/workspace", lensType: "memory" },
+  { route: "/dashboard", title: "Summary", displayLabel: "Summary", breadcrumbLabel: "Summary", parent: "/workspace", lensType: "summary" },
+  { route: "/command-center", title: "Execution", displayLabel: "Execution", breadcrumbLabel: "Execution", parent: "/workspace", lensType: "execution" },
+  { route: "/executive", title: "Executive", displayLabel: "Executive", breadcrumbLabel: "Executive", parent: "/workspace", lensType: "executive" },
+  { route: "/portfolio", title: "Portfolio", displayLabel: "Portfolio", breadcrumbLabel: "Portfolio", parent: "/workspace", lensType: "portfolio" },
+  { route: "/operational-memory", title: "Memory", displayLabel: "Memory", breadcrumbLabel: "Memory", parent: "/workspace", lensType: "memory" },
+  { route: "/stakeholder-intel", title: "Stakeholders", displayLabel: "Stakeholders", breadcrumbLabel: "Stakeholders", parent: "/workspace", lensType: "memory" },
 ];
