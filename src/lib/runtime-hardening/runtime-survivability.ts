@@ -1,10 +1,10 @@
-import type { RuntimeSurvivabilityState, RuntimeSubsystem } from "./runtime-hardening-types.js";
-import { retrieveStartupAssertionSummary } from "./startup-assertions.js";
-import { retrieveRuntimeInvariantSummary } from "./runtime-invariants.js";
-import { retrieveReplayIntegritySummary } from "./replay-integrity.js";
-import { retrieveSynchronizationIntegritySummary } from "./synchronization-integrity.js";
-import { retrieveRuntimeBoundarySummary } from "./runtime-boundary-validation.js";
-import { retrieveCognitionContractSummary } from "./cognition-contracts.js";
+import type { RuntimeSurvivabilityState, RuntimeSubsystem } from "./runtime-hardening-types";
+import { retrieveStartupAssertionSummary } from "./startup-assertions";
+import { retrieveRuntimeInvariantSummary } from "./runtime-invariants";
+import { retrieveReplayIntegritySummary } from "./replay-integrity";
+import { retrieveSynchronizationIntegritySummary } from "./synchronization-integrity";
+import { retrieveRuntimeBoundarySummary } from "./runtime-boundary-validation";
+import { retrieveCognitionContractSummary } from "./cognition-contracts";
 
 export function evaluateRuntimeSurvivability(): RuntimeSurvivabilityState {
   const now = new Date().toISOString();

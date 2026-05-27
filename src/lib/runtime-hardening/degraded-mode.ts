@@ -1,9 +1,9 @@
-import type { DegradedModeState, DegradedModeStatus, RuntimeSubsystem } from "./runtime-hardening-types.js";
-import { evaluateStartupAssertions, retrieveStartupAssertionSummary } from "./startup-assertions.js";
-import { evaluateRuntimeInvariants } from "./runtime-invariants.js";
-import { retrieveReplayIntegritySummary } from "./replay-integrity.js";
-import { retrieveSynchronizationIntegritySummary } from "./synchronization-integrity.js";
-import { retrieveRuntimeBoundarySummary } from "./runtime-boundary-validation.js";
+import type { DegradedModeState, DegradedModeStatus, RuntimeSubsystem } from "./runtime-hardening-types";
+import { evaluateStartupAssertions, retrieveStartupAssertionSummary } from "./startup-assertions";
+import { evaluateRuntimeInvariants } from "./runtime-invariants";
+import { retrieveReplayIntegritySummary } from "./replay-integrity";
+import { retrieveSynchronizationIntegritySummary } from "./synchronization-integrity";
+import { retrieveRuntimeBoundarySummary } from "./runtime-boundary-validation";
 import { existsSync } from "node:fs";
 import path from "node:path";
 

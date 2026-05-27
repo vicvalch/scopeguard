@@ -4,7 +4,7 @@ import type {
   RuntimeInvariant,
   RuntimeInvariantResult,
   RuntimeSubsystem,
-} from "./runtime-hardening-types.js";
+} from "./runtime-hardening-types";
 
 const root = process.cwd();
 const p = (...parts: string[]) => path.join(root, ...parts);

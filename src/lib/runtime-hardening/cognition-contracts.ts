@@ -3,7 +3,7 @@ import path from "node:path";
 import type {
   CognitionContractCheck,
   CognitionContractResult,
-} from "./runtime-hardening-types.js";
+} from "./runtime-hardening-types";
 
 const root = process.cwd();
 const p = (...parts: string[]) => path.join(root, ...parts);

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import type { ReplayIntegrityResult } from "./runtime-hardening-types.js";
+import type { ReplayIntegrityResult } from "./runtime-hardening-types";
 
 const root = process.cwd();
 const p = (...parts: string[]) => path.join(root, ...parts);

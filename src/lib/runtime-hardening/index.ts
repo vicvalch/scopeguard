@@ -22,39 +22,39 @@ export type {
   RuntimeDiagnostic,
   RuntimeHardeningNarrative,
   RuntimeHardeningSnapshot,
-} from "./runtime-hardening-types.js";
+} from "./runtime-hardening-types";
 
 export {
   buildStartupAssertions,
   evaluateStartupAssertions,
   retrieveStartupAssertionSummary,
-} from "./startup-assertions.js";
+} from "./startup-assertions";
 
 export {
   buildRuntimeInvariants,
   evaluateRuntimeInvariants,
   retrieveRuntimeInvariantSummary,
-} from "./runtime-invariants.js";
+} from "./runtime-invariants";
 
 export {
   evaluateCognitionContracts,
   retrieveCognitionContractSummary,
-} from "./cognition-contracts.js";
+} from "./cognition-contracts";
 
 export {
   evaluateRuntimeBoundaries,
   retrieveRuntimeBoundarySummary,
-} from "./runtime-boundary-validation.js";
+} from "./runtime-boundary-validation";
 
 export {
   evaluateReplayIntegrity,
   retrieveReplayIntegritySummary,
-} from "./replay-integrity.js";
+} from "./replay-integrity";
 
 export {
   evaluateSynchronizationIntegrity,
   retrieveSynchronizationIntegritySummary,
-} from "./synchronization-integrity.js";
+} from "./synchronization-integrity";
 
 export {
   sanitizeRuntimeEvidence,
@@ -63,66 +63,66 @@ export {
   rejectMalformedRuntimeSignal,
   enforceBoundedUncertainty,
   buildAntiCorruptionResult,
-} from "./anti-corruption-layer.js";
+} from "./anti-corruption-layer";
 
 export {
   classifyDegradedMode,
   retrieveDegradedModeState,
-} from "./degraded-mode.js";
+} from "./degraded-mode";
 
 export {
   evaluateRuntimeSurvivability,
   retrieveRuntimeSurvivabilitySummary,
-} from "./runtime-survivability.js";
+} from "./runtime-survivability";
 
 export {
   retrieveRuntimeHealth,
   retrieveRuntimeHealthSnapshot,
-} from "./runtime-health.js";
+} from "./runtime-health";
 
 export {
   buildRuntimeSLOs,
   evaluateRuntimeSLOs,
   retrieveOperationalSLOs,
-} from "./runtime-slo.js";
+} from "./runtime-slo";
 
 export {
   evaluateLaunchReadiness,
   retrieveLaunchReadiness,
-} from "./runtime-readiness.js";
+} from "./runtime-readiness";
 
 export {
   buildRuntimeLaunchGates,
   evaluateLaunchGates,
   retrieveLaunchGateReadiness,
-} from "./runtime-launch-gates.js";
+} from "./runtime-launch-gates";
 
 export {
   recommendRuntimeRecovery,
   recommendRuntimeRecoveries,
-} from "./runtime-recovery.js";
+} from "./runtime-recovery";
 
 export {
   classifyRuntimeFailure,
   classifyRuntimeFailures,
   groupFailuresByCategory,
-} from "./runtime-failure-classification.js";
+} from "./runtime-failure-classification";
 
 export {
   evaluateRuntimeGovernanceIntegrity,
-} from "./runtime-governance.js";
+} from "./runtime-governance";
 
 export {
   evaluateRuntimeIsolationIntegrity,
-} from "./runtime-isolation.js";
+} from "./runtime-isolation";
 
 export {
   generateRuntimeDiagnostics,
-} from "./runtime-integrity-diagnostics.js";
+} from "./runtime-integrity-diagnostics";
 
 export {
   generateRuntimeNarratives,
-} from "./runtime-hardening-narratives.js";
+} from "./runtime-hardening-narratives";
 
 export {
   retrieveRuntimeIntegrity,
@@ -134,4 +134,4 @@ export {
   retrieveRuntimeNarratives,
   retrieveOperationalSLOs as retrieveOperationalSLOsFromManager,
   retrieveFullRuntimeSnapshot,
-} from "./runtime-hardening-manager.js";
+} from "./runtime-hardening-manager";

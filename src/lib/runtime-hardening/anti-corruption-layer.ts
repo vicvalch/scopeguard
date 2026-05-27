@@ -1,4 +1,4 @@
-import type { AntiCorruptionResult } from "./runtime-hardening-types.js";
+import type { AntiCorruptionResult } from "./runtime-hardening-types";
 
 export function sanitizeRuntimeEvidence(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];

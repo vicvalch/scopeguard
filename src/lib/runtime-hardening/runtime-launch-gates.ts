@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import type { RuntimeLaunchGate, RuntimeLaunchReadinessResult } from "./runtime-hardening-types.js";
+import type { RuntimeLaunchGate, RuntimeLaunchReadinessResult } from "./runtime-hardening-types";
 
 const root = process.cwd();
 const p = (...parts: string[]) => path.join(root, ...parts);
