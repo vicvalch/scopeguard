@@ -1,3 +1,19 @@
+// MIGRATION REFERENCE — NOT AN ACTIVE NEXT.JS ENTRYPOINT
+//
+// This file is the target implementation for the future migration from
+// middleware.ts to the Next.js 16 proxy.ts convention.
+//
+// DO NOT rename or move this file back to src/proxy.ts.
+// Next.js 16 treats src/proxy.ts as a reserved entrypoint (the proxy
+// convention that replaces middleware.ts), and having it present alongside
+// middleware.ts causes Turbopack to emit conflicting build artifacts,
+// breaking the Vercel build with:
+//   ENOENT: no such file or directory, open '.next/server/middleware.js.nft.json'
+//
+// When ready to migrate, replace middleware.ts with this implementation
+// under the src/proxy.ts path and delete middleware.ts.  That migration
+// should happen in a dedicated, focused PR.
+
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 import { resolvePostAuthDestination } from "@/lib/auth/resolve-post-auth-destination";
