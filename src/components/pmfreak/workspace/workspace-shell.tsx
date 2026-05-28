@@ -6,11 +6,6 @@ import { AWAKENING_EVENT, deriveAwakeningState, type AwakeningState } from "@/li
 import { bootstrapRuntimeState } from "@/lib/workspace/runtime-bootstrap";
 import { runtimePersistence, type RuntimePersistenceScope } from "@/lib/workspace/runtime-persistence";
 
-const COMPANY_ID = "global";
-const WORKSPACE_ID = "default";
-const USER_ID = "default";
-const RUNTIME_SCOPE: RuntimePersistenceScope = { companyId: COMPANY_ID, workspaceId: WORKSPACE_ID, userId: USER_ID };
-
 type PmoContext = {
   found: boolean;
   pmoName?: string;
@@ -19,12 +14,20 @@ type PmoContext = {
   methodology?: string;
 };
 
-export function WorkspaceShell() {
+type WorkspaceShellProps = {
+  companyId: string;
+  workspaceId: string;
+  userId: string;
+};
+
+export function WorkspaceShell({ companyId, workspaceId, userId }: WorkspaceShellProps) {
+  const scope: RuntimePersistenceScope = { companyId, workspaceId, userId };
+
   const [awakening, setAwakening] = useState<AwakeningState>(() => deriveAwakeningState(0));
   const [pmoContext, setPmoContext] = useState<PmoContext | null>(null);
 
   useEffect(() => {
-    void bootstrapRuntimeState(RUNTIME_SCOPE).then((boot) => {
+    void bootstrapRuntimeState(scope).then((boot) => {
       setAwakening(boot.awakening);
     }).catch(() => undefined);
 
@@ -32,13 +35,16 @@ export function WorkspaceShell() {
       .then((r) => r.json() as Promise<PmoContext>)
       .then((ctx) => setPmoContext(ctx))
       .catch(() => undefined);
+    // scope values come from server props and are stable for the lifetime of this mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAwakeningAdvance = useCallback((next: AwakeningState) => {
     setAwakening(next);
-    void runtimePersistence.persistAwakening(RUNTIME_SCOPE, next).catch(() => undefined);
+    void runtimePersistence.persistAwakening(scope, next).catch(() => undefined);
     window.dispatchEvent(new CustomEvent(AWAKENING_EVENT, { detail: next }));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, workspaceId, userId]);
 
   return (
     <section className="mx-auto min-h-[calc(100vh-10rem)] w-full max-w-[1220px]">
@@ -60,7 +66,7 @@ export function WorkspaceShell() {
       )}
       <main>
         <WorkspaceConversationShell
-          scope={RUNTIME_SCOPE}
+          scope={scope}
           awakening={awakening}
           onAwakeningAdvance={handleAwakeningAdvance}
         />
