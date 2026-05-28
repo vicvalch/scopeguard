@@ -49,6 +49,15 @@ export async function savePmoTenant(tenant: PmoTenant): Promise<PmoTenantSaveRes
       return { ok: false, error: "Failed to save PMO configuration. Please try again." };
     }
 
+    // Mark onboarding complete so the protected layout grants full access.
+    const { error: metaError } = await supabase.auth.admin.updateUserById(user.id, {
+      user_metadata: { onboarding_completed: true },
+    });
+    if (metaError) {
+      console.warn("[pmo] onboarding_completed metadata update failed:", metaError.message);
+      // Non-fatal: PMO tenant record is the fallback proof of completion.
+    }
+
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
