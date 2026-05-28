@@ -13,14 +13,16 @@ const matchesRoute = (pathname: string, route: string): boolean => pathname === 
 const matchesAnyRoute = (pathname: string, routes: readonly string[]): boolean => routes.some((route) => matchesRoute(pathname, route));
 
 const AUTH_ROUTES = ["/login", "/signup"] as const;
-const SETUP_ROUTES = ["/workspace/setup", "/getting-started", "/onboarding"] as const;
+// /create-pmo is a one-time PMO onboarding route. Classifying it as "setup"
+// means: (a) onboarding-complete users who revisit are redirected to /workspace,
+// (b) non-onboarded users are never blocked by requiresOnboardingCompletion.
+const SETUP_ROUTES = ["/workspace/setup", "/getting-started", "/onboarding", "/create-pmo"] as const;
 const WORKSPACE_CORE_ROUTES = [
   "/workspace",
   "/copilot",
   "/projects",
   "/upload",
   "/accept-invite",
-  "/create-pmo",
 ] as const;
 const WORKSPACE_CONTEXTUAL_ROUTES = [
   "/dashboard",

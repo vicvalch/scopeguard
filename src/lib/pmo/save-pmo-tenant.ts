@@ -3,6 +3,8 @@
 import { getAuthUser } from "@/lib/auth";
 import { resolveCanonicalWorkspace } from "@/lib/workspaces/canonical-workspace-resolver";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 import type { PmoTenant } from "./pmo-tenant-types";
 import { validatePmoTenantPayload } from "./pmo-tenant-validate";
 
@@ -48,6 +50,22 @@ export async function savePmoTenant(tenant: PmoTenant): Promise<PmoTenantSaveRes
       console.error("[pmo] pmo_tenant upsert failed:", error.message);
       return { ok: false, error: "Failed to save PMO configuration. Please try again." };
     }
+
+    // Mark onboarding complete so the protected layout switches to OperationalShell
+    // and post-auth routing resolves to /workspace instead of /workspace/setup.
+    const sessionClient = await createSupabaseServerClient();
+    const { error: authError } = await sessionClient.auth.updateUser({
+      data: { onboarding_completed: true },
+    });
+    if (authError) {
+      console.warn("[pmo] onboarding_completed flag update failed:", authError.message);
+      // Non-fatal: PMO was saved. User can still use the workspace; flag will
+      // be corrected on their next login or session refresh.
+    }
+
+    // Ensure the next server render of protected routes sees the updated metadata.
+    revalidatePath("/workspace");
+    revalidatePath("/create-pmo");
 
     return { ok: true };
   } catch (err) {

@@ -11,6 +11,24 @@ import {
   requiresOnboardingCompletion,
 } from "@/lib/auth/route-policy-registry";
 
+// ─── Migration reference — NOT the active middleware ─────────────────────────
+//
+// This file was previously at src/proxy.ts, which is a Next.js 16 convention
+// level. Being there caused Vercel builds to treat it as the active proxy/
+// middleware entry point, resulting in a missing middleware.js.nft.json error
+// during Turbopack builds (Next.js 16 bug: NFT rename skipped for Turbopack).
+//
+// It has been moved here (out of the convention level) to fix that build error.
+//
+// ACTIVE MIDDLEWARE: middleware.ts at the repo root sets x-pathname only.
+// ACTIVE AUTH GUARD: src/app/(protected)/layout.tsx enforces login + trial.
+//
+// FUTURE: When Next.js 16 proxy.ts support stabilises, this file shows the
+// intended full middleware implementation. Before activating it (by placing a
+// proxy.ts at /src or repo root), ensure:
+// 1. /create-pmo is in SETUP_ROUTES (already done in route-policy-registry.ts)
+//    so non-onboarded users can reach the wizard without being blocked.
+// 2. Delete or demote middleware.ts to avoid the "both detected" build error.
 export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
