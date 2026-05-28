@@ -9,6 +9,7 @@ import { ensureUserWorkspace } from "@/lib/workspaces";
 import { resolvePostAuthDestination } from "@/lib/auth/resolve-post-auth-destination";
 import { isSafeContinuationRoute } from "@/lib/auth/validate-continuation-route";
 import { headers } from "next/headers";
+import { loadPmoTenant } from "@/lib/pmo/load-pmo-tenant";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const continuity = await assertRuntimeAuthContinuity();
@@ -46,7 +47,15 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       redirect("/trial-inactive");
     }
   }
-  if (!user.onboardingCompleted) {
+  // Accept schema v2 PMO tenant as proof of onboarding completion even if
+  // metadata propagation is delayed (e.g. admin.updateUserById race).
+  let effectivelyOnboarded = user.onboardingCompleted;
+  if (!effectivelyOnboarded && resolvedWorkspace.workspaceId) {
+    const pmoResult = await loadPmoTenant(resolvedWorkspace.workspaceId);
+    effectivelyOnboarded = pmoResult.found && pmoResult.schemaVersion === 2;
+  }
+
+  if (!effectivelyOnboarded) {
     return <div className="min-h-screen bg-slate-950 text-slate-100"><main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">{children}</main></div>;
   }
 

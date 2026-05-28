@@ -814,7 +814,7 @@ export function CreatePmoWizard() {
     } catch {}
     clearDraft();
 
-    router.push("/workspace");
+    router.push("/pmo/invite-team");
   };
 
   const renderStep = () => {
