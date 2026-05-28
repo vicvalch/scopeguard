@@ -3,10 +3,11 @@ const ALLOWED_PREFIXES = ["/workspace", "/projects", "/dashboard", "/portfolio",
 
 export function isSafeContinuationRoute(route: string): boolean {
   if (typeof route !== "string") return false;
+  // Check control characters before trimming so they cannot be hidden by whitespace stripping.
+  if (/[\r\n\t]/.test(route)) return false;
   const normalized = route.trim();
   if (!normalized.startsWith("/")) return false;
   if (normalized.startsWith("//")) return false;
-  if (/[\r\n\t]/.test(normalized)) return false;
 
   try {
     const parsed = new URL(normalized, "http://localhost");

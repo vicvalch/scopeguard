@@ -6,7 +6,7 @@ import AuthSubmitButton from "@/components/auth-submit-button";
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
   const params = await searchParams;
 
@@ -20,6 +20,7 @@ export default async function SignupPage({
       )}
 
       <form action={signupAction} className="space-y-4">
+        {params.next ? <input type="hidden" name="next" value={params.next} /> : null}
         <input name="fullName" placeholder="Full name" required className="w-full rounded-xl border-2 border-black px-4 py-3 text-sm" />
 
         <input name="companyName" placeholder="Company name" required className="w-full rounded-xl border-2 border-black px-4 py-3 text-sm" />
@@ -39,7 +40,7 @@ export default async function SignupPage({
 
       <p className="mt-6 text-sm">
         Already have an account?{" "}
-        <Link href="/login" className="font-bold">
+        <Link href={params.next ? `/login?next=${encodeURIComponent(params.next)}` : "/login"} className="font-bold">
           Continue
         </Link>
       </p>

@@ -27,7 +27,7 @@ export default async function LoginPage({
       </p>
 
       <p className="mt-6 text-sm">
-        No account? <Link href="/signup" className="font-bold">Start Free</Link>
+        No account? <Link href={params.next ? `/signup?next=${encodeURIComponent(params.next)}` : "/signup"} className="font-bold">Start Free</Link>
       </p>
     </AuthShell>
   );
