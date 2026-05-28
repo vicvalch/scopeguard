@@ -4,6 +4,7 @@ import { getAuthUser } from "@/lib/auth";
 import { resolveCanonicalWorkspace } from "@/lib/workspaces/canonical-workspace-resolver";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/admin";
 import type { PmoTenant } from "./pmo-tenant-types";
+import { validatePmoTenantPayload } from "./pmo-tenant-validate";
 
 export type PmoTenantSaveResult = { ok: boolean; error?: string };
 
@@ -11,6 +12,11 @@ const PMO_TENANT_SCHEMA_VERSION = 2;
 
 export async function savePmoTenant(tenant: PmoTenant): Promise<PmoTenantSaveResult> {
   try {
+    const validation = validatePmoTenantPayload(tenant);
+    if (!validation.ok) {
+      return { ok: false, error: "Invalid PMO configuration." };
+    }
+
     const user = await getAuthUser();
     if (!user) return { ok: false, error: "Not authenticated" };
 
@@ -40,13 +46,13 @@ export async function savePmoTenant(tenant: PmoTenant): Promise<PmoTenantSaveRes
 
     if (error) {
       console.error("[pmo] pmo_tenant upsert failed:", error.message);
-      return { ok: false, error: error.message };
+      return { ok: false, error: "Failed to save PMO configuration. Please try again." };
     }
 
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[pmo] savePmoTenant error:", message);
-    return { ok: false, error: message };
+    return { ok: false, error: "An unexpected error occurred. Please try again." };
   }
 }

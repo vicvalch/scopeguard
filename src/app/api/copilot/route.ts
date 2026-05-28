@@ -36,6 +36,8 @@ import { buildExecutionRiskSnapshot } from "@/lib/execution-risk";
 import { buildStakeholderRelationshipSnapshot } from "@/lib/stakeholder-intelligence";
 import { buildOperationalCoordinationSnapshot } from "@/lib/coordination-orchestrator";
 import { generateRuntimeOperationalPlans, type RuntimeOperationalPlan } from "@/lib/runtime-operational-plans";
+import { loadPmoTenant } from "@/lib/pmo/load-pmo-tenant";
+import { resolveEnabledDomains } from "@/lib/pmo/agent-domain-map";
 
 // Resolves the caller's workspace from their project (if given) or first membership.
 // Used only on the human-user path where no workspace header is supplied.
@@ -215,9 +217,12 @@ export async function POST(request: Request) {
   const conversationSessionKey = payload.sessionKey?.trim() || "default";
   const activeDomain = payload.activeDomain?.trim() || "operational_memory";
   const resolvedWorkspaceId = isAgentCall ? workspaceIdHeader! : await resolveWorkspaceIdForUser(user.id, payload.projectId?.trim());
-  const subscription = await getCompanySubscription(user.companyId);
 
-  const allMemory = await readProjectMemory(user.companyId);
+  const [subscription, pmoResult, allMemory] = await Promise.all([
+    getCompanySubscription(user.companyId),
+    resolvedWorkspaceId ? loadPmoTenant(resolvedWorkspaceId) : Promise.resolve({ found: false } as const),
+    readProjectMemory(user.companyId),
+  ]);
   const selectedProject = allMemory.find((p) => p.id === payload.projectId) ?? allMemory.find((p) => p.projectName === payload.projectName);
   const allowedMemory = canUsePortfolioMemory(subscription.plan) ? allMemory : selectedProject ? [selectedProject] : [];
 
@@ -405,7 +410,28 @@ export async function POST(request: Request) {
     console.warn("[copilot] continuity_load_failed", { companyId: user.companyId, error: error instanceof Error ? error.message : String(error) });
   }
 
-  const system = `You are PMFreak, an AI Project Manager with operational realism and delivery accountability.
+  const pmoGovernanceBlock = (() => {
+    if (!pmoResult.found) return "";
+    const { tenant } = pmoResult;
+    const enabledAgentDomains = resolveEnabledDomains(tenant.agents);
+    const lines = [
+      `PMO: ${tenant.identity.pmoName} (${tenant.identity.organizationName})`,
+      `Type: ${tenant.identity.pmoType} | Model: ${tenant.identity.operatingModel}`,
+      `Governance: ${tenant.governance.methodology}, ${tenant.governance.reportingCadence} cadence, ${tenant.governance.projectScale} scale, ${tenant.governance.approvalGovernance} approvals`,
+      `Active agent domains: ${enabledAgentDomains.join(", ") || "general"}`,
+      tenant.contextSeed.strategicObjective
+        ? `Strategic objective: ${tenant.contextSeed.strategicObjective.slice(0, 200)}`
+        : null,
+      tenant.contextSeed.deliveryChallenges.length
+        ? `Known delivery challenges: ${tenant.contextSeed.deliveryChallenges.join(", ")}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    return `\nPMO Governance Context:\n${lines}\n`;
+  })();
+
+  const system = `You are PMFreak, an AI Project Manager with operational realism and delivery accountability.${pmoGovernanceBlock}
 Preserve PM-native operational tone: experienced, calm under pressure, politically aware, delivery-focused.
 Do not sound like a template, startup guru, aggressive CEO, or verbose consultant.
 Avoid motivational language.

@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getPostAuthRedirectPath } from "@/lib/auth-redirect";
+import { isSafeContinuationRoute } from "@/lib/auth/validate-continuation-route";
+import { resolvePostAuthDestination } from "@/lib/auth/resolve-post-auth-destination";
 
 export async function signupAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -10,6 +11,7 @@ export async function signupAction(formData: FormData) {
   const fullName = String(formData.get("fullName") ?? "").trim();
   const companyName = String(formData.get("companyName") ?? "").trim();
   const role = String(formData.get("role") ?? "pm").trim();
+  const requestedRoute = String(formData.get("next") ?? "").trim() || null;
 
   if (!email || !password || !fullName || !companyName) {
     redirect("/signup?error=Please+complete+all+required+fields");
@@ -40,5 +42,12 @@ export async function signupAction(formData: FormData) {
     redirect(`/signup/confirm-email?email=${encodeURIComponent(email)}`);
   }
 
-  redirect(getPostAuthRedirectPath(data.user));
+  const safe = requestedRoute ? isSafeContinuationRoute(requestedRoute) : false;
+  const decision = resolvePostAuthDestination({
+    isAuthenticated: Boolean(data.user),
+    onboardingCompleted: data.user?.user_metadata?.onboarding_completed === true,
+    requestedRoute,
+    isRequestedRouteSafe: safe,
+  });
+  redirect(decision.destination);
 }
