@@ -10,7 +10,7 @@ export type NavigationNode = {
 
 export const NAVIGATION_HIERARCHY: NavigationNode[] = [
   { label: "Create PMO", href: "/create-pmo", tier: "primary", visibleByDefault: true },
-  { label: "Create Project", href: "/projects", tier: "primary", visibleByDefault: true },
+  { label: "Create Project", href: "/projects/new", tier: "primary", visibleByDefault: true },
 
   { label: "Overview", href: "/dashboard", tier: "lens", visibleByDefault: true },
   { label: "Delivery Status", href: "/command-center", tier: "lens", visibleByDefault: true },
