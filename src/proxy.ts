@@ -12,7 +12,12 @@ import {
 } from "@/lib/auth/route-policy-registry";
 
 export async function proxy(request: NextRequest) {
-  const { response, user } = await updateSession(request);
+  // Forward x-pathname so server components can read the current route
+  // without depending on searchParams or client state.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
+  const { response, user } = await updateSession(request, requestHeaders);
   const pathname = request.nextUrl.pathname;
   const policy = getRouteAccessPolicy(pathname);
 
@@ -59,5 +64,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|apple-icon.png|icon.png).*)",
+  ],
 };

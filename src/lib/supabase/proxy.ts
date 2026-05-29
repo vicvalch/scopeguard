@@ -2,9 +2,16 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnv, hasSupabaseEnv } from "@/lib/supabase/env";
 
-export const updateSession = async (request: NextRequest) => {
+export const updateSession = async (
+  request: NextRequest,
+  extraRequestHeaders?: Headers,
+) => {
+  const baseHeaders = extraRequestHeaders
+    ? new Headers(extraRequestHeaders)
+    : new Headers(request.headers);
+
   let response = NextResponse.next({
-    request,
+    request: { headers: baseHeaders },
   });
 
   if (!hasSupabaseEnv) {
@@ -20,12 +27,12 @@ export const updateSession = async (request: NextRequest) => {
       },
       set(name: string, value: string, options: CookieOptions) {
         request.cookies.set({ name, value, ...options });
-        response = NextResponse.next({ request });
+        response = NextResponse.next({ request: { headers: baseHeaders } });
         response.cookies.set({ name, value, ...options });
       },
       remove(name: string, options: CookieOptions) {
         request.cookies.set({ name, value: "", ...options });
-        response = NextResponse.next({ request });
+        response = NextResponse.next({ request: { headers: baseHeaders } });
         response.cookies.set({ name, value: "", ...options });
       },
     },
