@@ -13,17 +13,17 @@ import {
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const authCookiesPresent = request.cookies.getAll().some(
-    (c) => c.name.startsWith("sb-") || c.name.includes("supabase") || c.name.includes("auth")
-  );
+  const authCookieNames = request.cookies.getAll()
+    .filter((c) => c.name.startsWith("sb-") || c.name.includes("supabase") || c.name.includes("auth"))
+    .map((c) => c.name);
   console.log("[proxy] pathname:", pathname);
-  console.log("[proxy] auth cookies present:", authCookiesPresent);
+  console.log("[proxy] auth cookies present:", authCookieNames.length > 0, authCookieNames.length > 0 ? authCookieNames : "(none)");
 
   const { response, user } = await updateSession(request);
 
-  const responseCookiesSet = response.cookies.getAll().length > 0;
+  const responseCookieNames = response.cookies.getAll().map((c) => c.name);
   console.log("[proxy] getUser result:", user ? `userId=${user.id}` : "null (unauthenticated)");
-  console.log("[proxy] response cookies set:", responseCookiesSet, responseCookiesSet ? response.cookies.getAll().map((c) => c.name) : []);
+  console.log("[proxy] response cookies set:", responseCookieNames.length > 0, responseCookieNames.length > 0 ? responseCookieNames : []);
 
   const policy = getRouteAccessPolicy(pathname);
 
