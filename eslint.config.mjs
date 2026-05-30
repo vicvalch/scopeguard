@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated AOC package build artifacts — not authored code:
+    "src/aoc/protocol/dist/**",
+    "src/aoc/enterprise/dist/**",
   ]),
 ]);
 
