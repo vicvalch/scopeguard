@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  outputFileTracingExcludes: {
+    "/api/runtime/hardening": ["./next.config.ts"],
+  },
   experimental: {
     serverActions: {
       allowedOrigins: [
