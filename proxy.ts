@@ -11,7 +11,7 @@ import {
   requiresOnboardingCompletion,
 } from "@/lib/auth/route-policy-registry";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
   const policy = getRouteAccessPolicy(pathname);
