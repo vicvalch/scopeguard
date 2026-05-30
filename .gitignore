@@ -43,3 +43,7 @@ next-env.d.ts
 
 # Local uploaded files
 uploads/
+
+# AOC package build artifacts
+src/aoc/protocol/dist/
+src/aoc/enterprise/dist/
