@@ -74,6 +74,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   }
 
   if (!effectivelyOnboarded) {
+    console.log("[protected-layout] redirecting because: user not onboarded — rendering onboarding/setup shell (NOT redirecting to login)");
     return <div className="min-h-screen bg-slate-950 text-slate-100"><main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-10">{children}</main></div>;
   }
 

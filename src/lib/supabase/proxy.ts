@@ -24,6 +24,7 @@ export const updateSession = async (request: NextRequest) => {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
+        console.log("[proxy:updateSession] session refresh executed — cookies being set:", cookiesToSet.map((c) => c.name));
         // Mutate request.cookies first — this updates request.headers (Cookie header)
         // in Next.js, so the snapshot taken after will include the refreshed values.
         cookiesToSet.forEach(({ name, value, options }) =>

@@ -12,8 +12,19 @@ import {
 } from "@/lib/auth/route-policy-registry";
 
 export async function proxy(request: NextRequest) {
-  const { response, user } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
+  const authCookiesPresent = request.cookies.getAll().some(
+    (c) => c.name.startsWith("sb-") || c.name.includes("supabase") || c.name.includes("auth")
+  );
+  console.log("[proxy] pathname:", pathname);
+  console.log("[proxy] auth cookies present:", authCookiesPresent);
+
+  const { response, user } = await updateSession(request);
+
+  const responseCookiesSet = response.cookies.getAll().length > 0;
+  console.log("[proxy] getUser result:", user ? `userId=${user.id}` : "null (unauthenticated)");
+  console.log("[proxy] response cookies set:", responseCookiesSet, responseCookiesSet ? response.cookies.getAll().map((c) => c.name) : []);
+
   const policy = getRouteAccessPolicy(pathname);
 
   if (policy === "api") {
@@ -25,6 +36,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isProtectedPageRoute(pathname) && !user) {
+    console.log("[proxy] redirecting to /login — no authenticated user for protected route:", pathname);
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);
