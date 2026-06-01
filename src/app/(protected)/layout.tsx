@@ -18,7 +18,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     const currentPath = headersList.get("x-pathname") ?? "/workspace";
     const nextParam = isSafeContinuationRoute(currentPath) ? currentPath : "/workspace";
     const decision = resolvePostAuthDestination({ isAuthenticated: false, onboardingCompleted: false });
-    console.log("[protected-layout] continuity check failed, redirecting to login. path:", currentPath, "issues:", continuity.issues, "networkError:", continuity.networkError);
+    console.log("[protected-layout] continuity check failed, redirecting to login. path:", currentPath, "issues:", continuity.issues);
     redirect(`${decision.destination}?next=${encodeURIComponent(nextParam)}`);
   }
 
