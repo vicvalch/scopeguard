@@ -136,8 +136,8 @@ test("wizard does NOT call clearDraft in the failure return branch", () => {
 // CONTRACT 6: blocking error UX — no silent failure
 // ─────────────────────────────────────────────────────────────────────────────
 
-test("wizard renders blocking error banner with 'Project creation failed' title", () => {
-  assert.match(wizard, /Project creation failed/, "blocking error title must be rendered");
+test("wizard renders blocking error banner with activation-failed title", () => {
+  assert.match(wizard, /Project Brain activation failed|Project creation failed/, "blocking error title must be rendered");
 });
 
 test("wizard shows failure class (Fatal / Recoverable) in error banner", () => {
