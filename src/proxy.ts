@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 import { resolvePostAuthDestination } from "@/lib/auth/resolve-post-auth-destination";
+import { resolveOnboardingStateFromJwt } from "@/lib/auth/resolve-onboarding-state";
+import { getOnboardingRedirect, isOnboardingComplete } from "@/lib/auth/onboarding-route-map";
 import { isSafeContinuationRoute } from "@/lib/auth/validate-continuation-route";
 import {
   getRouteAccessPolicy,
@@ -32,13 +34,16 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user) {
-    const onboardingCompleted = user.user_metadata?.onboarding_completed === true;
+    // Use sync JWT-based state resolver — middleware cannot do async DB calls.
+    const jwtOnboardingCompleted = user.user_metadata?.onboarding_completed === true;
+    const onboardingState = resolveOnboardingStateFromJwt(jwtOnboardingCompleted);
+    const onboardingCompleted = isOnboardingComplete(onboardingState);
 
     if (isAuthRoute(pathname)) {
       const requestedRoute = request.nextUrl.searchParams.get("next");
       const decision = resolvePostAuthDestination({
         isAuthenticated: true,
-        onboardingCompleted,
+        onboardingState,
         requestedRoute,
         isRequestedRouteSafe: requestedRoute ? isSafeContinuationRoute(requestedRoute) : false,
       });
@@ -51,7 +56,7 @@ export async function proxy(request: NextRequest) {
     }
 
     if (requiresOnboardingCompletion(pathname) && !onboardingCompleted && pathname !== "/logout") {
-      return NextResponse.redirect(new URL("/workspace/setup", request.url));
+      return NextResponse.redirect(new URL(getOnboardingRedirect(onboardingState), request.url));
     }
   }
 
