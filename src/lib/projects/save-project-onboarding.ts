@@ -1,29 +1,97 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { getAuthUser } from "@/lib/auth";
 import { canCreateMoreProjects } from "@/lib/feature-gates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureUserWorkspace } from "@/lib/workspaces";
 import type { ProjectOnboardingPayload } from "./project-onboarding-types";
 
-export type ProjectOnboardingSaveResult =
-  | { ok: true; projectId: string }
-  | { ok: false; error: string };
+export type ProjectSaveResult =
+  | { status: "success"; projectId: string }
+  | { status: "recoverable_failure"; error: string }
+  | { status: "fatal_failure"; error: string };
+
+function validatePayload(payload: ProjectOnboardingPayload): string | null {
+  if (!payload?.identity?.projectName?.trim()) return "Project name is required";
+  if (!payload?.identity?.clientOrganization?.trim()) return "Client organization is required";
+  if (!payload?.identity?.projectType) return "Project type is required";
+  if (!payload?.identity?.pmAssigned?.trim()) return "PM assigned is required";
+  if (!payload?.deliveryContext?.problemStatement?.trim()) return "Problem statement is required";
+  if (!payload?.deliveryContext?.mainDeliverable?.trim()) return "Main deliverable is required";
+  return null;
+}
+
+function structuredLog(event: string, fields: Record<string, unknown>) {
+  console.info(JSON.stringify({ event, ...fields, ts: new Date().toISOString() }));
+}
 
 export async function saveProjectOnboarding(
-  payload: ProjectOnboardingPayload
-): Promise<ProjectOnboardingSaveResult> {
+  payload: ProjectOnboardingPayload,
+  correlationId?: string
+): Promise<ProjectSaveResult> {
+  const cid = correlationId ?? `proj_${Date.now()}`;
+
   try {
     const user = await getAuthUser();
-    if (!user) return { ok: false, error: "Not authenticated" };
+    if (!user) {
+      structuredLog("project.create.failed", {
+        correlationId: cid,
+        failureClass: "fatal_failure",
+        reason: "unauthenticated",
+      });
+      return { status: "fatal_failure", error: "Not authenticated. Please sign in and try again." };
+    }
+
+    const validationError = validatePayload(payload);
+    if (validationError) {
+      structuredLog("project.create.failed", {
+        correlationId: cid,
+        failureClass: "fatal_failure",
+        reason: "invalid_payload",
+        detail: validationError,
+        userId: user.id,
+      });
+      return { status: "fatal_failure", error: validationError };
+    }
+
+    structuredLog("project.create.started", { correlationId: cid, userId: user.id });
 
     const projectAccess = await canCreateMoreProjects(user.id);
     if (!projectAccess.ok) {
-      return { ok: false, error: "upgrade_required" };
+      structuredLog("project.create.failed", {
+        correlationId: cid,
+        failureClass: "fatal_failure",
+        reason: "upgrade_required",
+        userId: user.id,
+      });
+      return { status: "fatal_failure", error: "upgrade_required" };
     }
 
-    const ensured = await ensureUserWorkspace(user.id);
+    let ensured: { workspaceId: string };
+    try {
+      ensured = await ensureUserWorkspace(user.id);
+    } catch (wsErr) {
+      const detail = wsErr instanceof Error ? wsErr.message : "unknown workspace error";
+      structuredLog("project.create.failed", {
+        correlationId: cid,
+        failureClass: "recoverable_failure",
+        reason: "workspace_error",
+        detail,
+        userId: user.id,
+      });
+      return { status: "recoverable_failure", error: "Unable to resolve workspace. Please try again." };
+    }
+
+    if (!ensured.workspaceId) {
+      structuredLog("project.create.failed", {
+        correlationId: cid,
+        failureClass: "fatal_failure",
+        reason: "missing_workspace",
+        userId: user.id,
+      });
+      return { status: "fatal_failure", error: "No workspace found. Please contact support." };
+    }
+
     const supabase = await createSupabaseServerClient();
 
     const { data, error } = await supabase
@@ -40,25 +108,36 @@ export async function saveProjectOnboarding(
       .single<{ id: string }>();
 
     if (error || !data?.id) {
-      console.error("[project] insert failed:", error?.message);
-      return { ok: false, error: error?.message ?? "Unable to create project" };
+      structuredLog("project.create.failed", {
+        correlationId: cid,
+        failureClass: "recoverable_failure",
+        reason: "db_insert_error",
+        detail: error?.message,
+        userId: user.id,
+        workspaceId: ensured.workspaceId,
+      });
+      return {
+        status: "recoverable_failure",
+        error: error?.message ?? "Unable to create project. Please try again.",
+      };
     }
 
-    return { ok: true, projectId: data.id };
+    structuredLog("project.create.persisted", {
+      correlationId: cid,
+      projectId: data.id,
+      userId: user.id,
+      workspaceId: ensured.workspaceId,
+    });
+
+    return { status: "success", projectId: data.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[project] saveProjectOnboarding error:", message);
-    return { ok: false, error: "An unexpected error occurred. Please try again." };
-  }
-}
-
-export async function activateProjectBrainAction(payload: ProjectOnboardingPayload) {
-  const result = await saveProjectOnboarding(payload);
-  if (result.ok) {
-    redirect(`/projects/${result.projectId}`);
-  } else if (result.error === "upgrade_required") {
-    redirect("/projects?error=upgrade_required");
-  } else {
-    redirect(`/projects/new?error=${encodeURIComponent(result.error)}`);
+    structuredLog("project.create.failed", {
+      correlationId: cid,
+      failureClass: "recoverable_failure",
+      reason: "unexpected_exception",
+      detail: message,
+    });
+    return { status: "recoverable_failure", error: "An unexpected error occurred. Please try again." };
   }
 }
