@@ -590,10 +590,12 @@ function StepReview({
   state,
   creating,
   onCreate,
+  createError,
 }: {
   state: WizardState;
   creating: boolean;
   onCreate: () => void;
+  createError: string | null;
 }) {
   const enabledAgents = state.agents.filter((a) => a.enabled);
 
@@ -683,7 +685,7 @@ function StepReview({
       <button
         type="button"
         onClick={onCreate}
-        disabled={creating}
+        disabled={creating || !!createError}
         className="relative w-full overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-r from-cyan-950/60 via-indigo-950/60 to-cyan-950/60 px-6 py-4 text-base font-semibold text-white shadow-[0_0_40px_rgba(34,211,238,0.12)] transition-all hover:shadow-[0_0_60px_rgba(34,211,238,0.2)] disabled:opacity-60"
       >
         {creating ? (
@@ -706,6 +708,7 @@ export function CreatePmoWizard() {
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const [identity, setIdentityState] = useState<PmoTenantIdentity>(() => {
     const draft = loadDraft();
@@ -794,6 +797,8 @@ export function CreatePmoWizard() {
 
   const handleCreate = async () => {
     setCreating(true);
+    setCreateError(null);
+
     const tenant: PmoTenant = {
       identity,
       vault,
@@ -805,10 +810,18 @@ export function CreatePmoWizard() {
     };
 
     const result = await savePmoTenant(tenant);
-    if (!result.ok) {
-      console.warn("[pmo] Supabase save failed, cached locally:", result.error);
+
+    if (result.status !== "success") {
+      // Persistence failed — block navigation, preserve draft, surface error.
+      console.error("[pmo:wizard] activation_blocked status=%s error=%s", result.status, result.error);
+      setCreateError(result.error);
+      setCreating(false);
+      // Draft intentionally preserved so the user does not lose their work.
+      return;
     }
 
+    // Persistence confirmed — safe to cache locally, clear draft, and navigate.
+    console.info("[pmo:wizard] activation_confirmed redirecting to invite-team");
     try {
       localStorage.setItem("pmfreak.pmo.tenant", JSON.stringify(tenant));
     } catch {}
@@ -841,6 +854,7 @@ export function CreatePmoWizard() {
             state={wizardState}
             creating={creating}
             onCreate={handleCreate}
+            createError={createError}
           />
         );
       default:
@@ -902,6 +916,22 @@ export function CreatePmoWizard() {
       <div className="rounded-2xl border border-white/[0.07] bg-slate-950/50 p-6 md:p-8">
         {renderStep()}
       </div>
+
+      {/* Blocking persistence error — no navigation until resolved */}
+      {createError && (
+        <div className="rounded-xl border border-red-400/40 bg-red-950/40 p-4">
+          <p className="mb-1 text-sm font-semibold text-red-300">Activation failed — changes not saved</p>
+          <p className="text-sm text-red-200/80">{createError}</p>
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={creating}
+            className="mt-3 rounded-lg border border-red-400/30 px-4 py-1.5 text-sm font-medium text-red-200 transition hover:bg-red-400/10 disabled:opacity-40"
+          >
+            {creating ? "Retrying…" : "Retry"}
+          </button>
+        </div>
+      )}
 
       {/* Errors */}
       {errors.length > 0 && (
