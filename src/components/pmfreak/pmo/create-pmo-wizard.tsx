@@ -709,6 +709,7 @@ export function CreatePmoWizard() {
   const [errors, setErrors] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createErrorClass, setCreateErrorClass] = useState<"recoverable_failure" | "fatal_failure" | null>(null);
 
   const [identity, setIdentityState] = useState<PmoTenantIdentity>(() => {
     const draft = loadDraft();
@@ -796,8 +797,12 @@ export function CreatePmoWizard() {
   };
 
   const handleCreate = async () => {
+    if (createError) {
+      console.info(JSON.stringify({ event: "pmo.create.retry", timestamp: new Date().toISOString() }));
+    }
     setCreating(true);
     setCreateError(null);
+    setCreateErrorClass(null);
 
     const tenant: PmoTenant = {
       identity,
@@ -813,15 +818,14 @@ export function CreatePmoWizard() {
 
     if (result.status !== "success") {
       // Persistence failed — block navigation, preserve draft, surface error.
-      console.error("[pmo:wizard] activation_blocked status=%s error=%s", result.status, result.error);
       setCreateError(result.error);
+      setCreateErrorClass(result.status);
       setCreating(false);
       // Draft intentionally preserved so the user does not lose their work.
       return;
     }
 
     // Persistence confirmed — safe to cache locally, clear draft, and navigate.
-    console.info("[pmo:wizard] activation_confirmed redirecting to invite-team");
     try {
       localStorage.setItem("pmfreak.pmo.tenant", JSON.stringify(tenant));
     } catch {}
@@ -919,17 +923,32 @@ export function CreatePmoWizard() {
 
       {/* Blocking persistence error — no navigation until resolved */}
       {createError && (
-        <div className="rounded-xl border border-red-400/40 bg-red-950/40 p-4">
-          <p className="mb-1 text-sm font-semibold text-red-300">Activation failed — changes not saved</p>
+        <div className="rounded-xl border border-red-400/40 bg-red-950/40 p-4" role="alert">
+          <p className="mb-0.5 text-[10px] uppercase tracking-[0.18em] text-red-400/70">
+            {createErrorClass === "fatal_failure" ? "Fatal failure" : "Recoverable failure"}
+          </p>
+          <p className="mb-1 text-sm font-semibold text-red-300">PMO activation failed</p>
           <p className="text-sm text-red-200/80">{createError}</p>
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={creating}
-            className="mt-3 rounded-lg border border-red-400/30 px-4 py-1.5 text-sm font-medium text-red-200 transition hover:bg-red-400/10 disabled:opacity-40"
-          >
-            {creating ? "Retrying…" : "Retry"}
-          </button>
+          <div className="mt-3 flex gap-2.5">
+            {createErrorClass === "fatal_failure" ? (
+              <button
+                type="button"
+                onClick={() => { setCreateError(null); setCreateErrorClass(null); setStep(1); }}
+                className="rounded-lg border border-red-400/30 px-4 py-1.5 text-sm font-medium text-red-200 transition hover:bg-red-400/10"
+              >
+                Return to edit
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={creating}
+                className="rounded-lg border border-red-400/30 px-4 py-1.5 text-sm font-medium text-red-200 transition hover:bg-red-400/10 disabled:opacity-40"
+              >
+                {creating ? "Retrying…" : "Retry"}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

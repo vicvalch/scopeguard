@@ -8,34 +8,55 @@ import { validatePmoTenantPayload } from "./pmo-tenant-validate";
 
 // Explicit three-state contract — callers must handle all three.
 export type PmoTenantSaveResult =
-  | { status: "success" }
-  | { status: "recoverable_failure"; error: string }
-  | { status: "fatal_failure"; error: string };
+  | { status: "success"; correlationId: string }
+  | { status: "recoverable_failure"; error: string; failureClass: string; correlationId: string }
+  | { status: "fatal_failure"; error: string; failureClass: string; correlationId: string };
 
 const PMO_TENANT_SCHEMA_VERSION = 2;
 
+type LogLevel = "info" | "warn" | "error";
+
+function emit(
+  level: LogLevel,
+  event: string,
+  fields: Record<string, unknown>
+) {
+  console[level](JSON.stringify({ event, timestamp: new Date().toISOString(), ...fields }));
+}
+
 export async function savePmoTenant(tenant: PmoTenant): Promise<PmoTenantSaveResult> {
+  const correlationId = crypto.randomUUID();
   let upsertedWorkspaceId: string | null = null;
   let supabaseClient: ReturnType<typeof createSupabaseServiceRoleClient> | null = null;
+  let userId: string | undefined;
+  let workspaceId: string | undefined;
+
+  emit("info", "pmo.create.started", { correlationId });
 
   try {
     const validation = validatePmoTenantPayload(tenant);
     if (!validation.ok) {
-      console.error("[pmo:save] fatal_failure reason=validation_failed", { errors: validation.errors });
-      return { status: "fatal_failure", error: "Invalid PMO configuration." };
+      emit("error", "pmo.create.failed", {
+        correlationId,
+        failureClass: "validation_failed",
+        errors: validation.errors,
+      });
+      return { status: "fatal_failure", error: "Invalid PMO configuration.", failureClass: "validation_failed", correlationId };
     }
 
     const user = await getAuthUser();
     if (!user) {
-      console.error("[pmo:save] fatal_failure reason=unauthenticated");
-      return { status: "fatal_failure", error: "Not authenticated." };
+      emit("error", "pmo.create.failed", { correlationId, failureClass: "unauthenticated" });
+      return { status: "fatal_failure", error: "Not authenticated.", failureClass: "unauthenticated", correlationId };
     }
+    userId = user.id;
 
     const resolution = await resolveCanonicalWorkspace(user.id);
     if (!resolution.workspaceId) {
-      console.error("[pmo:save] fatal_failure reason=no_workspace user_id=%s", user.id);
-      return { status: "fatal_failure", error: "No active workspace found for this account." };
+      emit("error", "pmo.create.failed", { correlationId, userId, failureClass: "no_workspace" });
+      return { status: "fatal_failure", error: "No active workspace found for this account.", failureClass: "no_workspace", correlationId };
     }
+    workspaceId = resolution.workspaceId;
 
     supabaseClient = createSupabaseServiceRoleClient({
       routeId: "pmo/save-pmo-tenant",
@@ -57,41 +78,76 @@ export async function savePmoTenant(tenant: PmoTenant): Promise<PmoTenantSaveRes
     );
 
     if (upsertError) {
-      console.error("[pmo:save] recoverable_failure reason=upsert_error workspace_id=%s msg=%s", resolution.workspaceId, upsertError.message);
-      return { status: "recoverable_failure", error: "Failed to save PMO configuration. Please try again." };
+      emit("error", "pmo.create.failed", {
+        correlationId,
+        userId,
+        workspaceId,
+        failureClass: "upsert_error",
+        error: upsertError.message,
+      });
+      return {
+        status: "recoverable_failure",
+        error: "Failed to save PMO configuration. Please try again.",
+        failureClass: "upsert_error",
+        correlationId,
+      };
     }
 
     // Track that the upsert landed so we can roll back on subsequent failure.
     upsertedWorkspaceId = resolution.workspaceId;
+
+    emit("info", "pmo.create.persisted", {
+      correlationId,
+      userId,
+      workspaceId,
+      schemaVersion: PMO_TENANT_SCHEMA_VERSION,
+    });
 
     // Mark onboarding complete — non-fatal: the governance row is the canonical proof.
     const { error: metaError } = await supabaseClient.auth.admin.updateUserById(user.id, {
       user_metadata: { onboarding_completed: true },
     });
     if (metaError) {
-      console.warn("[pmo:save] non_fatal reason=metadata_update_failed user_id=%s msg=%s", user.id, metaError.message);
+      emit("warn", "pmo.create.metadata_warn", { correlationId, userId, error: metaError.message });
     }
 
-    console.info("[pmo:save] success workspace_id=%s schema_version=%d", upsertedWorkspaceId, PMO_TENANT_SCHEMA_VERSION);
-    return { status: "success" };
+    emit("info", "pmo.create.success", { correlationId, userId, workspaceId });
+    return { status: "success", correlationId };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[pmo:save] recoverable_failure reason=unexpected_exception msg=%s", message);
+    emit("error", "pmo.create.failed", {
+      correlationId,
+      userId,
+      workspaceId,
+      failureClass: "unexpected_exception",
+      error: message,
+    });
 
     // Explicit rollback: if the upsert landed before the exception, undo it.
     if (upsertedWorkspaceId && supabaseClient) {
+      emit("warn", "pmo.create.rollback.started", { correlationId, userId, workspaceId: upsertedWorkspaceId });
       try {
         await supabaseClient
           .from("workspace_governance")
           .delete()
           .eq("workspace_id", upsertedWorkspaceId);
-        console.warn("[pmo:save] rollback executed workspace_id=%s", upsertedWorkspaceId);
+        emit("warn", "pmo.create.rollback.completed", { correlationId, userId, workspaceId: upsertedWorkspaceId });
       } catch (rollbackErr) {
         const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : "unknown";
-        console.error("[pmo:save] rollback_failed workspace_id=%s msg=%s", upsertedWorkspaceId, rbMsg);
+        emit("error", "pmo.create.rollback.failed", {
+          correlationId,
+          userId,
+          workspaceId: upsertedWorkspaceId,
+          error: rbMsg,
+        });
       }
     }
 
-    return { status: "recoverable_failure", error: "An unexpected error occurred. Please try again." };
+    return {
+      status: "recoverable_failure",
+      error: "An unexpected error occurred. Please try again.",
+      failureClass: "unexpected_exception",
+      correlationId,
+    };
   }
 }
