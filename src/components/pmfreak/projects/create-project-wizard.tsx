@@ -16,6 +16,7 @@ import {
   DEFAULT_GOVERNANCE,
 } from "@/lib/projects/project-onboarding-types";
 import { saveProjectOnboarding } from "@/lib/projects/save-project-onboarding";
+import type { ProjectSaveResult } from "@/lib/projects/save-project-onboarding";
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 
@@ -503,14 +504,22 @@ function StepBrainActivation({
   discovery,
   activating,
   contextReady,
+  saveError,
+  saveFailureClass,
   onActivate,
+  onRetry,
+  onFixConfig,
 }: {
   identity: ProjectIdentity;
   delivery: DeliveryContext;
   discovery: IntelligenceDiscovery;
   activating: boolean;
   contextReady: boolean;
+  saveError: string | null;
+  saveFailureClass: "recoverable_failure" | "fatal_failure" | null;
   onActivate: () => void;
+  onRetry: () => void;
+  onFixConfig: () => void;
 }) {
   const humanize = (v: string) => v.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -597,10 +606,64 @@ function StepBrainActivation({
         </div>
       )}
 
+      {/* INVARIANT 5: Blocking error banner — surfaced on every failure */}
+      {saveError && saveFailureClass && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-2xl border border-red-400/35 bg-red-950/40 p-5 space-y-3"
+        >
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 text-red-400 text-base shrink-0">✕</span>
+            <div className="space-y-1 flex-1">
+              <p className="text-sm font-semibold text-red-200">Project creation failed</p>
+              <p className="text-sm text-red-300/80 leading-relaxed">
+                {saveError === "upgrade_required"
+                  ? "Your current plan does not support additional projects. Please upgrade to continue."
+                  : saveError}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            <span className="rounded-full border border-red-400/30 bg-red-400/10 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-red-300">
+              {saveFailureClass === "fatal_failure" ? "Fatal" : "Recoverable"}
+            </span>
+            <span className="text-[10px] text-zinc-600">Your draft has been preserved.</span>
+          </div>
+          {saveFailureClass === "recoverable_failure" ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="w-full rounded-xl border border-red-300/30 bg-red-400/[0.08] px-4 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-400/[0.14]"
+            >
+              Retry
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onFixConfig}
+                className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-zinc-300 transition hover:border-white/20"
+              >
+                Return to edit
+              </button>
+              {saveError === "upgrade_required" && (
+                <a
+                  href="/billing"
+                  className="flex-1 rounded-xl border border-amber-300/30 bg-amber-400/[0.08] px-4 py-2.5 text-sm font-semibold text-amber-200 text-center transition hover:bg-amber-400/[0.14]"
+                >
+                  Upgrade plan
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <button
         type="button"
         onClick={onActivate}
-        disabled={activating || !contextReady}
+        disabled={activating || !contextReady || !!saveError}
         className="relative w-full overflow-hidden rounded-2xl border border-cyan-300/30 bg-gradient-to-r from-cyan-950/60 via-indigo-950/60 to-cyan-950/60 px-6 py-5 text-base font-semibold text-white shadow-[0_0_40px_rgba(34,211,238,0.12)] transition-all hover:shadow-[0_0_60px_rgba(34,211,238,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {activating ? (
@@ -624,6 +687,8 @@ export function CreateProjectWizard() {
   const [errors, setErrors] = useState<string[]>([]);
   const [activating, setActivating] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveFailureClass, setSaveFailureClass] = useState<"recoverable_failure" | "fatal_failure" | null>(null);
+  const [correlationId] = useState(() => `proj_${Date.now()}`);
 
   const [identity, setIdentity] = useState<ProjectIdentity>(() => {
     const d = loadDraft();
@@ -690,6 +755,7 @@ export function CreateProjectWizard() {
 
     setActivating(true);
     setSaveError(null);
+    setSaveFailureClass(null);
 
     const payload: ProjectOnboardingPayload = {
       identity,
@@ -699,19 +765,34 @@ export function CreateProjectWizard() {
       createdAt: new Date().toISOString(),
     };
 
+    let result: ProjectSaveResult;
     try {
-      const result = await saveProjectOnboarding(payload);
-      if (result.ok) {
-        clearDraft();
-        router.push(`/projects/${result.projectId}`);
-      } else {
-        setSaveError(result.error);
-        setActivating(false);
-      }
+      result = await saveProjectOnboarding(payload, correlationId);
     } catch {
-      setSaveError("An unexpected error occurred. Please try again.");
+      // Server action transport failure — treat as recoverable
+      setSaveError("A network error occurred. Your draft is preserved. Please try again.");
+      setSaveFailureClass("recoverable_failure");
       setActivating(false);
+      return;
     }
+
+    if (result.status !== "success") {
+      // INVARIANT 3: draft preserved on failure — INVARIANT 1: no navigation
+      setSaveError(result.error);
+      setSaveFailureClass(result.status);
+      setActivating(false);
+      return;
+    }
+
+    // Persistence confirmed — safe to clear draft and navigate
+    clearDraft();
+    router.push(`/projects/${result.projectId}`);
+  };
+
+  const handleRetry = () => {
+    setSaveError(null);
+    setSaveFailureClass(null);
+    void handleActivate();
   };
 
   const contextReady = hasMinimumContext(identity, delivery);
@@ -740,7 +821,11 @@ export function CreateProjectWizard() {
             discovery={discovery}
             activating={activating}
             contextReady={contextReady}
+            saveError={saveError}
+            saveFailureClass={saveFailureClass}
             onActivate={handleActivate}
+            onRetry={handleRetry}
+            onFixConfig={() => { setSaveError(null); setSaveFailureClass(null); setStep(1); }}
           />
         );
       default:
@@ -811,13 +896,6 @@ export function CreateProjectWizard() {
               <li key={e} className="text-sm text-red-300">{e}</li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {/* Save error */}
-      {saveError && (
-        <div className="rounded-xl border border-red-400/25 bg-red-400/[0.05] p-4">
-          <p className="text-sm text-red-300">{saveError}</p>
         </div>
       )}
 
