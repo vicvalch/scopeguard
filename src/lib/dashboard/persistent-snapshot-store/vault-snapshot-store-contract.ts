@@ -16,7 +16,7 @@ export interface DashboardVaultSnapshotStoreContract {
   listLatestSnapshots(request: DashboardSourceHydrationRequest): Promise<DashboardSourceSnapshot[]>
 }
 
-function isValidVaultContract(client: any): client is DashboardVaultSnapshotStoreContract {
+function isValidVaultContract(client: unknown): client is DashboardVaultSnapshotStoreContract {
   return (
     typeof client === 'object' &&
     client !== null &&
@@ -26,7 +26,7 @@ function isValidVaultContract(client: any): client is DashboardVaultSnapshotStor
   )
 }
 
-export function createVaultDashboardSnapshotStore(input: { vaultClient?: any }): DashboardSnapshotStore {
+export function createVaultDashboardSnapshotStore(input: { vaultClient?: unknown }): DashboardSnapshotStore {
   const { vaultClient } = input
 
   if (!vaultClient) {

@@ -1,4 +1,5 @@
 import type { DashboardTaskLifecycleRecord } from './types'
+import type { DashboardApprovalDecision } from '../approval-workflow/index'
 
 export interface PersistentLifecycleRecord {
   tenant_id: string
@@ -12,9 +13,9 @@ export interface PersistentLifecycleRecord {
   retry_count: number
   created_at: string
   updated_at: string
-  payload_json: Record<string, any>
-  approval_request_json: Record<string, any> | null
-  approval_decisions_json: any[]
+  payload_json: Record<string, unknown>
+  approval_request_json: Record<string, unknown> | null
+  approval_decisions_json: DashboardApprovalDecision[]
 }
 
 export function mapLifecycleToPersistentRecord(input: {

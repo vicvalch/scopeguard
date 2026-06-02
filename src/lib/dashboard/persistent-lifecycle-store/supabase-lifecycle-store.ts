@@ -1,10 +1,32 @@
 import type { DashboardPersistentLifecycleStoreConfig, DashboardPersistentLifecycleStoreHealth, DashboardTaskLifecycleStore } from './types'
 import { buildLifecycleScopeFilter, mapLifecycleToPersistentRecord, mapPersistentRecordToLifecycle, type PersistentLifecycleRecord } from './lifecycle-record-mapper'
 import { mapEventToPersistentRecord, mapPersistentRecordToEvent, type PersistentLifecycleEventRecord } from './lifecycle-event-mapper'
+import type { DashboardTaskLifecycleRecord } from './types'
+import type { DashboardTaskLifecycleEvent } from './types'
+
+/** Minimal structural interface for the Supabase query builder chain. */
+interface SupabaseQueryBuilder {
+  eq(column: string, value: string | null): SupabaseQueryBuilder
+  is(column: string, value: null): SupabaseQueryBuilder
+  order(column: string, options?: { ascending?: boolean }): SupabaseQueryBuilder
+  limit(count: number): SupabaseQueryBuilder
+  maybeSingle(): Promise<{ data: unknown; error: unknown }>
+  then: Promise<{ data: unknown; error: unknown }>['then']
+}
+
+/** Minimal structural interface for the Supabase client. */
+export interface SupabaseClient {
+  from(table: string): {
+    select(columns: string): SupabaseQueryBuilder
+    upsert(record: Record<string, unknown>, options?: Record<string, unknown>): Promise<{ error: unknown }>
+    insert(record: Record<string, unknown>, options?: Record<string, unknown>): Promise<{ error: unknown }>
+  }
+  rpc?: (...args: unknown[]) => unknown
+}
 
 const EVENTS_TABLE = 'dashboard_task_lifecycle_events'
 
-function applyScope(query: any, tenantId: string, workspaceId?: string) {
+function applyScope(query: SupabaseQueryBuilder, tenantId: string, workspaceId?: string): SupabaseQueryBuilder {
   const scope = buildLifecycleScopeFilter(tenantId, workspaceId)
   query = query.eq('tenant_id', scope.tenant_id)
   query = scope.workspace_id === null ? query.is('workspace_id', null) : query.eq('workspace_id', scope.workspace_id)
@@ -12,9 +34,9 @@ function applyScope(query: any, tenantId: string, workspaceId?: string) {
 }
 
 export function createSupabasePersistentLifecycleStore(input: {
-  client: any
+  client: SupabaseClient
   config: DashboardPersistentLifecycleStoreConfig
-}): DashboardTaskLifecycleStore & { getLifecycleById(id: string): Promise<any>; getEventsForLifecycle(lifecycleId: string): Promise<any[]> } {
+}): DashboardTaskLifecycleStore & { getLifecycleById(id: string): Promise<DashboardTaskLifecycleRecord | null>; getEventsForLifecycle(lifecycleId: string): Promise<DashboardTaskLifecycleEvent[]> } {
   const { client, config } = input
   const lifecycleTable = config.tableName ?? 'dashboard_task_lifecycle_records'
 
@@ -63,7 +85,7 @@ export function createSupabasePersistentLifecycleStore(input: {
   }
 }
 
-export function getSupabaseLifecycleStoreHealth(client: any): DashboardPersistentLifecycleStoreHealth {
+export function getSupabaseLifecycleStoreHealth(client: SupabaseClient | null | undefined): DashboardPersistentLifecycleStoreHealth {
   const warnings: string[] = []
   const errors: string[] = []
   if (!client) errors.push('Supabase client is missing.')

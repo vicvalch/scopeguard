@@ -15,10 +15,10 @@ export async function loadPortfolioDashboardViewModel(
   try {
     const apiResponse = await fetchPortfolioDashboard(options)
     return runDashboardConsumptionRuntime({ apiResponse })
-  } catch (fetchError: any) {
+  } catch (fetchError: unknown) {
     const normalizedError =
-      fetchError && typeof fetchError.code === 'string'
-        ? fetchError
+      fetchError && typeof (fetchError as Record<string, unknown>).code === 'string'
+        ? (fetchError as Record<string, unknown>)
         : {
             code: 'dashboard_api_network_error',
             message: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error',

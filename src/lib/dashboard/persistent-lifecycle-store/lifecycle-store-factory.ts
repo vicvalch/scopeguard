@@ -1,10 +1,10 @@
 import type { DashboardPersistentLifecycleStoreConfig, DashboardPersistentLifecycleStoreHealth } from './types'
-import { createSupabasePersistentLifecycleStore, getSupabaseLifecycleStoreHealth } from './supabase-lifecycle-store'
+import { createSupabasePersistentLifecycleStore, getSupabaseLifecycleStoreHealth, type SupabaseClient } from './supabase-lifecycle-store'
 import { createVaultPersistentLifecycleStore, type DashboardVaultLifecycleStoreContract } from './vault-lifecycle-store-contract'
 
 export function createPersistentLifecycleStore(input: {
   config: DashboardPersistentLifecycleStoreConfig
-  supabaseClient?: any
+  supabaseClient?: SupabaseClient
   vaultProvider?: DashboardVaultLifecycleStoreContract
 }) {
   if (input.config.provider === 'supabase') {
@@ -15,7 +15,7 @@ export function createPersistentLifecycleStore(input: {
 
 export function getPersistentLifecycleStoreHealth(input: {
   config: DashboardPersistentLifecycleStoreConfig
-  supabaseClient?: any
+  supabaseClient?: SupabaseClient
   vaultProvider?: DashboardVaultLifecycleStoreContract
 }): DashboardPersistentLifecycleStoreHealth {
   if (input.config.provider === 'supabase') return getSupabaseLifecycleStoreHealth(input.supabaseClient)

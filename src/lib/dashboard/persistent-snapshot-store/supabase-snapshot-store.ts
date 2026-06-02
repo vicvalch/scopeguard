@@ -3,8 +3,27 @@ import type { DashboardSourceSnapshotRecord } from './types'
 import { mapRecordToSnapshot, mapSnapshotToRecord } from './snapshot-record-mapper'
 import { DEFAULT_DASHBOARD_SNAPSHOT_TABLE } from './types'
 
+/** Minimal structural interface for the Supabase snapshot store client. */
+interface SnapshotSupabaseClient {
+  from(table: string): {
+    upsert(record: Record<string, unknown>, options?: Record<string, unknown>): Promise<{ error: unknown }>
+    select(columns: string): {
+      eq(column: string, value: string): SnapshotQueryBuilder
+      is(column: string, value: null): SnapshotQueryBuilder
+    }
+  }
+}
+
+interface SnapshotQueryBuilder {
+  eq(column: string, value: string | null): SnapshotQueryBuilder
+  is(column: string, value: null): SnapshotQueryBuilder
+  order(column: string, options?: { ascending?: boolean }): SnapshotQueryBuilder
+  limit(count: number): SnapshotQueryBuilder
+  then: Promise<{ data: unknown; error: unknown }>['then']
+}
+
 export function createSupabaseDashboardSnapshotStore(input: {
-  supabaseClient: any
+  supabaseClient: SnapshotSupabaseClient
   tableName?: string
 }): DashboardSnapshotStore {
   const { supabaseClient, tableName = DEFAULT_DASHBOARD_SNAPSHOT_TABLE } = input

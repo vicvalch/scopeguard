@@ -54,8 +54,8 @@ export function adaptDashboardViewModel(input: DashboardConsumptionInput): Dashb
     return base
   }
 
-  const data = apiResponse.data ?? {}
-  const warnings: string[] = apiResponse.warnings ?? []
+  const data = (apiResponse.data ?? {}) as Record<string, unknown>
+  const warnings: string[] = Array.isArray(apiResponse.warnings) ? apiResponse.warnings as string[] : []
 
   if (apiResponse.status === 'error') {
     const firstWarning = warnings[0] ?? 'Dashboard data unavailable'
@@ -73,19 +73,19 @@ export function adaptDashboardViewModel(input: DashboardConsumptionInput): Dashb
     }
   }
 
-  const topRisksTable: any[] = data.topRisksTable ?? []
-  const decisionsWidget: any[] = data.decisionsWidget ?? []
-  const interventionsQueue: any[] = data.interventionsQueue ?? []
-  const alertPanel: any[] = data.alertPanel ?? []
-  const healthPanel = data.portfolioHealthPanel ?? {}
-  const summaryCard = data.executiveSummaryCard ?? {}
+  const topRisksTable: Record<string, unknown>[] = Array.isArray(data.topRisksTable) ? data.topRisksTable as Record<string, unknown>[] : []
+  const decisionsWidget: Record<string, unknown>[] = Array.isArray(data.decisionsWidget) ? data.decisionsWidget as Record<string, unknown>[] : []
+  const interventionsQueue: Record<string, unknown>[] = Array.isArray(data.interventionsQueue) ? data.interventionsQueue as Record<string, unknown>[] : []
+  const alertPanel: Record<string, unknown>[] = Array.isArray(data.alertPanel) ? data.alertPanel as Record<string, unknown>[] : []
+  const healthPanel = (data.portfolioHealthPanel ?? {}) as Record<string, unknown>
+  const summaryCard = (data.executiveSummaryCard ?? {}) as Record<string, unknown>
 
-  const healthScore: number = healthPanel.score ?? 0
-  const healthLabel: string = healthPanel.label ?? ''
-  const criticalRisksCount = topRisksTable.filter((r: any) => r.severity === 'critical').length
+  const healthScore: number = typeof healthPanel.score === 'number' ? healthPanel.score : 0
+  const healthLabel: string = typeof healthPanel.label === 'string' ? healthPanel.label : ''
+  const criticalRisksCount = topRisksTable.filter((r) => r.severity === 'critical').length
   const hasCriticalAttention =
     criticalRisksCount > 0 ||
-    alertPanel.some((a: any) => a.severity === 'critical') ||
+    alertPanel.some((a) => a.severity === 'critical') ||
     healthPanel.status === 'critical'
 
   let status: DashboardViewModel['status']
@@ -107,8 +107,8 @@ export function adaptDashboardViewModel(input: DashboardConsumptionInput): Dashb
     status,
     healthScore,
     healthLabel,
-    executiveSummary: summaryCard.summary ?? '',
-    portfolioRecommendation: summaryCard.recommendation ?? '',
+    executiveSummary: typeof summaryCard.summary === 'string' ? summaryCard.summary : '',
+    portfolioRecommendation: typeof summaryCard.recommendation === 'string' ? summaryCard.recommendation : '',
     risksCount: topRisksTable.length,
     criticalRisksCount,
     decisionsCount: decisionsWidget.length,
