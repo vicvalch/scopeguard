@@ -10,7 +10,7 @@ function normalizeTimestamp(value: unknown) {
   return value;
 }
 
-function canonicalizeValue(value: any): any {
+function canonicalizeValue(value: any): unknown {
   if (value === null || value === undefined) return null;
   if (typeof value === "string") return normalizeUnicode(value);
   if (typeof value === "number" || typeof value === "boolean") return value;
@@ -20,7 +20,7 @@ function canonicalizeValue(value: any): any {
     return normalized.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b), "en", { sensitivity: "base" }));
   }
   if (typeof value === "object") {
-    const out: Record<string, any> = {};
+    const out: Record<string, unknown> = {};
     for (const key of Object.keys(value).sort()) {
       const maybeTs = key.endsWith("_at") || key.toLowerCase().includes("timestamp") ? normalizeTimestamp(value[key]) : value[key];
       out[key] = canonicalizeValue(maybeTs);

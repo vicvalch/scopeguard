@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated/distributed declaration files:
+    "src/aoc/enterprise/dist/**",
+    "src/aoc/protocol/dist/**",
   ]),
 ]);
 

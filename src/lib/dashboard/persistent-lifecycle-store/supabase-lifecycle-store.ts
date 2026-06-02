@@ -14,7 +14,7 @@ function applyScope(query: any, tenantId: string, workspaceId?: string) {
 export function createSupabasePersistentLifecycleStore(input: {
   client: any
   config: DashboardPersistentLifecycleStoreConfig
-}): DashboardTaskLifecycleStore & { getLifecycleById(id: string): Promise<any>; getEventsForLifecycle(lifecycleId: string): Promise<any[]> } {
+}): DashboardTaskLifecycleStore & { getLifecycleById(id: string): Promise<unknown>; getEventsForLifecycle(lifecycleId: string): Promise<unknown[]> } {
   const { client, config } = input
   const lifecycleTable = config.tableName ?? 'dashboard_task_lifecycle_records'
 

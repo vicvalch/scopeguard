@@ -27,17 +27,17 @@ export interface DashboardViewModel {
   sections: {
     healthPanel: any
     executiveSummaryCard: any
-    topRisksTable: any[]
-    decisionsWidget: any[]
-    interventionsQueue: any[]
-    alertPanel: any[]
+    topRisksTable: unknown[]
+    decisionsWidget: unknown[]
+    interventionsQueue: unknown[]
+    alertPanel: unknown[]
   }
   warnings: string[]
   error?: DashboardConsumptionError
 }
 
 export interface DashboardConsumptionInput {
-  apiResponse?: any
+  apiResponse?: unknown
   fetchError?: DashboardConsumptionError
   loading?: boolean
 }

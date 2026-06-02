@@ -4,7 +4,7 @@ import { replayLifecycleEventStream } from './lifecycle-replay-engine'
 import { reconcilePersistentLifecycleState } from './lifecycle-reconciliation-engine'
 import type { DashboardPersistentLifecycleRuntimeReport, DashboardTaskLifecycleStore } from './types'
 
-export async function runPersistentLifecycleStoreRuntime(input: { store: DashboardTaskLifecycleStore; now?: string; supabaseClient?: any }): Promise<DashboardPersistentLifecycleRuntimeReport> {
+export async function runPersistentLifecycleStoreRuntime(input: { store: DashboardTaskLifecycleStore; now?: string; supabaseClient?: unknown }): Promise<DashboardPersistentLifecycleRuntimeReport> {
   const hydrated = await hydratePersistentLifecycleState(input.store)
   const replay = replayLifecycleEventStream({ lifecycles: hydrated.records, events: hydrated.events })
   const reconciliation = reconcilePersistentLifecycleState({ hydrated: hydrated.records, replayed: replay.reconstructed })

@@ -12,7 +12,7 @@ const TRUST_EVENT_WINDOW_SECONDS = 300;
 
 const TRUST_LEVEL_RANK: Record<string, number> = { local: 1, approved_external: 2, critical: 3 };
 
-export function verifyTrustEventSequence(input: { event: any; previousEvent?: any; seenNonces?: Set<string>; windowSeconds?: number }) {
+export function verifyTrustEventSequence(input: { event: any; previousEvent?: unknown; seenNonces?: Set<string>; windowSeconds?: number }) {
   const ev = input.event;
   const windowMs = (input.windowSeconds ?? TRUST_EVENT_WINDOW_SECONDS) * 1000;
   const createdAt = new Date(ev.created_at).getTime();

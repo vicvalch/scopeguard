@@ -3,8 +3,6 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 
 const proxy = readFileSync("src/proxy.ts", "utf8");
-const middleware = readFileSync("src/middleware.ts", "utf8");
-const registry = readFileSync("src/lib/auth/route-policy-registry.ts", "utf8");
 const onboardingMap = readFileSync("src/lib/auth/onboarding-route-map.ts", "utf8");
 const resolveState = readFileSync("src/lib/auth/resolve-onboarding-state.ts", "utf8");
 
@@ -75,14 +73,12 @@ test("loop guard: never redirect to current pathname", () => {
 test("exactly one config.matcher exists (in src/proxy.ts)", () => {
   const proxyMatcherCount = (proxy.match(/export const config/g) ?? []).length;
   assert.equal(proxyMatcherCount, 1, "src/proxy.ts must export exactly one config");
-  // middleware.ts must NOT define its own config — it re-exports from proxy
-  assert.doesNotMatch(middleware, /export const config\s*=/);
-  assert.match(middleware, /config.*from.*proxy|proxy.*config/);
 });
 
-test("middleware.ts is the single Next.js entrypoint and re-exports proxy", () => {
-  assert.match(middleware, /middleware/);
-  assert.match(middleware, /from.*\.\/proxy/);
+test("src/proxy.ts is the sole routing authority (no middleware.ts)", () => {
+  // Next 16 uses proxy.ts only — middleware.ts must not exist
+  assert.equal(existsSync("src/middleware.ts"), false, "src/middleware.ts must not exist");
+  assert.equal(existsSync("middleware.ts"), false, "root middleware.ts must not exist");
 });
 
 test("root proxy.ts does not exist (legacy deleted)", () => {

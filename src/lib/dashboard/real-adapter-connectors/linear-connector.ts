@@ -11,7 +11,7 @@ function mapPriority(priority: string): number {
   return 3
 }
 
-export function buildLinearIssuePayload(input: { payload: DashboardProjectedTaskPayload; config: LinearConnectorConfig }): any {
+export function buildLinearIssuePayload(input: { payload: DashboardProjectedTaskPayload; config: LinearConnectorConfig }): unknown {
   return {
     teamId: input.config.teamId,
     title: input.payload.title,

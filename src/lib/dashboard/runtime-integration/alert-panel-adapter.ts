@@ -4,14 +4,14 @@ const MAX_ALERTS = 12
 
 export function adaptAlertPanel(
   executiveDashboardReport: any,
-  interventionReport?: any,
-  decisionSimulationReports?: any[],
-  conflictReport?: any,
+  interventionReport?: unknown,
+  decisionSimulationReports?: unknown[],
+  conflictReport?: unknown,
 ): AlertPanelItemDTO[] {
   const alerts: AlertPanelItemDTO[] = []
 
   // A) Critical conflicts
-  const conflicts: any[] = conflictReport?.conflicts ?? []
+  const conflicts: unknown[] = conflictReport?.conflicts ?? []
   for (const conflict of conflicts) {
     if (conflict.severity === 'critical') {
       alerts.push({
@@ -28,7 +28,7 @@ export function adaptAlertPanel(
   }
 
   // B) Critical interventions
-  const interventions: any[] = interventionReport?.interventions ?? []
+  const interventions: unknown[] = interventionReport?.interventions ?? []
   for (const intervention of interventions) {
     if (intervention.urgency === 'critical') {
       alerts.push({
@@ -42,7 +42,7 @@ export function adaptAlertPanel(
   }
 
   // C) Escalated or rejected decision simulations
-  const decisions: any[] = decisionSimulationReports ?? []
+  const decisions: unknown[] = decisionSimulationReports ?? []
   for (const decision of decisions) {
     if (decision.recommendation === 'escalate' || decision.recommendation === 'reject') {
       alerts.push({

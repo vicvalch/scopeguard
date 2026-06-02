@@ -14,7 +14,7 @@ export function validateApprovalMutationRequest(input: unknown): DashboardApprov
     }
   }
 
-  const mutation = input as Record<string, any>
+  const mutation = input as Record<string, unknown>
 
   if (typeof mutation.requestId !== 'string' || mutation.requestId.trim().length === 0) errors.push('requestId is required.')
   if (typeof mutation.envelopeId !== 'string' || mutation.envelopeId.trim().length === 0) errors.push('envelopeId is required.')

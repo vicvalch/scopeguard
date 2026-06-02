@@ -12,7 +12,7 @@ export function buildApprovalMutationResult(input: {
   status: DashboardApprovalMutationStatus
   approvalRequest?: DashboardApprovalRequest
   lifecycle?: DashboardTaskLifecycleRecord
-  decision?: any
+  decision?: unknown
   event?: DashboardTaskLifecycleEvent
   authorization?: DashboardApprovalMutationAuthorizationResult
   errors?: string[]

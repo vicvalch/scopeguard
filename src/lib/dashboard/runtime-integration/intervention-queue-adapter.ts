@@ -18,7 +18,7 @@ function mapUrgencyToSeverity(urgency: string): DashboardSeverity {
 export function adaptInterventionQueue(interventionReport: any): InterventionQueueItemDTO[] {
   if (!interventionReport) return []
 
-  const interventions: any[] = interventionReport.interventions ?? []
+  const interventions: unknown[] = interventionReport.interventions ?? []
 
   return interventions
     .slice()

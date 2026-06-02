@@ -63,8 +63,8 @@ export interface DashboardAuthorizationApiError {
 export interface DashboardActorResolverInput {
   request?: Request
   headers?: Headers
-  session?: any
-  user?: any
+  session?: unknown
+  user?: unknown
 }
 
 export type DashboardActorResolver = (input: DashboardActorResolverInput) => Promise<DashboardAuthorizationActor | null>

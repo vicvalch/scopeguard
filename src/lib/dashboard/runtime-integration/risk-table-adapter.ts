@@ -9,7 +9,7 @@ function mapRiskLevelToSeverity(riskLevel: string): DashboardSeverity {
 }
 
 export function adaptRiskTable(executiveDashboardReport: any): RiskTableRowDTO[] {
-  const topRisks: any[] = executiveDashboardReport?.topRisks ?? []
+  const topRisks: unknown[] = executiveDashboardReport?.topRisks ?? []
 
   return topRisks.slice(0, MAX_RISK_ROWS).map((risk: any): RiskTableRowDTO => ({
     id: risk.id ?? '',
