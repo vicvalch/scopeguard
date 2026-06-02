@@ -7,9 +7,19 @@ import { ensureUserWorkspace } from "@/lib/workspaces";
 import type { ProjectOnboardingPayload } from "./project-onboarding-types";
 
 export type ProjectSaveResult =
-  | { status: "success"; projectId: string }
-  | { status: "recoverable_failure"; error: string }
-  | { status: "fatal_failure"; error: string };
+  | { status: "success"; projectId: string; correlationId: string }
+  | {
+      status: "recoverable_failure";
+      error: string;
+      failureClass: string;
+      correlationId: string;
+    }
+  | {
+      status: "fatal_failure";
+      error: string;
+      failureClass: string;
+      correlationId: string;
+    };
 
 function validatePayload(payload: ProjectOnboardingPayload): string | null {
   if (!payload?.identity?.projectName?.trim()) return "Project name is required";
@@ -21,8 +31,8 @@ function validatePayload(payload: ProjectOnboardingPayload): string | null {
   return null;
 }
 
-function structuredLog(event: string, fields: Record<string, unknown>) {
-  console.info(JSON.stringify({ event, ...fields, ts: new Date().toISOString() }));
+function emit(event: string, fields: Record<string, unknown>) {
+  console.info(JSON.stringify({ event, ...fields, timestamp: new Date().toISOString() }));
 }
 
 export async function saveProjectOnboarding(
@@ -30,41 +40,57 @@ export async function saveProjectOnboarding(
   correlationId?: string
 ): Promise<ProjectSaveResult> {
   const cid = correlationId ?? `proj_${Date.now()}`;
+  let insertedProjectId: string | null = null;
 
   try {
     const user = await getAuthUser();
     if (!user) {
-      structuredLog("project.create.failed", {
+      emit("project.create.failed", {
         correlationId: cid,
         failureClass: "fatal_failure",
         reason: "unauthenticated",
       });
-      return { status: "fatal_failure", error: "Not authenticated. Please sign in and try again." };
+      return {
+        status: "fatal_failure",
+        error: "Not authenticated. Please sign in and try again.",
+        failureClass: "unauthenticated",
+        correlationId: cid,
+      };
     }
 
     const validationError = validatePayload(payload);
     if (validationError) {
-      structuredLog("project.create.failed", {
+      emit("project.create.failed", {
         correlationId: cid,
         failureClass: "fatal_failure",
         reason: "invalid_payload",
         detail: validationError,
         userId: user.id,
       });
-      return { status: "fatal_failure", error: validationError };
+      return {
+        status: "fatal_failure",
+        error: validationError,
+        failureClass: "invalid_payload",
+        correlationId: cid,
+      };
     }
 
-    structuredLog("project.create.started", { correlationId: cid, userId: user.id });
+    emit("project.create.started", { correlationId: cid, userId: user.id });
 
     const projectAccess = await canCreateMoreProjects(user.id);
     if (!projectAccess.ok) {
-      structuredLog("project.create.failed", {
+      emit("project.create.failed", {
         correlationId: cid,
         failureClass: "fatal_failure",
         reason: "upgrade_required",
         userId: user.id,
       });
-      return { status: "fatal_failure", error: "upgrade_required" };
+      return {
+        status: "fatal_failure",
+        error: "upgrade_required",
+        failureClass: "upgrade_required",
+        correlationId: cid,
+      };
     }
 
     let ensured: { workspaceId: string };
@@ -72,24 +98,34 @@ export async function saveProjectOnboarding(
       ensured = await ensureUserWorkspace(user.id);
     } catch (wsErr) {
       const detail = wsErr instanceof Error ? wsErr.message : "unknown workspace error";
-      structuredLog("project.create.failed", {
+      emit("project.create.failed", {
         correlationId: cid,
         failureClass: "recoverable_failure",
         reason: "workspace_error",
         detail,
         userId: user.id,
       });
-      return { status: "recoverable_failure", error: "Unable to resolve workspace. Please try again." };
+      return {
+        status: "recoverable_failure",
+        error: "Unable to resolve workspace. Please try again.",
+        failureClass: "workspace_error",
+        correlationId: cid,
+      };
     }
 
     if (!ensured.workspaceId) {
-      structuredLog("project.create.failed", {
+      emit("project.create.failed", {
         correlationId: cid,
         failureClass: "fatal_failure",
         reason: "missing_workspace",
         userId: user.id,
       });
-      return { status: "fatal_failure", error: "No workspace found. Please contact support." };
+      return {
+        status: "fatal_failure",
+        error: "No workspace found. Please contact support.",
+        failureClass: "missing_workspace",
+        correlationId: cid,
+      };
     }
 
     const supabase = await createSupabaseServerClient();
@@ -108,7 +144,7 @@ export async function saveProjectOnboarding(
       .single<{ id: string }>();
 
     if (error || !data?.id) {
-      structuredLog("project.create.failed", {
+      emit("project.create.failed", {
         correlationId: cid,
         failureClass: "recoverable_failure",
         reason: "db_insert_error",
@@ -119,25 +155,89 @@ export async function saveProjectOnboarding(
       return {
         status: "recoverable_failure",
         error: error?.message ?? "Unable to create project. Please try again.",
+        failureClass: "db_insert_error",
+        correlationId: cid,
       };
     }
 
-    structuredLog("project.create.persisted", {
+    // Insert confirmed — track for potential rollback in downstream steps
+    insertedProjectId = data.id;
+
+    // Downstream initialization steps go here.
+    // Any exception thrown below triggers the rollback in the outer catch.
+
+    emit("project.create.persisted", {
       correlationId: cid,
       projectId: data.id,
       userId: user.id,
       workspaceId: ensured.workspaceId,
     });
 
-    return { status: "success", projectId: data.id };
+    emit("project.create.success", {
+      correlationId: cid,
+      projectId: data.id,
+      userId: user.id,
+      workspaceId: ensured.workspaceId,
+    });
+
+    return { status: "success", projectId: data.id, correlationId: cid };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    structuredLog("project.create.failed", {
+
+    // Rollback if the project row was already inserted before the downstream failure
+    if (insertedProjectId) {
+      emit("project.create.rollback.started", {
+        correlationId: cid,
+        projectId: insertedProjectId,
+        reason: message,
+      });
+
+      try {
+        const supabase = await createSupabaseServerClient();
+        const { error: rbErr } = await supabase
+          .from("projects")
+          .delete()
+          .eq("id", insertedProjectId);
+
+        if (rbErr) {
+          emit("project.create.rollback.failed", {
+            correlationId: cid,
+            projectId: insertedProjectId,
+            detail: rbErr.message,
+          });
+        } else {
+          emit("project.create.rollback.completed", {
+            correlationId: cid,
+            projectId: insertedProjectId,
+          });
+        }
+      } catch (rbCatch) {
+        emit("project.create.rollback.failed", {
+          correlationId: cid,
+          projectId: insertedProjectId,
+          detail: rbCatch instanceof Error ? rbCatch.message : "rollback exception",
+        });
+      }
+
+      return {
+        status: "recoverable_failure",
+        error: "Project initialization failed. The project has been removed. Please try again.",
+        failureClass: "downstream_failure",
+        correlationId: cid,
+      };
+    }
+
+    emit("project.create.failed", {
       correlationId: cid,
       failureClass: "recoverable_failure",
       reason: "unexpected_exception",
       detail: message,
     });
-    return { status: "recoverable_failure", error: "An unexpected error occurred. Please try again." };
+    return {
+      status: "recoverable_failure",
+      error: "An unexpected error occurred. Please try again.",
+      failureClass: "unexpected_exception",
+      correlationId: cid,
+    };
   }
 }

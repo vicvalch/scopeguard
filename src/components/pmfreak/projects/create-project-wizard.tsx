@@ -506,6 +506,7 @@ function StepBrainActivation({
   contextReady,
   saveError,
   saveFailureClass,
+  saveFailureDetail,
   onActivate,
   onRetry,
   onFixConfig,
@@ -517,6 +518,7 @@ function StepBrainActivation({
   contextReady: boolean;
   saveError: string | null;
   saveFailureClass: "recoverable_failure" | "fatal_failure" | null;
+  saveFailureDetail: string | null;
   onActivate: () => void;
   onRetry: () => void;
   onFixConfig: () => void;
@@ -616,7 +618,7 @@ function StepBrainActivation({
           <div className="flex items-start gap-3">
             <span className="mt-0.5 text-red-400 text-base shrink-0">✕</span>
             <div className="space-y-1 flex-1">
-              <p className="text-sm font-semibold text-red-200">Project creation failed</p>
+              <p className="text-sm font-semibold text-red-200">Project Brain activation failed</p>
               <p className="text-sm text-red-300/80 leading-relaxed">
                 {saveError === "upgrade_required"
                   ? "Your current plan does not support additional projects. Please upgrade to continue."
@@ -628,6 +630,11 @@ function StepBrainActivation({
             <span className="rounded-full border border-red-400/30 bg-red-400/10 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.16em] text-red-300">
               {saveFailureClass === "fatal_failure" ? "Fatal" : "Recoverable"}
             </span>
+            {saveFailureDetail && (
+              <span className="rounded-full border border-zinc-700 bg-zinc-800/60 px-2.5 py-0.5 text-[10px] text-zinc-500">
+                {saveFailureDetail}
+              </span>
+            )}
             <span className="text-[10px] text-zinc-600">Your draft has been preserved.</span>
           </div>
           {saveFailureClass === "recoverable_failure" ? (
@@ -688,6 +695,7 @@ export function CreateProjectWizard() {
   const [activating, setActivating] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveFailureClass, setSaveFailureClass] = useState<"recoverable_failure" | "fatal_failure" | null>(null);
+  const [saveFailureDetail, setSaveFailureDetail] = useState<string | null>(null);
   const [correlationId] = useState(() => `proj_${Date.now()}`);
 
   const [identity, setIdentity] = useState<ProjectIdentity>(() => {
@@ -772,6 +780,7 @@ export function CreateProjectWizard() {
       // Server action transport failure — treat as recoverable
       setSaveError("A network error occurred. Your draft is preserved. Please try again.");
       setSaveFailureClass("recoverable_failure");
+      setSaveFailureDetail("network_error");
       setActivating(false);
       return;
     }
@@ -780,6 +789,7 @@ export function CreateProjectWizard() {
       // INVARIANT 3: draft preserved on failure — INVARIANT 1: no navigation
       setSaveError(result.error);
       setSaveFailureClass(result.status);
+      setSaveFailureDetail(result.failureClass);
       setActivating(false);
       return;
     }
@@ -790,8 +800,10 @@ export function CreateProjectWizard() {
   };
 
   const handleRetry = () => {
+    console.info(JSON.stringify({ event: "project.create.retry", correlationId, ts: new Date().toISOString() }));
     setSaveError(null);
     setSaveFailureClass(null);
+    setSaveFailureDetail(null);
     void handleActivate();
   };
 
@@ -823,9 +835,10 @@ export function CreateProjectWizard() {
             contextReady={contextReady}
             saveError={saveError}
             saveFailureClass={saveFailureClass}
+            saveFailureDetail={saveFailureDetail}
             onActivate={handleActivate}
             onRetry={handleRetry}
-            onFixConfig={() => { setSaveError(null); setSaveFailureClass(null); setStep(1); }}
+            onFixConfig={() => { setSaveError(null); setSaveFailureClass(null); setSaveFailureDetail(null); setStep(1); }}
           />
         );
       default:
