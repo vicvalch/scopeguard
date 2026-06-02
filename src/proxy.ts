@@ -13,19 +13,34 @@ import {
   requiresOnboardingCompletion,
 } from "@/lib/auth/route-policy-registry";
 
+// ─── Policy table ────────────────────────────────────────────────────────────
+// Public routes        → passthrough (no auth required)
+// Auth routes          → redirect authenticated users away; accept ?next param
+// Protected routes     → unauthenticated → /login?next=<path>
+// Setup/onboarding     → authenticated + complete → /workspace
+// Workspace routes     → incomplete onboarding → getOnboardingRedirect(state)
+// Active               → passthrough
+// trial_blocked        → /trial-inactive  (via getOnboardingRedirect)
+// API routes           → passthrough (handled by route handlers)
+// Assets/_next         → excluded by matcher; never reach this function
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
   const policy = getRouteAccessPolicy(pathname);
 
+  // API routes: let route handlers own authentication
   if (policy === "api") {
     return response;
   }
 
+  // Debug routes blocked in production
   if (isInternalDebugRoute(pathname) && process.env.NODE_ENV === "production") {
     return NextResponse.redirect(new URL("/workspace", request.url));
   }
 
+  // Unauthenticated access to protected route → /login?next=<path>
   if (isProtectedPageRoute(pathname) && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
@@ -39,6 +54,7 @@ export async function proxy(request: NextRequest) {
     const onboardingState = resolveOnboardingStateFromJwt(jwtOnboardingCompleted);
     const onboardingCompleted = isOnboardingComplete(onboardingState);
 
+    // Authenticated user on auth route → resolve post-auth destination
     if (isAuthRoute(pathname)) {
       const requestedRoute = request.nextUrl.searchParams.get("next");
       const decision = resolvePostAuthDestination({
@@ -47,16 +63,21 @@ export async function proxy(request: NextRequest) {
         requestedRoute,
         isRequestedRouteSafe: requestedRoute ? isSafeContinuationRoute(requestedRoute) : false,
       });
-
       return NextResponse.redirect(new URL(decision.destination, request.url));
     }
 
+    // Completed onboarding user on setup route → /workspace
     if (isSetupRoute(pathname) && onboardingCompleted) {
       return NextResponse.redirect(new URL("/workspace", request.url));
     }
 
+    // Incomplete onboarding on workspace route → state-specific redirect
     if (requiresOnboardingCompletion(pathname) && !onboardingCompleted && pathname !== "/logout") {
-      return NextResponse.redirect(new URL(getOnboardingRedirect(onboardingState), request.url));
+      const dest = getOnboardingRedirect(onboardingState);
+      // Guard: never redirect to the current path (loop prevention)
+      if (dest !== pathname) {
+        return NextResponse.redirect(new URL(dest, request.url));
+      }
     }
   }
 
@@ -64,5 +85,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|apple-icon.png|icon.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
