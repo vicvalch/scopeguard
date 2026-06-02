@@ -31,7 +31,7 @@ export interface DashboardSourceRefreshProvider {
     reason: string
     now: string
   }): Promise<{
-    payload: any
+    payload: Record<string, unknown>
     schemaVersion: string
     runtimeVersion: string
     expiresAt?: string
