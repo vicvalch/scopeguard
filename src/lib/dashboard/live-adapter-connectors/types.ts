@@ -22,7 +22,7 @@ export interface DashboardLiveConnector {
     status: 'created' | 'simulated' | 'failed'
     message: string
     retryable?: boolean
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, any>
   }>
 }
 

@@ -26,10 +26,10 @@ export function createStaticDashboardSourceProvider(input: {
 }
 
 export function createDefaultDashboardSourceProviders(payloads?: {
-  executiveDashboardReport?: unknown
-  interventionReport?: unknown
-  decisionSimulationReports?: unknown[]
-  conflictReport?: unknown
+  executiveDashboardReport?: any
+  interventionReport?: any
+  decisionSimulationReports?: any[]
+  conflictReport?: any
 }): Partial<Record<DashboardSourceKind, DashboardSourceRefreshProvider>> {
   const result: Partial<Record<DashboardSourceKind, DashboardSourceRefreshProvider>> = {}
   if (!payloads) return result

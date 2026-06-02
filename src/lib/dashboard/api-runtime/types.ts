@@ -37,8 +37,8 @@ export interface DashboardApiError {
 }
 
 export interface DashboardSourceData {
-  executiveDashboardReport?: unknown
-  interventionReport?: unknown
-  decisionSimulationReports?: unknown[]
-  conflictReport?: unknown
+  executiveDashboardReport?: any
+  interventionReport?: any
+  decisionSimulationReports?: any[]
+  conflictReport?: any
 }

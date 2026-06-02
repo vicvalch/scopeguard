@@ -9,7 +9,7 @@ export interface PersistentLifecycleEventRecord {
   occurred_at: string
   actor: string | null
   message: string
-  metadata_json: Record<string, unknown>
+  metadata_json: Record<string, any>
 }
 
 export function mapEventToPersistentRecord(input: {

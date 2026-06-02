@@ -73,10 +73,10 @@ export function adaptDashboardViewModel(input: DashboardConsumptionInput): Dashb
     }
   }
 
-  const topRisksTable: unknown[] = data.topRisksTable ?? []
-  const decisionsWidget: unknown[] = data.decisionsWidget ?? []
-  const interventionsQueue: unknown[] = data.interventionsQueue ?? []
-  const alertPanel: unknown[] = data.alertPanel ?? []
+  const topRisksTable: any[] = data.topRisksTable ?? []
+  const decisionsWidget: any[] = data.decisionsWidget ?? []
+  const interventionsQueue: any[] = data.interventionsQueue ?? []
+  const alertPanel: any[] = data.alertPanel ?? []
   const healthPanel = data.portfolioHealthPanel ?? {}
   const summaryCard = data.executiveSummaryCard ?? {}
 

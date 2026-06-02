@@ -13,7 +13,7 @@ function resolveDecisionSeverity(recommendation: string, confidenceScore: number
   return 'warning'
 }
 
-export function adaptDecisionWidget(decisionSimulationReports: unknown[]): DecisionWidgetItemDTO[] {
+export function adaptDecisionWidget(decisionSimulationReports: any[]): DecisionWidgetItemDTO[] {
   if (!decisionSimulationReports?.length) return []
 
   return decisionSimulationReports.slice(0, MAX_DECISION_ITEMS).map((report: any): DecisionWidgetItemDTO => ({

@@ -12,9 +12,9 @@ export interface PersistentLifecycleRecord {
   retry_count: number
   created_at: string
   updated_at: string
-  payload_json: Record<string, unknown>
-  approval_request_json: Record<string, unknown> | null
-  approval_decisions_json: unknown[]
+  payload_json: Record<string, any>
+  approval_request_json: Record<string, any> | null
+  approval_decisions_json: any[]
 }
 
 export function mapLifecycleToPersistentRecord(input: {

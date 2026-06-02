@@ -18,7 +18,7 @@ export type AocPrivilegedDbContext = {
 // AOC only requires .from() access; callers use any for chaining.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface AocDbClient {
-  from(table: string): unknown;
+  from(table: string): any;
 }
 
 export interface PrivilegedDbPort {

@@ -26,7 +26,7 @@ function isValidVaultContract(client: any): client is DashboardVaultSnapshotStor
   )
 }
 
-export function createVaultDashboardSnapshotStore(input: { vaultClient?: unknown }): DashboardSnapshotStore {
+export function createVaultDashboardSnapshotStore(input: { vaultClient?: any }): DashboardSnapshotStore {
   const { vaultClient } = input
 
   if (!vaultClient) {

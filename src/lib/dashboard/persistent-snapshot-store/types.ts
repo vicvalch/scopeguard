@@ -26,8 +26,8 @@ export interface DashboardSourceSnapshotRecord {
 
 export interface PersistentSnapshotStoreConfig {
   provider: PersistentSnapshotStoreProvider
-  supabaseClient?: unknown
-  vaultClient?: unknown
+  supabaseClient?: any
+  vaultClient?: any
   tableName?: string
 }
 

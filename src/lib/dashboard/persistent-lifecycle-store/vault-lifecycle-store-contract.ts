@@ -9,7 +9,7 @@ export interface DashboardVaultLifecycleStoreContract {
   getEventsForLifecycle(lifecycleId: string): Promise<DashboardTaskLifecycleEvent[]>
 }
 
-export function createVaultPersistentLifecycleStore(provider?: DashboardVaultLifecycleStoreContract): DashboardTaskLifecycleStore & { getLifecycleById(id: string): Promise<unknown>; getEventsForLifecycle(lifecycleId: string): Promise<unknown[]> } {
+export function createVaultPersistentLifecycleStore(provider?: DashboardVaultLifecycleStoreContract): DashboardTaskLifecycleStore & { getLifecycleById(id: string): Promise<any>; getEventsForLifecycle(lifecycleId: string): Promise<any[]> } {
   const fail = async () => { throw new Error('Vault/BYOS lifecycle store provider not configured.') }
   return {
     saveLifecycle: provider?.saveLifecycle ?? fail,

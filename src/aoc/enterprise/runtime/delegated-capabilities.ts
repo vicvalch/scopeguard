@@ -41,7 +41,7 @@ export async function resolveAuthorityChain(runtime: RuntimeContext, input: { wo
   const supabase = runtime.privilegedDb.createClient({ routeId: "governance.delegations.resolve_chain", operation: "resolve_delegation_chain", reason: "delegation_evaluation", systemActor: "system", workspaceId: input.workspaceId });
   const seen = new Set<string>();
   const actorTransitions = new Set<string>();
-  const chain: unknown[] = [];
+  const chain: any[] = [];
   let currentId: string | null = input.delegationId;
   const maxDepth = input.maxDepth ?? DEFAULT_MAX_DELEGATION_DEPTH;
   while (currentId) {
@@ -70,7 +70,7 @@ export async function evaluateDelegatedAccess(runtime: RuntimeContext, input: De
     : validated.delegation.delegatee_user_id
       ? { actorId: validated.delegation.delegatee_user_id, actorType: "user", workspaceId: input.workspaceId }
       : { actorId: "system:delegation", actorType: "system", workspaceId: input.workspaceId };
-  const policy = await runtime.policyEvaluator.evaluatePolicyDecision({ actor: delegationActor, workspaceId: input.workspaceId, resourceType: (validated.delegation.resource_type ?? "workspace") as any, resourceId: (validated.delegation.resource_id ?? input.workspaceId) as string, permission: validated.delegation.requested_permission as PolicyDecision extends never ? never : unknown, rbacAllowed: true });
+  const policy = await runtime.policyEvaluator.evaluatePolicyDecision({ actor: delegationActor, workspaceId: input.workspaceId, resourceType: (validated.delegation.resource_type ?? "workspace") as any, resourceId: (validated.delegation.resource_id ?? input.workspaceId) as string, permission: validated.delegation.requested_permission as PolicyDecision extends never ? never : any, rbacAllowed: true });
   if (policy.decision !== "allow") return { decision: "policy_denied" as const, allowed: false, delegation: validated.delegation, chain: chainRes.chain, policy };
   return { decision: "allow" as const, allowed: true, delegation: validated.delegation, chain: chainRes.chain, policy };
 }

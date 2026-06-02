@@ -57,14 +57,14 @@ export interface DashboardAction {
   escalationRoute: DashboardActionEscalationRoute
   evidenceRequired: string[]
   rationale: string
-  signal?: Record<string, unknown>
+  signal?: Record<string, any>
 }
 
 export interface DashboardActionCenterInput {
-  dashboardViewModel?: unknown
-  cacheRefreshResult?: unknown
-  hydrationResult?: unknown
-  pmoInterventionReport?: unknown
+  dashboardViewModel?: any
+  cacheRefreshResult?: any
+  hydrationResult?: any
+  pmoInterventionReport?: any
 }
 
 export interface DashboardActionCenterReport {

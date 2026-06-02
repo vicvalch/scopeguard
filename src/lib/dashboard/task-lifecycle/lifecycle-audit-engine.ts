@@ -5,7 +5,7 @@ export function buildLifecycleEvent(input: {
   eventType: DashboardTaskLifecycleEventType
   message: string
   actor?: string
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, any>
   now: string
 }): DashboardTaskLifecycleEvent {
   return {
