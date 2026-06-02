@@ -37,7 +37,8 @@ test('proxy does not hijack valid onboarded protected navigation', () => {
 
 test('proxy enforces setup access for onboarding incomplete users', () => {
   assert.match(proxy, /requiresOnboardingCompletion\(pathname\) && !onboardingCompleted/);
-  assert.match(proxy, /new URL\("\/workspace\/setup", request\.url\)/);
+  // Canonical: redirect target comes from getOnboardingRedirect, not hardcoded
+  assert.match(proxy, /getOnboardingRedirect\(onboardingState\)/);
 });
 
 test('proxy redirects onboarding-complete users away from setup routes', () => {
